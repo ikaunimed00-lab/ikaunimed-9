@@ -1,8 +1,13 @@
 <?php
 
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
+
+beforeEach(function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+});
 
 test('login screen can be rendered', function () {
     $response = $this->get(route('login'));
@@ -12,6 +17,18 @@ test('login screen can be rendered', function () {
 
 test('users can authenticate using the login screen', function () {
     $user = User::factory()->withoutTwoFactor()->create();
+    $user->assignRole('subscriber');
+    $user->forceFill([
+        'wa' => '08123456789',
+        'nik' => '1234567890123456',
+        'tempat_lahir' => 'Medan',
+        'tanggal_lahir' => now()->subYears(25)->toDateString(),
+        'alamat_lengkap' => 'Alamat Lengkap',
+        's1_fakultas' => 'Fakultas',
+        's1_prodi' => 'Prodi',
+        's1_tahun_masuk' => '2010',
+        's1_tahun_tamat' => '2014',
+    ])->save();
 
     $response = $this->post(route('login.store'), [
         'email' => $user->email,
@@ -19,7 +36,7 @@ test('users can authenticate using the login screen', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('dashboard.subscriber'));
 });
 
 test('users with two factor enabled are redirected to two factor challenge', function () {

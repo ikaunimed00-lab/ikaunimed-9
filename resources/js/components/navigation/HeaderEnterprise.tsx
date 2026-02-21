@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, LogOut, Menu } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, ShoppingCart } from 'lucide-react';
 import { menuConfig } from './menuConfig';
 import { MegaMenu } from './MegaMenu';
 import { MobileMenu } from './MobileMenu';
@@ -9,18 +9,21 @@ interface HeaderProps {
   currentPath?: string;
   logoUrl?: string;
   siteName?: string;
+  tagline?: string;
 }
 
 export const HeaderEnterprise: React.FC<HeaderProps> = ({
   currentPath = '/',
   logoUrl = '/images/favicon_ikaunimed.png',
   siteName = 'IKA UNIMED',
+  tagline = 'Connect, Collaborate, Contribute',
 }) => {
   const [openMegaMenu, setOpenMegaMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { auth } = usePage().props as any;
+  const { auth, cart } = usePage().props as any;
   const user = auth?.user;
+  const cartCount = cart?.item_count ?? 0;
 
   const handleLogout = () => {
     router.post('/logout');
@@ -91,7 +94,7 @@ export const HeaderEnterprise: React.FC<HeaderProps> = ({
                   <span style={{ color: '#FFD700' }}>MED</span>
                 </div>
                 <span className="text-[7px] md:text-[9px] text-gray-500 mt-1 font-bold uppercase tracking-widest">
-                  Connect, Collaborate, Contribute
+                  {tagline}
                 </span>
               </div>
             </Link>
@@ -168,18 +171,29 @@ export const HeaderEnterprise: React.FC<HeaderProps> = ({
               </ul>
               {/* CTA Desktop */}
               <div className="hidden lg:flex items-center gap-3 border-l border-gray-200 pl-6">
+                <Link href="/shop/cart" className="relative inline-flex items-center justify-center">
+                  <button
+                    type="button"
+                    className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-colors"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                        {cartCount}
+                      </span>
+                    )}
+                  </button>
+                </Link>
                 {user ? (
                   <>
                     <Link
                       href={
                         user.role === 'subscriber'
                           ? '/dashboard/subscriber'
-                          : user.role === 'admin'
-                            ? '/dashboard/admin'
-                            : user.role === 'editor'
-                              ? '/dashboard/editor'
-                              : '/dashboard/writer'
-                      }
+                            : ['admin', 'editor', 'writer'].includes(user.role)
+                            ? '/admin'
+                            : '/dashboard'
+                        }
                     >
                       <button className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm px-5 py-2.5 font-extrabold rounded-full shadow-[0_4px_14px_rgba(5,150,105,0.35)] transition-all duration-300 hover:scale-105">
                         <LayoutDashboard className="w-4 h-4" />

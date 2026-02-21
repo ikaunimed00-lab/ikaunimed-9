@@ -25,4 +25,9 @@ class JobVacancy extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function interestedUsers()
+    {
+        return $this->belongsToMany(User::class, 'job_vacancy_user_interests')->withTimestamps();
+    }
 }

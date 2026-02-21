@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\JobVacancy;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -24,9 +25,19 @@ class JobVacancyController extends Controller
             })
             ->latest();
 
+        $alumniBaseQuery = User::appearInDirectory();
+
+        $alumniStats = [
+            'total' => (clone $alumniBaseQuery)->count(),
+            'open_to_work' => (clone $alumniBaseQuery)
+                ->where('status_pekerjaan', 'mencari_kerja')
+                ->count(),
+        ];
+
         return Inertia::render('JobVacancy/Index', [
             'vacancies' => $query->paginate(9)->withQueryString(),
             'filters' => $request->only(['search', 'type']),
+            'alumniStats' => $alumniStats,
         ]);
     }
 
@@ -42,9 +53,44 @@ class JobVacancyController extends Controller
             ->limit(3)
             ->get();
 
+        $user = auth()->user();
+
+        $interest = [
+            'is_interested' => false,
+            'total' => $vacancy->interestedUsers()->count(),
+        ];
+
+        if ($user && $user->canAppearInDirectory()) {
+            $interest['is_interested'] = $vacancy->interestedUsers()
+                ->where('user_id', $user->id)
+                ->exists();
+        }
+
         return Inertia::render('JobVacancy/Show', [
             'vacancy' => $vacancy,
             'related' => $related,
+            'interest' => $interest,
         ]);
+    }
+
+    public function toggleInterest(Request $request, JobVacancy $vacancy)
+    {
+        $user = $request->user();
+
+        if (! $user || ! $user->canAppearInDirectory()) {
+            abort(403);
+        }
+
+        $alreadyInterested = $vacancy->interestedUsers()
+            ->where('user_id', $user->id)
+            ->exists();
+
+        if ($alreadyInterested) {
+            $vacancy->interestedUsers()->detach($user->id);
+        } else {
+            $vacancy->interestedUsers()->attach($user->id);
+        }
+
+        return redirect()->back();
     }
 }

@@ -41,4 +41,12 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI', 'http://localhost:8000/auth/google/callback'),
     ],
 
+    'tripay' => [
+        'api_key' => env('TRIPAY_API_KEY'),
+        'private_key' => env('TRIPAY_PRIVATE_KEY'),
+        'merchant_code' => env('TRIPAY_MERCHANT_CODE'),
+        'mode' => env('TRIPAY_MODE', 'sandbox'),
+        'default_method' => env('TRIPAY_DEFAULT_METHOD', 'BRIVA'),
+    ],
+
 ];

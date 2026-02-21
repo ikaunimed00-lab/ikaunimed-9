@@ -3,7 +3,7 @@ import { PropsWithChildren, useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import { LogOut, Menu } from "lucide-react";
-import { getMenuByRole } from "@/config/sidebar-menu-config";
+import { SIDEBAR_MENU, SidebarGroup } from "@/config/sidebar-menu-config";
 
 export default function WriterLayout({ children }: PropsWithChildren) {
     const { auth }: any = usePage().props;
@@ -13,8 +13,25 @@ export default function WriterLayout({ children }: PropsWithChildren) {
         router.post(route("logout"));
     }
 
-    // ✅ Ambil menu dari config berdasarkan role
-    const menuItems = getMenuByRole("writer");
+    const permissions = (auth?.user?.permissions as string[] | undefined) ?? [];
+    const userRoles = auth?.user?.roles as string[] | undefined;
+    const isSuperAdmin = userRoles?.includes("super_admin");
+
+    const hasPermission = (required?: string[]) => {
+        if (!required || required.length === 0) return true;
+        if (isSuperAdmin) return true;
+        return required.some((p) => permissions.includes(p));
+    };
+
+    const menuGroups: SidebarGroup[] = SIDEBAR_MENU
+        .filter((group) => hasPermission(group.requiredPermissions))
+        .map((group) => ({
+            ...group,
+            items: group.items.filter((item) =>
+                hasPermission(item.requiredPermissions)
+            ),
+        }))
+        .filter((group) => group.items.length > 0);
 
     return (
         <div className="min-h-screen flex bg-gradient-to-br from-white via-blue-50/20 to-white">
@@ -48,22 +65,40 @@ export default function WriterLayout({ children }: PropsWithChildren) {
                 </div>
 
                 {/* NAVIGATION - DYNAMIC dari Config */}
-                <nav className="p-3 space-y-2 text-sm">
-                    {menuItems.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                            <Link
-                                key={item.route}
-                                href={route(item.route)}
-                                className="group flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-indigo-500/20 text-slate-300 hover:text-white transition-all duration-200 border border-transparent hover:border-blue-500/30"
-                            >
-                                <Icon className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" />
-                                {sidebarOpen && (
-                                    <span className="font-semibold">{item.title}</span>
-                                )}
-                            </Link>
-                        );
-                    })}
+                <nav className="p-3 space-y-4 text-sm">
+                    {menuGroups.map((group) => (
+                        <div key={group.group} className="space-y-2">
+                            {sidebarOpen && (
+                                <div className="px-4 text-[10px] font-semibold tracking-widest text-slate-500 uppercase">
+                                    {group.group}
+                                </div>
+                            )}
+                            {group.items.map((item) => {
+                                const Icon = item.icon;
+                                let href = "#";
+                                try {
+                                    href = route(item.route);
+                                } catch (e) {
+                                    href = "#";
+                                }
+
+                                return (
+                                    <Link
+                                        key={item.route}
+                                        href={href}
+                                        className="group flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-indigo-500/20 text-slate-300 hover:text-white transition-all duration-200 border border-transparent hover:border-blue-500/30"
+                                    >
+                                        <Icon className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" />
+                                        {sidebarOpen && (
+                                            <span className="font-semibold">
+                                                {item.label}
+                                            </span>
+                                        )}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    ))}
                 </nav>
 
                 {/* LOGOUT SECTION */}

@@ -77,7 +77,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
         {/* Menu Items + CTA (scrollable) */}
         <div className="overflow-y-auto h-[calc(100vh-73px)]">
           <nav className="py-2">
-            {menuItems.map((item) => {
+            {menuItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = currentPath === item.href;
               const hasSubMenu = item.sections && item.sections.length > 0;
@@ -87,7 +87,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
               if (!hasSubMenu && item.href) {
                 return (
                   <Link
-                    key={item.id}
+                    key={item.id || `mobile-menu-${index}`}
                     href={item.href}
                     className={`
                       flex items-center gap-3 px-6 py-3.5
@@ -116,7 +116,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
 
               // Menu dengan submenu (Accordion)
               return (
-                <div key={item.id} className="border-b border-gray-100">
+                <div key={item.id || `mobile-menu-parent-${index}`} className="border-b border-gray-100">
                   {/* Parent Item - Clickable untuk expand */}
                   <button
                     onClick={() => toggleSection(item.id)}
@@ -155,10 +155,10 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                     `}
                   >
                     <div className="bg-gray-50/50 py-2">
-                      {item.sections?.map((section) => {
+                      {item.sections?.map((section, sectionIndex) => {
                         const SectionIcon = section.icon;
                         return (
-                          <div key={section.id} className="mb-4 last:mb-0">
+                          <div key={section.id || `section-${sectionIndex}`} className="mb-4 last:mb-0">
                             {/* Section Header */}
                             <div className="flex items-center gap-2 px-6 py-2">
                               {SectionIcon && (
@@ -178,12 +178,12 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
 
                             {/* Section Items */}
                             <div className="space-y-0.5 mt-1">
-                              {section.items.map((menuItem) => {
+                              {section.items.map((menuItem, itemIndex) => {
                                 const ItemIcon = menuItem.icon;
                                 const isItemActive = currentPath === menuItem.href;
                                 return (
                                   <a
-                                    key={menuItem.title}
+                                    key={menuItem.title || `menu-item-${itemIndex}`}
                                     href={menuItem.href}
                                     onClick={onClose}
                                     className={`
@@ -241,23 +241,29 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
           <div className="border-t border-gray-100 px-6 py-3 mt-2">
             {user ? (
               <>
-                <Link
-                  href={
-                    user.role === 'subscriber'
-                      ? '/dashboard/subscriber'
-                      : user.role === 'admin'
-                        ? '/dashboard/admin'
-                        : user.role === 'editor'
-                          ? '/dashboard/editor'
-                          : '/dashboard/writer'
-                  }
-                  onClick={onClose}
-                >
-                  <button className="w-full mb-2.5 flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white py-2.5 text-xs font-semibold rounded-lg shadow-sm transition-all duration-200 hover:brightness-105">
-                    <LayoutDashboard className="w-4 h-4" />
-                    DASHBOARD
-                  </button>
-                </Link>
+                {['admin', 'editor', 'writer'].includes(user.role) ? (
+                  <a
+                    href="/admin"
+                    onClick={onClose}
+                    className="block w-full mb-2.5"
+                  >
+                    <button className="w-full flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white py-2.5 text-xs font-semibold rounded-lg shadow-sm transition-all duration-200 hover:brightness-105">
+                      <LayoutDashboard className="w-4 h-4" />
+                      DASHBOARD ADMIN
+                    </button>
+                  </a>
+                ) : (
+                  <Link
+                    href={user.role === 'subscriber' ? '/dashboard/subscriber' : '/dashboard'}
+                    onClick={onClose}
+                    className="block w-full mb-2.5"
+                  >
+                    <button className="w-full flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white py-2.5 text-xs font-semibold rounded-lg shadow-sm transition-all duration-200 hover:brightness-105">
+                      <LayoutDashboard className="w-4 h-4" />
+                      DASHBOARD
+                    </button>
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     onClose();

@@ -22,6 +22,7 @@ import {
   HelpCircle,
   Image,
   Video,
+  BookOpen,
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -208,6 +209,12 @@ export const menuConfig: MainMenuItem[] = [
             description: 'Program beasiswa untuk alumni',
             href: '/beasiswa',
             icon: GraduationCap,
+          },
+          {
+            title: 'Kelas & Kursus',
+            description: 'Katalog kelas online dan micro learning',
+            href: '/courses',
+            icon: BookOpen,
           },
           {
             title: 'Micro Learning',

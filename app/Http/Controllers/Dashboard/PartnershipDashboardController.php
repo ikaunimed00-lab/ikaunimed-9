@@ -15,8 +15,8 @@ class PartnershipDashboardController extends Controller
         $user = auth()->user();
         $query = Partnership::query()->latest();
 
-        // Filter for subscribers
-        if (!$user->isEditor()) {
+        // Filter untuk non-editor (writer/subscriber)
+        if (!$user->can('cms.job.publish')) {
             $query->where('user_id', $user->id);
         }
 
@@ -49,8 +49,8 @@ class PartnershipDashboardController extends Controller
         $validated['user_id'] = $user->id;
         $validated['slug'] = Str::slug($validated['name'] . '-' . Str::random(6));
         
-        // Auto-approve for admins/editors, pending for subscribers
-        $validated['status'] = $user->isEditor() ? 'active' : 'pending';
+        // Auto-approve untuk user dengan izin publish job (editor/admin), pending untuk lainnya
+        $validated['status'] = $user->can('cms.job.publish') ? 'active' : 'pending';
 
         Partnership::create($validated);
 
@@ -60,10 +60,7 @@ class PartnershipDashboardController extends Controller
 
     public function edit(Partnership $partnership)
     {
-        // Authorization check
-        if (!auth()->user()->isEditor() && auth()->id() !== $partnership->user_id) {
-            abort(403);
-        }
+        $this->authorize('update', $partnership);
 
         return Inertia::render('Dashboard/Partnership/Edit', [
             'partnership' => $partnership,
@@ -72,10 +69,7 @@ class PartnershipDashboardController extends Controller
 
     public function update(Request $request, Partnership $partnership)
     {
-        // Authorization check
-        if (!auth()->user()->isEditor() && auth()->id() !== $partnership->user_id) {
-            abort(403);
-        }
+        $this->authorize('update', $partnership);
 
         $rules = [
             'name' => 'required|string|max:255',
@@ -86,8 +80,8 @@ class PartnershipDashboardController extends Controller
             'logo' => 'nullable|image|max:2048',
         ];
 
-        // Only admin/editor can update status directly
-        if (auth()->user()->isEditor()) {
+        // Hanya user dengan izin publish job yang boleh update status
+        if (auth()->user()->can('cms.job.publish')) {
             $rules['status'] = 'required|in:active,pending,rejected,closed';
         }
 
@@ -105,10 +99,7 @@ class PartnershipDashboardController extends Controller
 
     public function destroy(Partnership $partnership)
     {
-        // Authorization check
-        if (!auth()->user()->isEditor() && auth()->id() !== $partnership->user_id) {
-            abort(403);
-        }
+        $this->authorize('delete', $partnership);
 
         $partnership->delete();
 
@@ -117,9 +108,7 @@ class PartnershipDashboardController extends Controller
 
     public function approve(Partnership $partnership)
     {
-        if (!auth()->user()->isEditor()) {
-            abort(403);
-        }
+        $this->authorize('moderate', $partnership);
 
         $partnership->update(['status' => 'active']);
 
@@ -128,9 +117,7 @@ class PartnershipDashboardController extends Controller
 
     public function reject(Partnership $partnership)
     {
-        if (!auth()->user()->isEditor()) {
-            abort(403);
-        }
+        $this->authorize('moderate', $partnership);
 
         $partnership->update(['status' => 'rejected']);
 

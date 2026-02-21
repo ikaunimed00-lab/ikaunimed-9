@@ -8,7 +8,7 @@ class StoreNewsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check() && auth()->user()->isWriter();
+        return auth()->check() && auth()->user()->can('cms.news.create');
     }
 
     public function rules(): array

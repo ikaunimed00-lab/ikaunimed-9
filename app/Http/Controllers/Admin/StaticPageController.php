@@ -34,7 +34,7 @@ class StaticPageController extends Controller
 
         $page->update($validated);
 
-        return redirect()->route('dashboard.admin.pages.index')
+        return redirect()->route('dashboard.pages.index')
             ->with('success', 'Halaman berhasil diperbarui.');
     }
 }

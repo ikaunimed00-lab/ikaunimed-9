@@ -16,13 +16,13 @@ class JobVacancyDashboardController extends Controller
         
         $query = JobVacancy::query()->latest();
 
-        if ($user->role === 'subscriber') {
+        if ($user->hasSystemRole('subscriber')) {
             $query->where('user_id', $user->id);
         }
 
         return Inertia::render('Dashboard/JobVacancy/Index', [
             'vacancies' => $query->paginate(10),
-            'userRole' => $user->role,
+            'userRole' => $user->systemRoleLabel(),
         ]);
     }
 
@@ -52,7 +52,7 @@ class JobVacancyDashboardController extends Controller
         }
 
         $validated['user_id'] = auth()->id();
-        $validated['status'] = auth()->user()->role === 'subscriber' ? 'pending' : 'active';
+        $validated['status'] = auth()->user()->hasSystemRole('subscriber') ? 'pending' : 'active';
         $validated['slug'] = Str::slug($validated['title'] . '-' . Str::random(6));
 
         JobVacancy::create($validated);
@@ -63,10 +63,7 @@ class JobVacancyDashboardController extends Controller
 
     public function edit(JobVacancy $job)
     {
-        // Authorization check
-        if (auth()->user()->role === 'subscriber' && $job->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('update', $job);
 
         return Inertia::render('Dashboard/JobVacancy/Edit', [
             'job' => $job,
@@ -75,9 +72,7 @@ class JobVacancyDashboardController extends Controller
 
     public function update(Request $request, JobVacancy $job)
     {
-        if (auth()->user()->role === 'subscriber' && $job->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('update', $job);
 
         $rules = [
             'title' => 'required|string|max:255',
@@ -93,8 +88,7 @@ class JobVacancyDashboardController extends Controller
             'logo' => 'nullable|image|max:2048',
         ];
 
-        // Only Admin/Editor can update status directly
-        if (auth()->user()->isAdminOrEditor()) {
+        if (auth()->user()->can('cms.job.publish')) {
             $rules['status'] = 'required|in:active,pending,closed,rejected';
         }
 
@@ -112,9 +106,7 @@ class JobVacancyDashboardController extends Controller
 
     public function approve(JobVacancy $job)
     {
-        if (!auth()->user()->isAdminOrEditor()) {
-            abort(403);
-        }
+        $this->authorize('publish', $job);
 
         $job->update(['status' => 'active']);
 
@@ -123,9 +115,7 @@ class JobVacancyDashboardController extends Controller
 
     public function reject(JobVacancy $job)
     {
-        if (!auth()->user()->isAdminOrEditor()) {
-            abort(403);
-        }
+        $this->authorize('publish', $job);
 
         $job->update(['status' => 'rejected']);
 
@@ -134,9 +124,7 @@ class JobVacancyDashboardController extends Controller
 
     public function destroy(JobVacancy $job)
     {
-        if (auth()->user()->role === 'subscriber' && $job->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('delete', $job);
 
         $job->delete();
 

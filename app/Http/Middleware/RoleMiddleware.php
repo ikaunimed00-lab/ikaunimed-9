@@ -9,7 +9,7 @@ class RoleMiddleware
 {
     public function handle(Request $request, Closure $next, ...$roles)
     {
-        if (! $request->user() || ! in_array($request->user()->role, $roles)) {
+        if (! $request->user() || ! $request->user()->hasSystemRole($roles)) {
             abort(403, 'Anda tidak punya akses.');
         }
 

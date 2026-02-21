@@ -20,20 +20,20 @@ export default function DashboardLayout({ children }) {
           </Link>
 
           {(role === 'admin' || role === 'editor') && (
-            <Link href={route('admin.news.index')} className="block hover:underline">
+            <a href="/admin/news" className="block hover:underline">
               📰 Kelola Berita
-            </Link>
+            </a>
           )}
 
           {role === 'admin' && (
             <>
-              <Link href={route('admin.users.index')} className="block hover:underline">
-                👥 Kelola User
-              </Link>
+              <a href="/admin/users" className="block hover:underline">
+                👥 Kelola User (Filament)
+              </a>
 
-              <Link href={route('admin.legalizations.index')} className="block hover:underline">
-                📄 Kelola Legalisasi
-              </Link>
+              <a href="/admin/legalizations" className="block hover:underline">
+                📄 Kelola Legalisasi (Filament)
+              </a>
             </>
           )}
         </nav>

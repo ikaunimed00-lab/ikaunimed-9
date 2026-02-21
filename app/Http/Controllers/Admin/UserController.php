@@ -12,7 +12,7 @@ class UserController extends Controller
 {
     private function ensureAdmin()
     {
-        if (auth()->user()->role !== 'admin') {
+        if (! auth()->user()->isAdmin()) {
             abort(403, 'Anda tidak punya akses.');
         }
     }
@@ -51,6 +51,7 @@ class UserController extends Controller
         ]);
 
         $user->update($validated);
+        $user->syncRoles([$validated['role']]);
 
         return redirect()->route('admin.users.index')->with('success', 'User berhasil diperbarui.');
     }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Menu, X, LogOut, LayoutDashboard, User, Briefcase, HeartHandshake, BookOpen, Users, Home, Building2, Newspaper, Calendar, Award, GraduationCap, MapPin, CreditCard, Vote, FileCheck, Handshake, TrendingUp, Image as ImageIcon, Video, HelpCircle } from "lucide-react";
+import { ChevronDown, Menu, X, LogOut, LayoutDashboard, User, Briefcase, HeartHandshake, BookOpen, Users, Home, Building2, Newspaper, Calendar, Award, GraduationCap, MapPin, CreditCard, Vote, FileCheck, Handshake, TrendingUp, Image as ImageIcon, Video, HelpCircle, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, usePage, router } from "@inertiajs/react";
 import { cn } from "@/lib/utils";
@@ -8,8 +8,9 @@ import React from "react";
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
-  const { auth } = usePage().props as any;
+  const { auth, cart } = usePage().props as any;
   const user = auth?.user;
+  const cartCount = cart?.item_count ?? 0;
 
   const handleLogout = () => {
     router.post('/logout');
@@ -322,16 +323,42 @@ const Header = () => {
 
           {/* Tombol CTA */}
           <div className="flex items-center gap-3 border-l-2 border-slate-100 pl-6 ml-4">
+            <Link href="/shop/cart" className="relative inline-flex items-center justify-center">
+              <Button
+                variant="outline"
+                size="icon"
+                className="relative h-9 w-9 rounded-full border-2 border-oxygen-teal text-oxygen-teal hover:bg-oxygen-teal hover:text-white transition-all"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
+
             {user ? (
               <>
-                <Link href={user.role === 'subscriber' ? '/dashboard/subscriber' : user.role === 'admin' ? '/dashboard/admin' : user.role === 'editor' ? '/dashboard/editor' : '/dashboard/writer'}>
-                  <Button 
-                    className="flex items-center gap-2 bg-gradient-to-r from-oxygen-teal to-[#00C2B6] hover:to-oxygen-teal text-white text-sm px-6 py-2.5 font-extrabold rounded-full shadow-[0_4px_14px_0_rgba(0,166,157,0.39)] transition-all duration-300 transform hover:scale-105"
-                  >
-                    <LayoutDashboard className="w-4 h-4" />
-                    DASHBOARD
-                  </Button>
-                </Link>
+                {['admin', 'editor', 'writer'].includes(user.role) ? (
+                  <a href="/admin">
+                    <Button 
+                      className="flex items-center gap-2 bg-gradient-to-r from-oxygen-teal to-[#00C2B6] hover:to-oxygen-teal text-white text-sm px-6 py-2.5 font-extrabold rounded-full shadow-[0_4px_14px_0_rgba(0,166,157,0.39)] transition-all duration-300 transform hover:scale-105"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      DASHBOARD
+                    </Button>
+                  </a>
+                ) : (
+                  <Link href={user.role === 'subscriber' ? '/dashboard/subscriber' : '/dashboard'}>
+                    <Button 
+                      className="flex items-center gap-2 bg-gradient-to-r from-oxygen-teal to-[#00C2B6] hover:to-oxygen-teal text-white text-sm px-6 py-2.5 font-extrabold rounded-full shadow-[0_4px_14px_0_rgba(0,166,157,0.39)] transition-all duration-300 transform hover:scale-105"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      DASHBOARD
+                    </Button>
+                  </Link>
+                )}
                 
                 <Button 
                   onClick={handleLogout}
@@ -435,12 +462,21 @@ const Header = () => {
             <div className="flex flex-col gap-4 pt-6 px-4">
               {user ? (
                 <>
-                  <Link href={user.role === 'subscriber' ? '/dashboard/subscriber' : user.role === 'admin' ? '/dashboard/admin' : user.role === 'editor' ? '/dashboard/editor' : '/dashboard/writer'}>
-                    <Button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-oxygen-teal to-[#00C2B6] text-white py-4 font-extrabold rounded-xl">
-                      <LayoutDashboard className="w-5 h-5" />
-                      DASHBOARD
-                    </Button>
-                  </Link>
+                  {['admin', 'editor', 'writer'].includes(user.role) ? (
+                    <a href="/admin">
+                      <Button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-oxygen-teal to-[#00C2B6] text-white py-4 font-extrabold rounded-xl">
+                        <LayoutDashboard className="w-5 h-5" />
+                        DASHBOARD
+                      </Button>
+                    </a>
+                  ) : (
+                    <Link href={user.role === 'subscriber' ? '/dashboard/subscriber' : '/dashboard'}>
+                      <Button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-oxygen-teal to-[#00C2B6] text-white py-4 font-extrabold rounded-xl">
+                        <LayoutDashboard className="w-5 h-5" />
+                        DASHBOARD
+                      </Button>
+                    </Link>
+                  )}
                   <Button 
                     onClick={handleLogout}
                     className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-4 font-extrabold rounded-xl hover:bg-red-600 cursor-pointer"

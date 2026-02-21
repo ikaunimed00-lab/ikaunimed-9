@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use App\Models\Notification;
 
@@ -73,8 +74,8 @@ class AlumniProfileController extends Controller
             'educations.*.university' => ['required', 'string'],
             'educations.*.faculty' => ['nullable', 'string'],
             'educations.*.major' => ['required', 'string'],
-            'educations.*.admission_year' => ['nullable', 'integer'],
-            'educations.*.graduation_year' => ['nullable', 'integer'],
+            'educations.*.admission_year' => ['nullable', 'integer', 'min:1990', 'max:' . now()->year],
+            'educations.*.graduation_year' => ['nullable', 'integer', 'min:1990', 'max:' . (now()->year + 10)],
 
         ], [
             'wa.regex' => 'Nomor WhatsApp tidak valid. Gunakan format: 0812xxxxxx atau +62812xxxxxx',
@@ -82,14 +83,27 @@ class AlumniProfileController extends Controller
             'nik.regex' => 'NIK hanya boleh berisi angka',
         ]);
 
-        // Update user fields
+        if (isset($validated['educations'])) {
+            foreach ($validated['educations'] as $index => $education) {
+                $admissionYear = $education['admission_year'] ?? null;
+                $graduationYear = $education['graduation_year'] ?? null;
+
+                if ($admissionYear && $graduationYear && (int) $admissionYear > (int) $graduationYear) {
+                    throw ValidationException::withMessages([
+                        "educations.$index.graduation_year" => 'Tahun lulus harus lebih besar atau sama dengan tahun masuk.',
+                    ]);
+                }
+            }
+        }
+
         $user->update(collect($validated)->except('educations')->toArray());
 
-        // Update educations
         if ($request->has('educations')) {
             $user->educations()->delete();
             $user->educations()->createMany($request->educations);
         }
+
+        $user->recalculateProfileMeta();
 
         return redirect()->route('dashboard')
             ->with('success', 'Profil alumni berhasil diperbarui! Selamat datang di portal IKA UNIMED.');

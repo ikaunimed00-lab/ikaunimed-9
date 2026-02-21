@@ -73,10 +73,10 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ item, isOpen, onClose }) => 
 
           {/* Content Grid */}
           <div className="grid grid-cols-2 gap-x-8 gap-y-6 p-6">
-            {item.sections.map((section) => {
+            {item.sections.map((section, sectionIndex) => {
               const SectionIcon = section.icon;
               return (
-                <div key={section.id} className="space-y-3">
+                <div key={section.id || `section-${sectionIndex}`} className="space-y-3">
                   {/* Section Title */}
                   <div className="flex items-center gap-2 mb-4">
                     {SectionIcon && (
@@ -96,11 +96,11 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ item, isOpen, onClose }) => 
 
                   {/* Section Items */}
                   <div className="space-y-1">
-                    {section.items.map((menuItem) => {
+                    {section.items.map((menuItem, itemIndex) => {
                       const ItemIcon = menuItem.icon;
                       return (
                         <a
-                          key={menuItem.title}
+                          key={menuItem.title || `item-${itemIndex}`}
                           href={menuItem.href}
                           onClick={onClose}
                           className={`

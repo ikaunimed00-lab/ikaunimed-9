@@ -41,6 +41,8 @@ class OAuthController extends Controller
                     'oauth_provider' => 'google',
                 ]);
 
+                $user->assignRole('subscriber');
+
                 Auth::login($user);
             }
 

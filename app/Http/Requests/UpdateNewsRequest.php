@@ -11,11 +11,15 @@ class UpdateNewsRequest extends FormRequest
         $user = auth()->user();
         $news = $this->route('news');
 
-        return $user->isWriter() && (
-            $user->isAdmin() ||
-            $user->isEditor() ||
-            ($user->isWriter() && $news->user_id === $user->id)
-        );
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->can('cms.news.publish')) {
+            return true;
+        }
+
+        return $user->can('cms.news.edit') && $news->user_id === $user->id;
     }
 
     public function rules(): array

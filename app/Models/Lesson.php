@@ -15,4 +15,15 @@ class Lesson extends Model
     {
         return $this->belongsTo(Course::class);
     }
+
+    public function module()
+    {
+        return $this->belongsTo(CourseModule::class, 'course_module_id');
+    }
+
+    public function progress()
+    {
+        return $this->hasMany(LessonProgress::class);
+    }
 }
+

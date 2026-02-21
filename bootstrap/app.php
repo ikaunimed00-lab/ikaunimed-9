@@ -10,7 +10,10 @@ use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
+        web: [
+            __DIR__.'/../routes/web.php',
+            __DIR__.'/../routes/settings.php',
+        ],
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -22,10 +25,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'sidebar_state',
         ]);
 
+        // ✅ EXCLUDE CSRF
+        $middleware->validateCsrfTokens(except: [
+            '_boost/browser-logs',
+            '/_boost/browser-logs',
+        ]);
+
         // WEB MIDDLEWARE STACK
         $middleware->web(append: [
             HandleAppearance::class,
-            HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 

@@ -276,8 +276,7 @@ class NewsController extends Controller
     {
         $user = Auth::user();
 
-        // Only editor & admin can access dashboard
-        if (!$user->isEditor()) {
+        if (! $user->can('cms.news.publish')) {
             return redirect()->route('home');
         }
 
@@ -320,103 +319,24 @@ class NewsController extends Controller
 
     /*
     |------------------------------------------------------------------
-    | ADMIN INDEX
+    | ADMIN INDEX (DEPRECATED - REDIRECT TO FILAMENT)
     |------------------------------------------------------------------
     */
 
     public function adminIndex(Request $request)
     {
-        $user = Auth::user();
-
-        $query = News::query();
-
-        // Filter by role: writers hanya bisa lihat berita mereka sendiri
-        if (!$user->isEditor()) {
-            $query->where('user_id', $user->id);
-        }
-
-        // Filter by organization (Phase 2: User Assignment)
-        if ($user->organization_id) {
-            $query->where('organization_id', $user->organization_id);
-        }
-
-        // Search filter
-        if ($request->search) {
-            $query->where('title', 'like', '%' . $request->search . '%');
-        }
-
-        // Status filter
-        if ($request->status) {
-            $query->where('status', $request->status);
-        }
-
-        $news = $query
-            ->with('author:id,name', 'categories:id,name', 'organization:id,name,type')
-            ->latest('published_at', 'desc')
-            ->latest('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString()
-            ->through(fn ($item) => [
-                'id' => $item->id,
-                'title' => $item->title,
-                'slug' => $item->slug,
-                'status' => $item->status,
-                'published_at' => $item->published_at?->toISOString(),
-                'created_at' => $item->created_at?->toISOString(),
-                'view_count' => $item->view_count,
-                'author' => ['name' => $item->author?->name],
-                'organization' => $item->organization ? [
-                    'name' => $item->organization->name,
-                    'type' => $item->organization->type,
-                ] : null,
-                'categories' => $item->categories->pluck('name')->toArray(),
-            ]);
-
-        $view = match ($user->role) {
-            'admin' => 'Dashboard/Admin/News/Index',
-            'editor' => 'Dashboard/Editor/News/Index',
-            'writer' => 'Dashboard/Writer/News/Index',
-            default => 'Dashboard/Admin/News/Index',
-        };
-
-        return Inertia::render($view, [
-            'news' => $news,
-            'filters' => [
-                'search' => $request->search,
-                'status' => $request->status,
-            ],
-        ]);
+        return redirect()->route('filament.admin.resources.news.index');
     }
 
     /*
     |------------------------------------------------------------------
-    | CREATE & STORE
+    | CREATE & STORE (DEPRECATED - REDIRECT TO FILAMENT)
     |------------------------------------------------------------------
     */
 
     public function create()
     {
-        $user = Auth::user();
-        $view = match ($user->role) {
-            'admin' => 'Dashboard/Admin/News/Create',
-            'editor' => 'Dashboard/Editor/News/Create',
-            'writer' => 'Dashboard/Writer/News/Create',
-            default => 'Dashboard/Admin/News/Create',
-        };
-
-        return Inertia::render($view, [
-            'authors' => User::select('id', 'name', 'role')
-                ->where('role', '!=', null)
-                ->orderBy('name')
-                ->get(),
-            'categories' => Category::select('id', 'name', 'slug')
-                ->orderBy('order')
-                ->orderBy('name')
-                ->get(),
-            'organizations' => ($user->isAdmin() && !$user->organization_id) 
-                ? Organization::select('id', 'name', 'type')->orderBy('name')->get() 
-                : [],
-        ]);
+        return redirect()->route('filament.admin.resources.news.create');
     }
 
     public function store(StoreNewsRequest $request)
@@ -427,7 +347,7 @@ class NewsController extends Controller
         // Generate proper slug (unik tanpa random)
         $validated['slug'] = $this->generateUniqueSlug($validated['title']);
 
-        $validated['user_id'] = $user->isAdmin() && $request->user_id
+        $validated['user_id'] = $user->hasRole('admin') && $request->user_id
             ? $request->user_id
             : $user->id;
 
@@ -435,7 +355,7 @@ class NewsController extends Controller
         if ($user->organization_id) {
             // User terikat organisasi -> force organization_id
             $validated['organization_id'] = $user->organization_id;
-        } elseif ($user->isAdmin() && $request->organization_id) {
+        } elseif ($user->hasRole('admin') && $request->organization_id) {
             // Super Admin bisa pilih organisasi (titipan)
             $validated['organization_id'] = $request->organization_id;
         }
@@ -472,58 +392,19 @@ class NewsController extends Controller
         Cache::forget('news.list.page.1');
         Cache::forget('news.dashboard.stats');
 
-        return redirect()->route('admin.news.index')
+        return redirect()->route('filament.admin.resources.news.index')
             ->with('success', 'Berita berhasil dibuat.');
     }
 
     /*
     |------------------------------------------------------------------
-    | EDIT & UPDATE
+    | EDIT & UPDATE (DEPRECATED - REDIRECT TO FILAMENT)
     |------------------------------------------------------------------
     */
 
     public function edit(News $news)
     {
-        $user = Auth::user();
-
-        // Writer hanya bisa edit beritanya sendiri
-        if ($user->isWriter() && $news->user_id !== $user->id) {
-            abort(403);
-        }
-
-        $view = match ($user->role) {
-            'admin' => 'Dashboard/Admin/News/Edit',
-            'editor' => 'Dashboard/Editor/News/Edit',
-            'writer' => 'Dashboard/Writer/News/Edit',
-            default => 'Dashboard/Admin/News/Edit',
-        };
-
-        return Inertia::render($view, [
-            'news' => [
-                'id' => $news->id,
-                'title' => $news->title,
-                'excerpt' => $news->excerpt,
-                'content' => $news->content,
-                'image' => $news->image ? Storage::url('news/' . $news->image) : null,
-                'video_urls' => $news->video_urls,
-                'slug' => $news->slug,
-                'user_id' => $news->user_id,
-                'status' => $news->status,
-                'published_at' => $news->published_at?->format('Y-m-d\TH:i'),
-                'categories' => $news->categories->pluck('id')->toArray(),
-            ],
-            'authors' => User::select('id', 'name', 'role')
-                ->where('role', '!=', null)
-                ->orderBy('name')
-                ->get(),
-            'categories' => Category::select('id', 'name', 'slug')
-                ->orderBy('order')
-                ->orderBy('name')
-                ->get(),
-            'organizations' => ($user->isAdmin() && !$user->organization_id)
-                ? Organization::select('id', 'name', 'type')->orderBy('name')->get()
-                : [],
-        ]);
+        return redirect()->route('filament.admin.resources.news.edit', $news);
     }
 
     public function update(UpdateNewsRequest $request, News $news)
@@ -537,7 +418,7 @@ class NewsController extends Controller
         }
 
         // Allow admin to change author
-        if ($user->isAdmin() && $request->user_id) {
+        if ($user->hasRole('admin') && $request->user_id) {
             $validated['user_id'] = $request->user_id;
         }
 
@@ -547,7 +428,7 @@ class NewsController extends Controller
             unset($validated['organization_id']);
             // Keep existing type/scope logic (handled by store usually, but if update needs re-check?)
             // Usually organization doesn't change for user.
-        } elseif ($user->isAdmin()) {
+        } elseif ($user->hasRole('admin')) {
             // Super Admin bisa ubah organisasi
             // Jika organization_id tidak dikirim (null), artinya jadi global
             $validated['organization_id'] = $request->input('organization_id');
@@ -593,7 +474,7 @@ class NewsController extends Controller
         Cache::forget('news.list.page.1');
         Cache::forget('news.dashboard.stats');
 
-        return redirect()->route('admin.news.index')
+        return redirect()->route('filament.admin.resources.news.index')
             ->with('success', 'Berita berhasil diperbarui.');
     }
 
@@ -605,10 +486,7 @@ class NewsController extends Controller
 
     public function destroy(News $news)
     {
-        // Only editors and admin can delete, writers not allowed
-        if (!Auth::user()->isEditor()) {
-            abort(403, 'Anda tidak punya izin untuk menghapus berita.');
-        }
+        $this->authorize('delete', $news);
 
         // Image akan tetap di storage (soft delete hanya menghapus database record)
         // Opsional: delete image jika ingin permanent deletion
@@ -621,16 +499,13 @@ class NewsController extends Controller
         Cache::forget('news.list.page.1');
         Cache::forget('news.dashboard.stats');
 
-        return redirect()->route('admin.news.index')
+        return redirect()->route('filament.admin.resources.news.index')
             ->with('success', 'Berita berhasil dihapus.');
     }
 
     public function bulkDestroy(Request $request)
     {
-        // Only editors and admin can delete, writers not allowed
-        if (!Auth::user()->isEditor()) {
-            abort(403, 'Anda tidak punya izin untuk menghapus berita.');
-        }
+        $this->authorize('deleteAny', News::class);
 
         $validated = $request->validate([
             'ids' => 'required|array',
@@ -642,7 +517,7 @@ class NewsController extends Controller
         Cache::forget('news.list.page.1');
         Cache::forget('news.dashboard.stats');
 
-        return redirect()->route('admin.news.index')
+        return redirect()->route('filament.admin.resources.news.index')
             ->with('success', "{$count} berita berhasil dihapus.");
     }
 

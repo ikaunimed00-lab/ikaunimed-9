@@ -26,9 +26,13 @@ interface Props {
     search?: string;
     type?: string;
   };
+  alumniStats?: {
+    total: number;
+    open_to_work: number;
+  };
 }
 
-export default function Index({ vacancies, filters }: Props) {
+export default function Index({ vacancies, filters, alumniStats }: Props) {
   const [search, setSearch] = useState(filters.search || '');
   const [type, setType] = useState(filters.type || '');
 
@@ -97,6 +101,31 @@ export default function Index({ vacancies, filters }: Props) {
           </form>
         </div>
       </div>
+
+      {alumniStats && (
+        <div className="bg-emerald-50 border-b border-emerald-100">
+          <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-sm">
+            <div className="text-emerald-900">
+              {alumniStats.open_to_work > 0 ? (
+                <>
+                  <span className="font-semibold">{alumniStats.open_to_work}</span> alumni IKA UNIMED saat ini menandai
+                  status <span className="font-semibold">Open to Work</span>.
+                </>
+              ) : (
+                <>
+                  Alumni IKA UNIMED aktif mengisi profil profesional mereka di direktori.
+                </>
+              )}
+            </div>
+            <Link
+              href={route('alumni.directory', { status_pekerjaan: 'mencari_kerja' })}
+              className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors text-xs md:text-sm"
+            >
+              Lihat Alumni Open to Work
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col md:flex-row gap-8">

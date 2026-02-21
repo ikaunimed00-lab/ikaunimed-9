@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\EnsureProfileCompleted;
 
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\CategoryController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Info\PageController;
 
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Dashboard\CourseDashboardController;
 use App\Http\Controllers\Dashboard\LegalizationAdminController;
 use App\Http\Controllers\Dashboard\NotificationController;
 
@@ -28,83 +31,137 @@ use App\Http\Controllers\JobVacancyController;
 use App\Http\Controllers\Admin\StaticPageController;
 use App\Http\Controllers\Dashboard\AlumniPostDashboardController;
 use App\Http\Controllers\Dashboard\AlumniPostModerationController;
-use App\Http\Controllers\Dashboard\JobVacancyDashboardController;
 use App\Http\Controllers\ScholarshipController;
 use App\Http\Controllers\PartnershipController;
-use App\Http\Controllers\Dashboard\ScholarshipDashboardController;
-use App\Http\Controllers\Dashboard\PartnershipDashboardController;
 use App\Http\Controllers\PublicOrganizationController;
 
-/*
-|--------------------------------------------------------------------------
-| PUBLIC
-|--------------------------------------------------------------------------
-*/
-Route::get('/', fn () => Inertia::render('Index'))->name('home');
-
-Route::get('/news', [NewsController::class, 'index'])->name('news.index');
-
-// Organization News Routes (Must be before news.show to avoid slug conflict)
-Route::get('/news/organisasi/{scope}/{slug?}', [NewsController::class, 'organization'])
-    ->where('scope', 'pp|dpw|dpc')
-    ->name('news.organization');
-
-Route::get('/news/{news:slug}', [NewsController::class, 'show'])->name('news.show');
-Route::get('/api/news/trending', [NewsController::class, 'trending'])->name('news.trending');
-
-Route::get('/kategori', [CategoryController::class, 'index'])->name('categories.index');
-Route::get('/kategori/{category:slug}', [CategoryController::class, 'show'])->name('categories.show');
-Route::get('/kategori/{category:slug}/trending', [CategoryController::class, 'trendingByCategory'])
-    ->name('categories.trending');
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\AlumniDirectoryController;
+use App\Http\Controllers\Dashboard\Subscriber\ScholarshipApplicationController;
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\ShopController;
+use App\Http\Controllers\TripayWebhookController;
 
 /*
 |--------------------------------------------------------------------------
-| INFO PAGES & MEDIA
+| PUBLIC (Inertia)
 |--------------------------------------------------------------------------
-*/
-Route::get('/tentang-kami', [PageController::class, 'about'])->name('info.about');
-Route::get('/struktur-organisasi', [PageController::class, 'structure'])->name('info.structure');
-Route::get('/faq', [PageController::class, 'faq'])->name('info.faq');
-Route::get('/syarat-ketentuan', [PageController::class, 'terms'])->name('info.terms');
-Route::get('/kebijakan-privasi', [PageController::class, 'privacy'])->name('info.privacy');
-Route::get('/hubungi-kami', [PageController::class, 'contact'])->name('info.contact');
+|*/
+Route::middleware([HandleInertiaRequests::class])->group(function () {
+    Route::get('/', [HomeController::class, 'index'])->name('home');
 
-Route::get('/media/foto', [NewsController::class, 'mediaPhotos'])->name('media.photos');
-Route::get('/media/video', [NewsController::class, 'mediaVideos'])->name('media.videos');
+    Route::get('/news', [NewsController::class, 'index'])->name('news.index');
 
-/*
-|--------------------------------------------------------------------------
-| ORGANIZATION - PUBLIC
-|--------------------------------------------------------------------------
-*/
-// Public Organization Routes
-Route::get('/organisasi', [PublicOrganizationController::class, 'index'])->name('organizations.index');
-Route::get('/organisasi/{organization:slug}', [PublicOrganizationController::class, 'show'])->name('organizations.show');
+    // SHOP - urutan penting: route spesifik harus didefinisikan sebelum wildcard {product:slug}
+    Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
 
-/*
-|--------------------------------------------------------------------------
-| KABAR ALUMNI - PUBLIC
-|--------------------------------------------------------------------------
-*/
-Route::get('/kabar-alumni', [AlumniPostController::class, 'index'])
-    ->name('alumni-posts.index');
+    Route::get('/shop/cart', [ShopController::class, 'cart'])
+        ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class])
+        ->name('shop.cart.index');
 
-Route::get('/kabar-alumni/{alumniPost:slug}', [AlumniPostController::class, 'show'])
-    ->name('alumni-posts.show');
+    Route::get('/shop/checkout', [ShopController::class, 'checkout'])
+        ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class])
+        ->name('shop.checkout');
 
-/*
-|--------------------------------------------------------------------------
-| CAREER & PROFESSIONAL - PUBLIC
-|--------------------------------------------------------------------------
-*/
-Route::get('/lowongan-kerja', [JobVacancyController::class, 'index'])->name('jobs.index');
-Route::get('/lowongan-kerja/{vacancy:slug}', [JobVacancyController::class, 'show'])->name('jobs.show');
+    Route::post('/shop/checkout', [ShopController::class, 'processCheckout'])
+        ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class, 'throttle:20,1'])
+        ->name('shop.checkout.process');
 
-Route::get('/beasiswa', [ScholarshipController::class, 'index'])->name('scholarships.index');
-Route::get('/beasiswa/{scholarship:slug}', [ScholarshipController::class, 'show'])->name('scholarships.show');
+    Route::get('/shop/orders', [ShopController::class, 'orders'])
+        ->middleware(['auth'])
+        ->name('shop.orders.index');
 
-Route::get('/kemitraan', [PartnershipController::class, 'index'])->name('partnerships.index');
-Route::get('/kemitraan/{partnership:slug}', [PartnershipController::class, 'show'])->name('partnerships.show');
+    Route::get('/shop/orders/{order}', [ShopController::class, 'showOrder'])
+        ->middleware(['auth'])
+        ->name('shop.orders.show');
+
+    Route::post('/shop/{product:slug}/cart', [ShopController::class, 'addToCart'])
+        ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class, 'throttle:20,1'])
+        ->name('shop.cart.add');
+
+    Route::get('/shop/{product:slug}', [ShopController::class, 'show'])->name('shop.show');
+
+    // Organization News Routes (Must be before news.show to avoid slug conflict)
+    Route::get('/news/organisasi/{scope}/{slug?}', [NewsController::class, 'organization'])
+        ->where('scope', 'pp|dpw|dpc')
+        ->name('news.organization');
+
+    Route::get('/news/{news:slug}', [NewsController::class, 'show'])->name('news.show');
+    Route::get('/api/news/trending', [NewsController::class, 'trending'])->name('news.trending');
+
+    Route::get('/kategori', [CategoryController::class, 'index'])->name('categories.index');
+    Route::get('/kategori/{category:slug}', [CategoryController::class, 'show'])->name('categories.show');
+    Route::get('/kategori/{category:slug}/trending', [CategoryController::class, 'trendingByCategory'])
+        ->name('categories.trending');
+
+    /*
+    |--------------------------------------------------------------------------
+    | INFO PAGES & MEDIA
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/tentang-kami', [PageController::class, 'about'])->name('info.about');
+    Route::get('/struktur-organisasi', [PageController::class, 'structure'])->name('info.structure');
+    Route::get('/faq', [PageController::class, 'faq'])->name('info.faq');
+    Route::get('/syarat-ketentuan', [PageController::class, 'terms'])->name('info.terms');
+    Route::get('/kebijakan-privasi', [PageController::class, 'privacy'])->name('info.privacy');
+    Route::get('/hubungi-kami', [PageController::class, 'contact'])->name('info.contact');
+
+    Route::get('/media/foto', [NewsController::class, 'mediaPhotos'])->name('media.photos');
+    Route::get('/media/video', [NewsController::class, 'mediaVideos'])->name('media.videos');
+
+    /*
+    |--------------------------------------------------------------------------
+    | ORGANIZATION - PUBLIC
+    |--------------------------------------------------------------------------
+    */
+    // Public Organization Routes
+    Route::get('/organisasi', [PublicOrganizationController::class, 'index'])->name('organizations.index');
+    Route::get('/organisasi/{organization:slug}', [PublicOrganizationController::class, 'show'])->name('organizations.show');
+
+    /*
+    |--------------------------------------------------------------------------
+    | KABAR ALUMNI - PUBLIC
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/kabar-alumni', [AlumniPostController::class, 'index'])
+        ->name('alumni-posts.index');
+
+    Route::get('/kabar-alumni/{alumniPost:slug}', [AlumniPostController::class, 'show'])
+        ->name('alumni-posts.show');
+
+    /*
+    |--------------------------------------------------------------------------
+    | CAREER & PROFESSIONAL - PUBLIC
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/alumni', [AlumniDirectoryController::class, 'index'])->name('alumni.directory');
+
+    Route::get('/lowongan-kerja', [JobVacancyController::class, 'index'])->name('jobs.index');
+    Route::get('/lowongan-kerja/{vacancy:slug}', [JobVacancyController::class, 'show'])->name('jobs.show');
+    Route::post('/lowongan-kerja/{vacancy:slug}/interest', [JobVacancyController::class, 'toggleInterest'])
+        ->middleware('auth')
+        ->name('jobs.interest');
+
+    Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
+    Route::get('/courses/{course:slug}', [CourseController::class, 'show'])->name('courses.show');
+
+    Route::get('/beasiswa', [ScholarshipController::class, 'index'])->name('scholarships.index');
+    Route::get('/beasiswa/{scholarship:slug}', [ScholarshipController::class, 'show'])->name('scholarships.show');
+    Route::post('/beasiswa/{scholarship:slug}/apply', [ScholarshipController::class, 'apply'])
+        ->middleware(['auth', 'throttle:10,1'])
+        ->name('scholarships.apply');
+
+    Route::post('/courses/{course:slug}/enroll', [CourseController::class, 'enroll'])
+        ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class, 'throttle:10,1'])
+        ->name('courses.enroll');
+
+    Route::post('/courses/{course:slug}/lessons/{lesson}/complete', [CourseController::class, 'completeLesson'])
+        ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class])
+        ->name('courses.lessons.complete');
+
+    Route::get('/kemitraan', [PartnershipController::class, 'index'])->name('partnerships.index');
+    Route::get('/kemitraan/{partnership:slug}', [PartnershipController::class, 'show'])->name('partnerships.show');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -115,6 +172,9 @@ Route::get('/sitemap.xml', [SitemapController::class, 'index']);
 Route::get('/sitemap/news.xml', [SitemapController::class, 'news']);
 Route::get('/sitemap/categories.xml', [SitemapController::class, 'categories']);
 Route::get('/sitemap/google-news.xml', [SitemapController::class, 'googleNews']);
+
+Route::post('/webhook/tripay/shop', [TripayWebhookController::class, 'shop'])
+    ->name('webhook.tripay.shop');
 
 /*
 |--------------------------------------------------------------------------
@@ -127,77 +187,77 @@ Route::get('/auth/google/callback', [OAuthController::class, 'googleCallback'])
 
 /*
 |--------------------------------------------------------------------------
-| AUTHENTICATED
+| AUTHENTICATED (Hybrid: Inertia & Filament)
 |--------------------------------------------------------------------------
-*/
+|*/
 Route::middleware(['auth'])->group(function () {
-
-/*
-|--------------------------------------------------------------------------
-| RAPIKAN DASHBOARD REDIRECT
-|--------------------------------------------------------------------------
-*/
+    /*
+    |--------------------------------------------------------------------------
+    | DASHBOARD REDIRECT (Native Redirects - NO INERTIA)
+    |--------------------------------------------------------------------------
+    |*/
     Route::get('/dashboard', function () {
         $user = auth()->user();
 
         if (! $user) {
-            abort(403);
+            return redirect()->route('home');
         }
 
-        return match ($user->role) {
-            'admin'  => redirect()->route('dashboard.admin'),
-            'editor' => redirect()->route('dashboard.editor'),
-            'writer' => redirect()->route('dashboard.writer'),
-            default  => redirect()->route('dashboard.subscriber'),
-        };
-    })->middleware('auth')->name('dashboard');
+        if ($user->hasAnyRole(['admin', 'editor', 'writer'])) {
+            return redirect('/admin');
+        }
 
-/*
-|--------------------------------------------------------------------------
-| SAMPAI SINI
-|--------------------------------------------------------------------------
-*/
+        // Cek kelengkapan profil untuk subscriber
+        $requiredFields = ['wa', 'nik', 'tempat_lahir', 'tanggal_lahir', 'alamat_lengkap', 
+                           's1_fakultas', 's1_prodi', 's1_tahun_masuk', 's1_tahun_tamat'];
+        
+        foreach ($requiredFields as $field) {
+            if (empty($user->{$field})) {
+                return redirect()->route('profile.edit');
+            }
+        }
 
-    Route::post('/logout', function () {
-        auth()->logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
-        return redirect()->route('home');
-    })->name('logout');
+        return redirect()->route('dashboard.subscriber');
+    })->name('dashboard');
 
-    /*
-    |--------------------------------------------------------------------------
-    | MULTI ROLE DASHBOARD
-    |--------------------------------------------------------------------------
-    */
-    Route::get('/dashboard/subscriber', [DashboardController::class, 'subscriberDashboard'])
-        ->middleware('role:subscriber')
-        ->name('dashboard.subscriber');
-
-    Route::get('/dashboard/admin', [DashboardController::class, 'adminDashboard'])
-        ->middleware('role:admin')
-        ->name('dashboard.admin');
-
-    Route::get('/dashboard/editor', [DashboardController::class, 'editorDashboard'])
-        ->middleware('role:editor')
-        ->name('dashboard.editor');
-
-    Route::get('/dashboard/writer', [DashboardController::class, 'writerDashboard'])
-        ->middleware('role:writer')
-        ->name('dashboard.writer');
+    // Redirect old dashboard admin to new filament admin
+    Route::get('/dashboard/admin', fn() => redirect('/admin'));
+    Route::get('/dashboard/admin/{any}', fn() => redirect('/admin'))->where('any', '.*');
 
     /*
     |--------------------------------------------------------------------------
-    | NOTIFICATIONS
+    | INERTIA AUTH ROUTES
     |--------------------------------------------------------------------------
-    */
-    Route::prefix('api/notifications')->name('notifications.')->group(function () {
-        Route::get('/', [NotificationController::class, 'index'])->name('index');
-        Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread_count');
-        Route::post('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('mark_as_read');
-        Route::post('/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])->name('mark_all_as_read');
-        Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
-    });
+    |*/
+    Route::middleware([HandleInertiaRequests::class])->group(function () {
+        Route::post('/logout', function () {
+            auth()->logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+            return redirect()->route('home');
+        })->name('logout');
+
+        /*
+        |--------------------------------------------------------------------------
+        | MULTI ROLE DASHBOARD (REFACTORED TO HYBRID)
+        |--------------------------------------------------------------------------
+        |*/
+        Route::get('/dashboard/subscriber', [DashboardController::class, 'subscriberDashboard'])
+            ->middleware(['role:subscriber', EnsureProfileCompleted::class])
+            ->name('dashboard.subscriber');
+
+        /*
+        |--------------------------------------------------------------------------
+        | NOTIFICATIONS
+        |--------------------------------------------------------------------------
+        |*/
+        Route::prefix('api/notifications')->name('notifications.')->group(function () {
+            Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread_count');
+            Route::post('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('mark_as_read');
+            Route::post('/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])->name('mark_all_as_read');
+            Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
+        });
 
     /*
     |--------------------------------------------------------------------------
@@ -224,6 +284,7 @@ Route::middleware(['auth'])->group(function () {
     | DASHBOARD ADMIN - LEGALIZATION (SOURCE OF TRUTH)
     |--------------------------------------------------------------------------
     */
+    /*
     Route::prefix('dashboard/admin')
         ->middleware('role:admin')
         ->name('dashboard.admin.')
@@ -234,12 +295,14 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/legalizations/{legalization}/reject', [LegalizationAdminController::class, 'reject'])->name('legalizations.reject');
             Route::post('/legalizations/{legalization}/note', [LegalizationAdminController::class, 'updateNote'])->name('legalizations.update_note');
         });
+    */
 
     /*
     |--------------------------------------------------------------------------
     | ADMIN LEGALIZATIONS (ALIAS – UNTUK ADMIN LAYOUT)
     |--------------------------------------------------------------------------
     */
+    /*
     Route::prefix('admin')
         ->middleware('role:admin')
         ->name('admin.')
@@ -250,6 +313,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/legalizations/{legalization}/reject', [LegalizationAdminController::class, 'reject'])->name('legalizations.reject');
             Route::post('/legalizations/{legalization}/note', [LegalizationAdminController::class, 'updateNote'])->name('legalizations.update_note');
         });
+    */
 
     /*
     |--------------------------------------------------------------------------
@@ -267,9 +331,13 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | ADMIN - USERS
+    | ADMIN - USERS (DEPRECATED - MOVED TO FILAMENT)
     |--------------------------------------------------------------------------
+    | Route admin.users.* dinonaktifkan untuk menghindari konflik dengan
+    | Filament UserResource.
+    |
     */
+    /*
     Route::prefix('admin')
         ->middleware('role:admin')
         ->name('admin.')
@@ -280,12 +348,14 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
             Route::post('/users/bulk-delete', [UserController::class, 'bulkDestroy'])->name('users.bulk-delete');
         });
+    */
 
     /*
     |--------------------------------------------------------------------------
     | ADMIN / EDITOR / WRITER - NEWS
     |--------------------------------------------------------------------------
     */
+    /*
     Route::prefix('admin')
         ->middleware('role:admin,editor,writer')
         ->name('admin.')
@@ -302,25 +372,33 @@ Route::middleware(['auth'])->group(function () {
                 ->middleware('role:admin,editor')
                 ->name('news.bulk-delete');
         });
+    */
 
     /*
     |--------------------------------------------------------------------------
-    | JOBS, SCHOLARSHIPS, PARTNERSHIPS DASHBOARD
+    | LMS DASHBOARD (INERTIA)
     |--------------------------------------------------------------------------
     */
-    Route::prefix('dashboard')->name('dashboard.')->group(function () {
-        Route::post('jobs/{job}/approve', [JobVacancyDashboardController::class, 'approve'])->name('jobs.approve');
-        Route::post('jobs/{job}/reject', [JobVacancyDashboardController::class, 'reject'])->name('jobs.reject');
-        Route::resource('jobs', JobVacancyDashboardController::class);
+    Route::prefix('dashboard')
+        ->name('dashboard.')
+        ->group(function () {
+            Route::get('courses', [CourseDashboardController::class, 'index'])->name('courses.index');
+            Route::get('courses/{course}/participants', [CourseDashboardController::class, 'participants'])
+                ->name('courses.participants');
+        });
 
-        Route::post('scholarships/{scholarship}/approve', [ScholarshipDashboardController::class, 'approve'])->name('scholarships.approve');
-        Route::post('scholarships/{scholarship}/reject', [ScholarshipDashboardController::class, 'reject'])->name('scholarships.reject');
-        Route::resource('scholarships', ScholarshipDashboardController::class);
-
-        Route::post('partnerships/{partnership}/approve', [PartnershipDashboardController::class, 'approve'])->name('partnerships.approve');
-        Route::post('partnerships/{partnership}/reject', [PartnershipDashboardController::class, 'reject'])->name('partnerships.reject');
-        Route::resource('partnerships', PartnershipDashboardController::class);
-    });
+        Route::prefix('dashboard/elearning')
+            ->name('dashboard.elearning.')
+            ->group(function () {
+                Route::get('learner/courses', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'index'])
+                    ->middleware(EnsureProfileCompleted::class)
+                    ->name('learner.courses.index');
+                Route::post('learner/enrollments/{enrollment}/cancel', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'cancel'])
+                    ->middleware(EnsureProfileCompleted::class)
+                    ->name('enrollments.cancel');
+                Route::get('moderator/courses', [\App\Http\Controllers\Dashboard\CourseDashboardController::class, 'moderator'])
+                    ->name('moderator.courses.index');
+            });
 
     /*
     |--------------------------------------------------------------------------
@@ -329,6 +407,7 @@ Route::middleware(['auth'])->group(function () {
     */
     Route::prefix('dashboard/subscriber/alumni-posts')
         ->name('dashboard.subscriber.alumni-posts.')
+        ->middleware(EnsureProfileCompleted::class)
         ->controller(AlumniPostDashboardController::class)
         ->group(function () {
             Route::get('/', 'index')->name('index');
@@ -337,6 +416,14 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{alumniPost}/edit', 'edit')->name('edit');
             Route::put('/{alumniPost}', 'update')->name('update');
             Route::delete('/{alumniPost}', 'destroy')->name('destroy');
+        });
+
+    Route::prefix('dashboard/subscriber/applications')
+        ->name('dashboard.subscriber.applications.')
+        ->middleware(EnsureProfileCompleted::class)
+        ->controller(ScholarshipApplicationController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
         });
 
     /*
@@ -348,11 +435,15 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:editor,admin')
         ->name('dashboard.editor.')
         ->group(function () {
-            Route::get('/alumni-posts/moderation', [AlumniPostModerationController::class, 'index'])->name('alumni-posts.moderation');
-            Route::get('/alumni-posts/moderation/{alumniPost}', [AlumniPostModerationController::class, 'show'])->name('alumni-posts.moderation.show');
-            Route::post('/alumni-posts/{alumniPost}/approve', [AlumniPostModerationController::class, 'approve'])->name('alumni-posts.approve');
-            Route::post('/alumni-posts/{alumniPost}/reject', [AlumniPostModerationController::class, 'reject'])->name('alumni-posts.reject');
-            Route::delete('/alumni-posts/{alumniPost}/force', [AlumniPostModerationController::class, 'destroy'])
+            Route::get('/alumni-posts/moderation', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
+                ->name('alumni-posts.moderation');
+            Route::get('/alumni-posts/moderation/{alumniPost}', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
+                ->name('alumni-posts.moderation.show');
+            Route::post('/alumni-posts/{alumniPost}/approve', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
+                ->name('alumni-posts.approve');
+            Route::post('/alumni-posts/{alumniPost}/reject', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
+                ->name('alumni-posts.reject');
+            Route::delete('/alumni-posts/{alumniPost}/force', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
                 ->middleware('role:admin')
                 ->name('alumni-posts.force-delete');
         });
@@ -374,8 +465,9 @@ Route::middleware(['auth'])->group(function () {
              | STATIC PAGES MANAGEMENT
              |--------------------------------------------------------------------------
              */
-             Route::get('/pages', [StaticPageController::class, 'index'])->name('admin.pages.index');
-             Route::get('/pages/{page}/edit', [StaticPageController::class, 'edit'])->name('admin.pages.edit');
-             Route::put('/pages/{page}', [StaticPageController::class, 'update'])->name('admin.pages.update');
-        });
+             Route::get('/pages', [StaticPageController::class, 'index'])->name('pages.index');
+             Route::get('/pages/{page}/edit', [StaticPageController::class, 'edit'])->name('pages.edit');
+                 Route::put('/pages/{page}', [StaticPageController::class, 'update'])->name('pages.update');
+            });
+    });
 });

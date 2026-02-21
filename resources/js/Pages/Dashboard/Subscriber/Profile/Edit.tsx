@@ -4,7 +4,7 @@ import AdminLayout from "@/Layouts/AdminLayout";
 import EditorLayout from "@/Layouts/EditorLayout";
 import WriterLayout from "@/Layouts/WriterLayout";
 import SubscriberLayout from "@/Layouts/SubscriberLayout";
-import { User, Save, GraduationCap, MapPin, Briefcase, Phone, CreditCard, Calendar } from "lucide-react";
+import { User, Save, GraduationCap, MapPin, Briefcase, Phone, CreditCard, Calendar, Shield } from "lucide-react";
 
 interface Education {
     level: string;
@@ -40,7 +40,6 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
   });
 
   const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
-    // Identitas
     name: auth.user.name || "",
     email: auth.user.email || "",
     gender: auth.user.gender || "",
@@ -51,8 +50,16 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
     domicile: auth.user.domicile || "",
     alamat_lengkap: auth.user.alamat_lengkap || "",
     occupation: auth.user.occupation || "",
-    
-    // Pendidikan
+    bidang_pekerjaan: auth.user.bidang_pekerjaan || "",
+    posisi_saat_ini: auth.user.posisi_saat_ini || "",
+    perusahaan: auth.user.perusahaan || "",
+    kota_profesional: auth.user.kota_profesional || "",
+    status_pekerjaan: auth.user.status_pekerjaan || "",
+    ringkasan_profesional: auth.user.ringkasan_profesional || "",
+    linkedin_url: auth.user.linkedin_url || "",
+    website_url: auth.user.website_url || "",
+    skills: auth.user.skills || "",
+    public_profile: auth.user.public_profile ?? false,
     educations: initialEducations
   });
 
@@ -78,19 +85,38 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
       <Head title="Edit Profil Lengkap" />
 
       <div className="space-y-8 max-w-5xl mx-auto">
-        {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-8 text-white">
           <div className="flex items-center gap-3 mb-2">
             <User className="w-8 h-8" />
             <h1 className="text-3xl font-bold">Edit Profil Lengkap</h1>
           </div>
-          <p className="text-blue-100">
-            Lengkapi data diri dan riwayat pendidikan Anda untuk database alumni.
-          </p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-4">
+            <p className="text-blue-100">
+              Lengkapi data diri, akademik, dan profil profesional Anda untuk ekosistem Karir & Jejaring IKA UNIMED.
+            </p>
+            <div className="bg-white/10 rounded-lg px-4 py-2 flex items-center gap-3">
+              <div className="text-sm">
+                <div className="text-xs uppercase tracking-wide text-blue-100">
+                  Level Profil
+                </div>
+                <div className="text-sm font-semibold">
+                  {auth.user.profile_level ?? 0} / 2
+                </div>
+              </div>
+              <div className="w-px h-8 bg-white/30" />
+              <div className="text-sm">
+                <div className="text-xs uppercase tracking-wide text-blue-100">
+                  Kualitas Profil
+                </div>
+                <div className="text-sm font-semibold">
+                  {auth.user.profile_completion_score ?? 0}%
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-            {/* 1. IDENTITAS DIRI */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center gap-2 mb-6 border-b pb-4">
                     <User className="w-5 h-5 text-blue-600" />
@@ -237,7 +263,6 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                 </div>
             </div>
 
-            {/* 2. RIWAYAT PENDIDIKAN */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center gap-2 mb-6 border-b pb-4">
                     <GraduationCap className="w-5 h-5 text-blue-600" />
@@ -256,7 +281,6 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             </h4>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Universitas */}
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Universitas / Perguruan Tinggi</label>
                                     <input
@@ -268,7 +292,6 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                     />
                                 </div>
 
-                                {/* Fakultas */}
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Fakultas</label>
                                     <input
@@ -280,7 +303,6 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                     />
                                 </div>
 
-                                {/* Jurusan/Prodi */}
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Jurusan / Program Studi</label>
                                     <input
@@ -292,7 +314,6 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                     />
                                 </div>
 
-                                {/* Tahun Masuk */}
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Tahun Masuk</label>
                                     <input
@@ -304,7 +325,6 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                     />
                                 </div>
 
-                                {/* Tahun Tamat */}
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Tahun Tamat</label>
                                     <input
@@ -321,7 +341,158 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                 </div>
             </div>
 
-            {/* ACTION BUTTONS */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center gap-2 mb-6 border-b pb-4">
+                    <Briefcase className="w-5 h-5 text-blue-600" />
+                    <h3 className="text-xl font-bold text-gray-900">Profil Profesional</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Bidang Pekerjaan</label>
+                        <select
+                            value={data.bidang_pekerjaan}
+                            onChange={e => setData("bidang_pekerjaan", e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Pilih Bidang</option>
+                            <option value="pendidikan">Pendidikan</option>
+                            <option value="keuangan">Keuangan & Perbankan</option>
+                            <option value="pemerintahan">Pemerintahan & BUMN</option>
+                            <option value="teknologi">Teknologi & IT</option>
+                            <option value="kesehatan">Kesehatan</option>
+                            <option value="wirausaha">Wirausaha / UMKM</option>
+                            <option value="industri">Industri & Manufaktur</option>
+                            <option value="kreatif">Kreatif & Media</option>
+                            <option value="hukum">Hukum</option>
+                            <option value="ngo">NGO / Sosial</option>
+                            <option value="akademisi">Akademisi / Peneliti</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Status Pekerjaan</label>
+                        <select
+                            value={data.status_pekerjaan}
+                            onChange={e => setData("status_pekerjaan", e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Pilih Status</option>
+                            <option value="tetap">Tetap</option>
+                            <option value="kontrak">Kontrak</option>
+                            <option value="wirausaha">Wirausaha</option>
+                            <option value="freelancer">Freelancer</option>
+                            <option value="studi_lanjut">Studi Lanjut</option>
+                            <option value="mencari_kerja">Sedang Mencari Kerja</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Saat Ini</label>
+                        <input
+                            type="text"
+                            value={data.posisi_saat_ini}
+                            onChange={e => setData("posisi_saat_ini", e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Contoh: Manajer Keuangan, Dosen, Guru, dll."
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Perusahaan / Instansi</label>
+                        <input
+                            type="text"
+                            value={data.perusahaan}
+                            onChange={e => setData("perusahaan", e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Nama perusahaan atau instansi"
+                        />
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Kota / Lokasi Profesional</label>
+                        <input
+                            type="text"
+                            value={data.kota_profesional}
+                            onChange={e => setData("kota_profesional", e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Contoh: Medan, Jakarta, dll."
+                        />
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Ringkasan Profil Profesional</label>
+                        <textarea
+                            value={data.ringkasan_profesional}
+                            onChange={e => setData("ringkasan_profesional", e.target.value)}
+                            rows={4}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ceritakan secara singkat pengalaman dan keahlian profesional Anda."
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+                        <input
+                            type="url"
+                            value={data.linkedin_url}
+                            onChange={e => setData("linkedin_url", e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="https://linkedin.com/in/username"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Website/Portofolio</label>
+                        <input
+                            type="url"
+                            value={data.website_url}
+                            onChange={e => setData("website_url", e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="https://"
+                        />
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Keahlian Utama (pisahkan dengan koma)</label>
+                        <input
+                            type="text"
+                            value={data.skills}
+                            onChange={e => setData("skills", e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Contoh: Manajemen Proyek, Data Analysis, Public Speaking"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center gap-2 mb-6 border-b pb-4">
+                    <Shield className="w-5 h-5 text-blue-600" />
+                    <h3 className="text-xl font-bold text-gray-900">Privasi & Direktori Alumni</h3>
+                </div>
+
+                <div className="space-y-4">
+                    <label className="flex items-start gap-3">
+                        <input
+                            type="checkbox"
+                            checked={data.public_profile}
+                            onChange={e => setData("public_profile", e.target.checked)}
+                            className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                        />
+                        <span>
+                            <span className="block text-sm font-medium text-gray-900">
+                                Tampilkan profil saya di Direktori Alumni IKA UNIMED
+                            </span>
+                            <span className="block text-xs text-gray-600">
+                                Nama, angkatan, prodi, dan informasi profesional akan terlihat publik. Kontak seperti nomor WA dan alamat tetap disimpan privat.
+                            </span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
             <div className="flex items-center justify-end gap-4 pt-4">
                 {recentlySuccessful && (
                     <span className="text-green-600 font-medium animate-fade-in">

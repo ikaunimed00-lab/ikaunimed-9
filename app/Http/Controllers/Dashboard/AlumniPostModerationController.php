@@ -84,7 +84,7 @@ class AlumniPostModerationController extends Controller
     {
         $alumniPost->delete();
 
-        return redirect()->route('dashboard.editor.alumni-posts.moderation')
+        return redirect()->route('filament.admin.resources.alumni-posts.index')
             ->with('success', 'Kabar alumni berhasil dihapus');
     }
 }

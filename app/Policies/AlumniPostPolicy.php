@@ -20,8 +20,7 @@ class AlumniPostPolicy
      */
     public function view(User $user, AlumniPost $post): bool
     {
-        // Admin & Editor bisa lihat semua
-        if ($user->isAdmin() || $user->isEditor()) {
+        if ($user->can('alumni.moderate')) {
             return true;
         }
 
@@ -34,8 +33,7 @@ class AlumniPostPolicy
      */
     public function update(User $user, AlumniPost $post): bool
     {
-        // Admin bisa edit semua
-        if ($user->isAdmin()) {
+        if ($user->can('alumni.moderate')) {
             return true;
         }
 
@@ -48,8 +46,7 @@ class AlumniPostPolicy
      */
     public function delete(User $user, AlumniPost $post): bool
     {
-        // Admin bisa hapus semua
-        if ($user->isAdmin()) {
+        if ($user->can('alumni.moderate')) {
             return true;
         }
 
@@ -62,7 +59,7 @@ class AlumniPostPolicy
      */
     public function moderate(User $user): bool
     {
-        return $user->isEditor() || $user->isAdmin();
+        return $user->can('alumni.moderate');
     }
 
     /**
@@ -70,6 +67,6 @@ class AlumniPostPolicy
      */
     public function forceDelete(User $user, AlumniPost $post): bool
     {
-        return $user->isAdmin();
+        return $user->hasRole('admin');
     }
 }

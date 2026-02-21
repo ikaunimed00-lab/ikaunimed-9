@@ -33,17 +33,13 @@ class EnsureProfileCompleted
      */
     private function isProfileComplete($user): bool
     {
-        // Field wajib untuk profil alumni
+        // Field wajib minimal untuk mengakses fitur alumni (LMS, Shop, dsb.)
         $requiredFields = [
             'wa',
             'nik',
             'tempat_lahir',
             'tanggal_lahir',
             'alamat_lengkap',
-            's1_fakultas',
-            's1_prodi',
-            's1_tahun_masuk',
-            's1_tahun_tamat',
         ];
 
         foreach ($requiredFields as $field) {

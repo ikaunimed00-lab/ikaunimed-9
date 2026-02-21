@@ -16,8 +16,8 @@ class ScholarshipDashboardController extends Controller
         
         $query = Scholarship::query()->latest();
 
-        // Filter for subscribers
-        if (!$user->isEditor()) {
+        // Filter for non-editor (writer/subscriber)
+        if (!$user->can('cms.scholarship.publish')) {
             $query->where('user_id', $user->id);
         }
 
@@ -52,8 +52,7 @@ class ScholarshipDashboardController extends Controller
         $validated['user_id'] = $user->id;
         $validated['slug'] = Str::slug($validated['title'] . '-' . Str::random(6));
         
-        // Auto-approve for admins/editors, pending for subscribers
-        $validated['status'] = $user->isEditor() ? 'active' : 'pending';
+        $validated['status'] = 'pending';
 
         Scholarship::create($validated);
 
@@ -63,10 +62,7 @@ class ScholarshipDashboardController extends Controller
 
     public function edit(Scholarship $scholarship)
     {
-        // Authorization check
-        if (!auth()->user()->isEditor() && auth()->id() !== $scholarship->user_id) {
-            abort(403);
-        }
+        $this->authorize('update', $scholarship);
 
         return Inertia::render('Dashboard/Scholarship/Edit', [
             'scholarship' => $scholarship,
@@ -75,10 +71,7 @@ class ScholarshipDashboardController extends Controller
 
     public function update(Request $request, Scholarship $scholarship)
     {
-        // Authorization check
-        if (!auth()->user()->isEditor() && auth()->id() !== $scholarship->user_id) {
-            abort(403);
-        }
+        $this->authorize('update', $scholarship);
 
         $rules = [
             'title' => 'required|string|max:255',
@@ -90,11 +83,6 @@ class ScholarshipDashboardController extends Controller
             'link' => 'nullable|url',
             'image' => 'nullable|image|max:2048',
         ];
-
-        // Only admin/editor can update status directly
-        if (auth()->user()->isEditor()) {
-            $rules['status'] = 'required|in:active,pending,rejected,closed';
-        }
 
         $validated = $request->validate($rules);
 
@@ -110,9 +98,7 @@ class ScholarshipDashboardController extends Controller
 
     public function destroy(Scholarship $scholarship)
     {
-        if (!auth()->user()->isEditor() && auth()->id() !== $scholarship->user_id) {
-            abort(403);
-        }
+        $this->authorize('delete', $scholarship);
 
         $scholarship->delete();
 
@@ -121,23 +107,11 @@ class ScholarshipDashboardController extends Controller
 
     public function approve(Scholarship $scholarship)
     {
-        if (!auth()->user()->isEditor()) {
-            abort(403);
-        }
-
-        $scholarship->update(['status' => 'active']);
-
-        return redirect()->back()->with('success', 'Beasiswa berhasil disetujui.');
+        abort(404);
     }
 
     public function reject(Scholarship $scholarship)
     {
-        if (!auth()->user()->isEditor()) {
-            abort(403);
-        }
-
-        $scholarship->update(['status' => 'rejected']);
-
-        return redirect()->back()->with('success', 'Beasiswa berhasil ditolak.');
+        abort(404);
     }
 }

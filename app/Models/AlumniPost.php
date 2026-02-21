@@ -116,8 +116,7 @@ class AlumniPost extends Model
      */
     public function canBeEditedBy(User $user): bool
     {
-        // Admin bisa edit semua
-        if ($user->isAdmin()) {
+        if ($user->can('alumni.moderate')) {
             return true;
         }
 
@@ -134,8 +133,7 @@ class AlumniPost extends Model
      */
     public function canBeDeletedBy(User $user): bool
     {
-        // Admin bisa hapus semua
-        if ($user->isAdmin()) {
+        if ($user->can('alumni.moderate')) {
             return true;
         }
 

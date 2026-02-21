@@ -78,6 +78,10 @@ class FortifyServiceProvider extends ServiceProvider
             if (auth()->check()) {
                 $user = auth()->user();
                 
+                if ($user->hasAnyRole(['admin', 'editor', 'writer'])) {
+                    return '/admin';
+                }
+
                 // Check if profile is incomplete
                 $requiredFields = ['wa', 'nik', 'tempat_lahir', 'tanggal_lahir', 'alamat_lengkap', 
                                    's1_fakultas', 's1_prodi', 's1_tahun_masuk', 's1_tahun_tamat'];
@@ -88,14 +92,10 @@ class FortifyServiceProvider extends ServiceProvider
                     }
                 }
                 
-                // Profile complete, go to dashboard
-                if ($user->role === 'admin' || $user->role === 'editor') {
-                    return route('dashboard');
-                }
+                return route('dashboard.subscriber');
             }
-            
-            // Default: profile edit
-            return route('profile.edit');
+
+            return route('home');
         });
     }
 }

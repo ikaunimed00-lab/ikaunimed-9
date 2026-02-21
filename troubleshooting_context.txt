@@ -1,0 +1,393 @@
+================================================================================
+FILE: resources/css/filament/admin.css
+================================================================================
+@import "tailwindcss";
+
+/* Scan Filament files for Tailwind v4 */
+/* Root is 4 levels up from this file */
+@source "../../../../vendor/filament/**/*.php";
+@source "../../../../vendor/filament/**/*.blade.php";
+
+/* 1. Force SVG Icon Sizes (Nuclear Fix) */
+[class^="fi-"] svg,
+.fi-main svg,
+.fi-sidebar svg,
+.fi-topbar svg,
+.fi-icon-btn svg,
+.fi-modal svg {
+    width: 1.25rem !important; /* h-5 */
+    height: 1.25rem !important; /* h-5 */
+}
+
+/* Specific fix for sidebar item icons */
+.fi-sidebar-item-icon {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+}
+
+/* 2. Sidebar Item Spacing Fix (gap-x-3) */
+.fi-sidebar-item-button,
+.fi-sidebar-group-label {
+    column-gap: 0.75rem !important;
+}
+
+/* 3. Layout Fix (Sidebar & Topbar) */
+.fi-layout {
+    display: flex !important;
+    flex-direction: row !important;
+    min-height: 100vh !important;
+}
+
+.fi-main {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+}
+
+.fi-sidebar {
+    position: relative !important;
+    z-index: 20 !important;
+    flex-shrink: 0 !important;
+    border-right: 1px solid #e5e7eb !important;
+}
+
+.fi-topbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    width: 100% !important;
+    background-color: white !important;
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* CANARY TEST - This should make the background slightly gray if CSS is loading */
+body {
+    background-color: #f3f4f6 !important;
+}
+
+================================================================================
+FILE: app/Providers/Filament/AdminPanelProvider.php
+================================================================================
+<?php
+
+namespace App\Providers\Filament;
+
+use Filament\Http\Middleware\Authenticate;
+use Filament\Http\Middleware\AuthenticateSession;
+use Filament\Http\Middleware\DisableBladeIconComponents;
+use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Pages\Dashboard;
+use Filament\Panel;
+use Filament\PanelProvider;
+use Filament\Support\Colors\Color;
+use Filament\Widgets\AccountWidget;
+use Filament\Widgets\FilamentInfoWidget;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
+
+class AdminPanelProvider extends PanelProvider
+{
+    public function panel(Panel $panel): Panel
+    {
+        return $panel
+            ->id('admin')
+            ->path('admin')
+            ->favicon(asset('images/favicon_ikaunimed.png'))
+            ->brandLogo(fn () => new HtmlString('
+                <div style="display: flex; align-items: center; gap: 12px; height: 40px;">
+                    <img src="' . asset('images/favicon_ikaunimed.png') . '" alt="IKA UNIMED" style="height: 40px; width: 40px; object-fit: contain;">
+                    <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                        <div style="font-size: 1.125rem; font-weight: 700; letter-spacing: -0.025em;">
+                            <span style="color:#FF7E00;">IKA</span>
+                            <span style="color:#00A69D;">UNI</span>
+                            <span style="color:#e9cf35;">MED</span>
+                        </div>
+                        <div style="font-size: 10px; font-weight: 500; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em;">
+                            Portal Alumni
+                        </div>
+                    </div>
+                </div>
+            '))
+            ->colors([
+                'primary' => Color::Emerald,
+                'gray' => Color::Slate,
+            ])
+            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
+            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
+            ->pages([
+                Dashboard::class,
+            ])
+            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
+            ->widgets([
+                AccountWidget::class,
+                FilamentInfoWidget::class,
+            ])
+            ->middleware([
+                EncryptCookies::class,
+                AddQueuedCookiesToResponse::class,
+                StartSession::class,
+                AuthenticateSession::class,
+                ShareErrorsFromSession::class,
+                VerifyCsrfToken::class,
+                SubstituteBindings::class,
+                DisableBladeIconComponents::class,
+                DispatchServingFilamentEvent::class,
+            ])
+            ->authMiddleware([
+                Authenticate::class,
+            ])
+            ->viteTheme('resources/css/filament/admin.css');
+    }
+}
+
+================================================================================
+FILE: vite.config.ts
+================================================================================
+import { wayfinder } from '@laravel/vite-plugin-wayfinder';
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import laravel from 'laravel-vite-plugin';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+    plugins: [
+        tailwindcss(),
+        laravel({
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.tsx',
+                'resources/css/filament/admin.css',
+            ],
+            ssr: 'resources/js/ssr.tsx',
+            refresh: true,
+        }),
+        react({
+            babel: {
+                plugins: ['babel-plugin-react-compiler'],
+            },
+        }),
+        wayfinder({
+            formVariants: true,
+        }),
+    ],
+    esbuild: {
+        jsx: 'automatic',
+    },
+});
+
+================================================================================
+FILE: package.json
+================================================================================
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "build:ssr": "vite build && vite build --ssr",
+        "dev": "vite",
+        "format": "prettier --write resources/",
+        "format:check": "prettier --check resources/",
+        "lint": "eslint . --fix",
+        "types": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.19.0",
+        "@laravel/vite-plugin-wayfinder": "^0.1.3",
+        "@types/node": "^22.13.5",
+        "babel-plugin-react-compiler": "^1.0.0",
+        "eslint": "^9.17.0",
+        "eslint-config-prettier": "^10.0.1",
+        "eslint-plugin-react": "^7.37.3",
+        "eslint-plugin-react-hooks": "^7.0.0",
+        "prettier": "^3.4.2",
+        "prettier-plugin-organize-imports": "^4.1.0",
+        "prettier-plugin-tailwindcss": "^0.6.11",
+        "typescript-eslint": "^8.23.0"
+    },
+    "dependencies": {
+        "@headlessui/react": "^2.2.0",
+        "@inertiajs/react": "^2.1.4",
+        "@radix-ui/react-accordion": "^1.2.12",
+        "@radix-ui/react-avatar": "^1.1.3",
+        "@radix-ui/react-checkbox": "^1.1.4",
+        "@radix-ui/react-collapsible": "^1.1.3",
+        "@radix-ui/react-dialog": "^1.1.6",
+        "@radix-ui/react-dropdown-menu": "^2.1.6",
+        "@radix-ui/react-label": "^2.1.2",
+        "@radix-ui/react-navigation-menu": "^1.2.5",
+        "@radix-ui/react-select": "^2.1.6",
+        "@radix-ui/react-separator": "^1.1.2",
+        "@radix-ui/react-slot": "^1.2.3",
+        "@radix-ui/react-tabs": "^1.1.13",
+        "@radix-ui/react-toggle": "^1.1.2",
+        "@radix-ui/react-toggle-group": "^1.1.2",
+        "@radix-ui/react-tooltip": "^1.1.8",
+        "@tailwindcss/vite": "^4.1.11",
+        "@tanstack/react-query": "^5.90.16",
+        "@tiptap/react": "^3.15.3",
+        "@tiptap/starter-kit": "^3.15.3",
+        "@types/react": "^19.2.0",
+        "@types/react-dom": "^19.2.0",
+        "@vitejs/plugin-react": "^5.0.0",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "concurrently": "^9.0.1",
+        "date-fns": "^4.1.0",
+        "dayjs": "^1.11.19",
+        "globals": "^15.14.0",
+        "input-otp": "^1.4.2",
+        "laravel-vite-plugin": "^2.0",
+        "lucide-react": "^0.475.0",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "react-router-dom": "^7.11.0",
+        "tailwind-merge": "^3.4.0",
+        "tailwindcss": "^4.0.0",
+        "tw-animate-css": "^1.4.0",
+        "typescript": "^5.7.2",
+        "vite": "^7.0.4",
+        "ziggy-js": "^2.6.0"
+    },
+    "optionalDependencies": {
+        "@rollup/rollup-linux-x64-gnu": "4.9.5",
+        "@rollup/rollup-win32-x64-msvc": "4.9.5",
+        "@tailwindcss/oxide-linux-x64-gnu": "^4.0.1",
+        "@tailwindcss/oxide-win32-x64-msvc": "^4.0.1",
+        "lightningcss-linux-x64-gnu": "^1.29.1",
+        "lightningcss-win32-x64-msvc": "^1.29.1"
+    }
+}
+
+================================================================================
+FILE: tailwind.config.js
+================================================================================
+/** @type {import('tailwindcss').Config} */
+export default {
+    content: [
+        './app/Filament/**/*.php',
+        './resources/views/filament/**/*.blade.php',
+        './vendor/filament/**/*.php',
+        './vendor/filament/**/*.blade.php',
+    ],
+    theme: {
+        extend: {},
+    },
+    plugins: [],
+}
+
+================================================================================
+FILE: resources/css/app.css
+================================================================================
+@import "tailwindcss";
+
+/* Scan files - Tetap sama */
+@source '../js/**/*.tsx'; 
+@source '../js/**/*.jsx'; 
+@source '../js/**/*.js';
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+    /* ... Definisi warna tetap sama sesuai file asli Anda ... */
+    --color-background: #FFFFFF;
+    --color-foreground: #111827;
+    --color-primary: #0F766E;
+    --color-primary-foreground: #FFFFFF;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #111827;
+    --color-muted: #F3F4F6;
+    --color-muted-foreground: #6B7280;
+    --color-accent: #E5E7EB;
+    --color-accent-foreground: #111827;
+    --color-border: #E5E7EB;
+    --color-input: #E5E7EB;
+    --color-ring: #0F766E;
+    --radius-lg: 0.625rem;
+    --color-oxygen-orange: #0F766E;
+    --color-oxygen-teal: #0F766E;
+    --color-oxygen-green: #37D67A;
+    --color-oxygen-blue: #007BFF;
+    --color-oxygen-purple: #8B5CF6;
+    --color-orange-50: #FFF7ED;
+    --color-amber-50: #FFFBEB;
+    --color-teal-50: #ECFAF8;
+    --color-cyan-50: #ECFEFF;
+    --color-blue-50: #EFF6FF;
+    --color-gray-600: #4B5563;
+    --color-first-dark-green: #085a18;
+    --color-second-dark-green: #0f7525;
+    --color-light-green: #dbe9d8;
+    --color-ika-yellow: #e9cf35;
+}
+
+:root {
+    --background: #FFFFFF;
+    --foreground: #111827;
+    --primary: #0F766E;
+    --primary-foreground: #FFFFFF;
+    --oxygen-teal: #0F766E;
+}
+
+.dark {
+    --background: #111827;
+    --foreground: #FFFFFF;
+    --primary: #0F766E;
+    --primary-foreground: #FFFFFF;
+}
+
+@layer components {
+    /* PERBAIKAN: Menyeimbangkan lebar agar tidak terlalu sempit & tidak terlalu rapat */
+    .container, 
+    .max-w-7xl {
+        @apply mx-auto px-4 md:px-6 lg:px-8; /* Memberikan jarak aman di kiri-kanan */
+        width: 100% !important;
+        max-width: 1536px !important; /* Diperlebar dari 1280px ke 1536px (2xl) */
+    }
+
+    .text-gradient-orange {
+        background: linear-gradient(to bottom right, #0F766E, #115E59);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        display: inline-block;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+        background-color: #FFFFFF;
+        overflow-x: hidden;
+        margin: 0;
+        padding: 0;
+    }
+}
+.rte-btn {
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+.rte-btn:hover {
+  background: #e5e7eb;
+}

@@ -11,15 +11,11 @@ class RedirectAfterLogin
     {
         $user = $event->user;
 
-        // Route berdasarkan role
-        $roleRoutes = [
-            'admin' => 'dashboard.admin',
-            'editor' => 'dashboard.editor',
-            'writer' => 'dashboard.writer',
-            'subscriber' => 'dashboard.subscriber',
-        ];
+        if ($user->hasSystemRole(['admin', 'editor', 'writer'])) {
+            Redirect::setIntendedUrl('/admin');
+            return;
+        }
 
-        $route = $roleRoutes[$user->role] ?? 'home';
-        Redirect::setIntendedUrl(route($route));
+        Redirect::setIntendedUrl(route('dashboard.subscriber'));
     }
 }

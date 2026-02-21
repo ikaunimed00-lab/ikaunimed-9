@@ -18,10 +18,9 @@ class OrganizationController extends Controller
         $user = auth()->user();
         $query = Organization::query();
 
-        // Scope check
-        if (!$user->isCentralAdmin()) {
+        if (! $user->isCentralAdmin()) {
             if ($user->organization_id) {
-                $query->where(function($q) use ($user) {
+                $query->where(function ($q) use ($user) {
                     $q->where('id', $user->organization_id)
                       ->orWhere('parent_id', $user->organization_id);
                 });
@@ -127,7 +126,7 @@ class OrganizationController extends Controller
 
         Organization::create($validated);
 
-        return redirect()->route('dashboard.admin.organizations.index')
+        return redirect()->route('filament.admin.resources.organizations.index')
             ->with('success', 'Organisasi berhasil ditambahkan.');
     }
 
@@ -234,7 +233,7 @@ class OrganizationController extends Controller
 
         $organization->update($validated);
 
-        return redirect()->route('dashboard.admin.organizations.index')
+        return redirect()->route('filament.admin.resources.organizations.index')
             ->with('success', 'Organisasi berhasil diperbarui.');
     }
 
@@ -255,7 +254,7 @@ class OrganizationController extends Controller
 
         $organization->delete();
 
-        return redirect()->route('dashboard.admin.organizations.index')
+        return redirect()->route('filament.admin.resources.organizations.index')
             ->with('success', 'Organisasi berhasil dihapus.');
     }
 }

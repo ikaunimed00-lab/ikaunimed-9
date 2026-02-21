@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,6 +36,19 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $validated = $request->validated();
+
+        if (isset($validated['educations'])) {
+            foreach ($validated['educations'] as $index => $education) {
+                $admissionYear = $education['admission_year'] ?? null;
+                $graduationYear = $education['graduation_year'] ?? null;
+
+                if ($admissionYear && $graduationYear && (int) $admissionYear > (int) $graduationYear) {
+                    throw ValidationException::withMessages([
+                        "educations.$index.graduation_year" => 'Tahun lulus harus lebih besar atau sama dengan tahun masuk.',
+                    ]);
+                }
+            }
+        }
         
         // Update user basic info
         $request->user()->fill($validated);
@@ -45,7 +59,8 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        // Update educations
+        $request->user()->recalculateProfileMeta();
+
         if (isset($validated['educations'])) {
             // Kita hapus semua pendidikan lama dan insert yang baru (strategy simple sync)
             // Atau update if exist. Karena structure fix D1-S3, kita bisa update or create.

@@ -1,0 +1,80 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Filament specific fixes */
+:root {
+    --sidebar-width: 256px;
+}
+
+/* 1. SVG Icon Sizes - Filament Default */
+[class*="fi-"] svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.fi-sidebar-item-icon svg,
+.fi-icon-btn svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+}
+
+/* 2. Sidebar spacing */
+.fi-sidebar-item-button,
+.fi-sidebar-group-label {
+    column-gap: 0.75rem;
+}
+
+/* 3. Layout structure */
+.fi-layout {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    min-height: 100vh;
+}
+
+.fi-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    border-right: 1px solid rgb(229 231 235);
+    background: white;
+}
+
+.fi-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.fi-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+    border-bottom: 1px solid rgb(229 231 235);
+}
+
+/* 4. Brand logo spacing */
+.fi-logo {
+    padding: 1rem;
+}
+
+/* 5. Ensure forms render correctly */
+.fi-fo-field-wrp {
+    margin-bottom: 1rem;
+}
+
+/* 6. Table fixes */
+.fi-ta-table {
+    width: 100%;
+}
+
+.fi-ta-cell {
+    padding: 0.75rem 1rem;
+}
+
+/* Canary test */
+body {
+    background-color: #f9fafb;
+}

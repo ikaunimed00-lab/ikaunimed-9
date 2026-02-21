@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import MainLayout from '@/components/MainLayout';
 import { Briefcase, MapPin, DollarSign, Calendar, Globe, Share2, ArrowLeft, Clock } from 'lucide-react';
 import { route } from 'ziggy-js';
@@ -24,9 +24,13 @@ interface JobVacancy {
 interface Props {
   vacancy: JobVacancy;
   related: JobVacancy[];
+  interest: {
+    is_interested: boolean;
+    total: number;
+  };
 }
 
-export default function Show({ vacancy, related }: Props) {
+export default function Show({ vacancy, related, interest }: Props) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
       day: "numeric",
@@ -36,6 +40,17 @@ export default function Show({ vacancy, related }: Props) {
   };
 
   const isExpired = vacancy.closing_date && new Date(vacancy.closing_date) < new Date();
+  const { auth }: any = usePage().props;
+
+  const handleToggleInterest = () => {
+    router.post(
+      route('jobs.interest', vacancy.slug),
+      {},
+      {
+        preserveScroll: true,
+      }
+    );
+  };
 
   return (
     <MainLayout variant="full">
@@ -168,6 +183,27 @@ export default function Show({ vacancy, related }: Props) {
                 ) : (
                   <div className="bg-red-50 text-red-600 text-center py-3 rounded-lg font-medium border border-red-100">
                     Lowongan Sudah Ditutup
+                  </div>
+                )}
+
+                {auth?.user && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleToggleInterest}
+                      className={`w-full px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                        interest.is_interested
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                      }`}
+                    >
+                      {interest.is_interested ? 'Batalkan ketertarikan' : 'Saya tertarik dengan lowongan ini'}
+                    </button>
+                    <p className="text-xs text-gray-500 text-center">
+                      {interest.total > 0
+                        ? `${interest.total} alumni telah menyatakan tertarik pada lowongan ini.`
+                        : 'Belum ada alumni yang menyatakan tertarik.'}
+                    </p>
                   </div>
                 )}
 

@@ -29,7 +29,7 @@ class PartnershipController extends Controller
 
     public function show(Partnership $partnership)
     {
-        if ($partnership->status !== 'active' && !auth()->user()?->isEditor()) {
+        if ($partnership->status !== 'active' && ! auth()->user()?->can('cms.job.publish')) {
             abort(404);
         }
 

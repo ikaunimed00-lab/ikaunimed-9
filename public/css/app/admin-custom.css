@@ -1,0 +1,49 @@
+/* 
+   Filament Admin Custom Overrides
+   Hanya berisi perbaikan spesifik. 
+   TIDAK MENGGUNAKAN @tailwind base/components/utilities 
+   untuk menghindari konflik dengan tema bawaan Filament.
+*/
+
+/* Fix for enlarged icons in Filament dashboard */
+.fi-sidebar-item-icon,
+.fi-topbar-item-icon,
+.fi-dropdown-list-item-icon,
+.fi-btn-icon,
+.fi-icon-btn-icon,
+.fi-sidebar-group-icon,
+.fi-breadcrumbs-item-icon,
+.fi-input-wrapper-icon,
+.fi-modal-icon,
+.fi-icon {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    min-width: 1.25rem !important;
+    min-height: 1.25rem !important;
+}
+
+/* Fallback for any SVG inside Filament components that might be enlarged */
+.fi-layout svg,
+.fi-sidebar svg,
+.fi-topbar svg,
+.fi-panel svg,
+.fi-modal svg,
+.fi-dropdown svg,
+.fi-section svg,
+.fi-fo-field-wrp svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+}
+
+/* Exception for brand logo which should be larger */
+.fi-logo svg,
+.fi-brand svg,
+.fi-sidebar-header svg,
+[style*="height: 40px"] img,
+[style*="height: 40px"] svg {
+    width: auto !important;
+    height: 40px !important;
+}
+
+/* Sidebar background debug (optional, remove if not needed) */
+/* .fi-sidebar { background-color: #f0fdf4 !important; } */
