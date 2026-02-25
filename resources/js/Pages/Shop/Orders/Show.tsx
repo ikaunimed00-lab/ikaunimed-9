@@ -1,4 +1,5 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
+import MainLayout from '@/components/MainLayout';
 import { route } from 'ziggy-js';
 
 type Product = {
@@ -43,11 +44,19 @@ type Payment = {
   provider: string;
   method: string;
   paid_at: string | null;
+  manual_proof_path?: string | null;
+};
+
+type CourseSummary = {
+  id: number;
+  title: string;
+  slug: string;
 };
 
 type PageProps = {
   order: Order;
   payment: Payment | null;
+  digitalCourses: CourseSummary[];
 };
 
 const formatRupiah = (value: string | number) => {
@@ -108,13 +117,40 @@ const fulfillmentBadgeClass = (status: string) => {
 };
 
 export default function OrderShow() {
-  const { order, payment } = usePage<PageProps>().props;
+  const { order, payment, digitalCourses } = usePage<PageProps>().props;
+
+  const { data, setData, post, processing, errors, reset } = useForm<{
+    proof: File | null;
+  }>({
+    proof: null,
+  });
+
+  const handleProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setData('proof', e.target.files[0]);
+  };
+
+  const handleUploadProof = (e: React.FormEvent) => {
+    e.preventDefault();
+    post(route('shop.orders.upload-proof', order.id), {
+      forceFormData: true,
+      onSuccess: () => {
+        reset();
+      },
+    });
+  };
 
   const items = order.items ?? [];
+  const isPaid = (payment?.status ?? order.status) === 'paid';
+  const hasDigitalItems = items.some(
+    (item) => item.product_type === 'digital'
+  );
+  const hasDigitalCourses = isPaid && (digitalCourses?.length ?? 0) > 0;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="mb-4 flex items-center justify-between">
+    <MainLayout>
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="mb-4 flex items-center justify-between">
         <Link
           href={route('shop.orders.index')}
           className="text-sm text-blue-600"
@@ -229,6 +265,56 @@ export default function OrderShow() {
             </div>
           </div>
 
+          {hasDigitalItems && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+              <h2 className="text-sm font-semibold text-emerald-900 mb-2">
+                Akses Produk Digital / Kursus
+              </h2>
+              {isPaid ? (
+                <>
+                  <p className="text-sm text-emerald-800">
+                    Pembayaran Anda sudah dikonfirmasi. Akses kursus LMS untuk produk
+                    digital di pesanan ini sudah aktif.
+                  </p>
+                  {hasDigitalCourses ? (
+                    <div className="mt-3 space-y-2">
+                      {digitalCourses.map((course) => (
+                        <div
+                          key={course.id}
+                          className="flex items-center justify-between text-xs text-emerald-900"
+                        >
+                          <span className="font-semibold truncate">
+                            {course.title}
+                          </span>
+                          <Link
+                            href={route('courses.show', course.slug)}
+                            className="inline-flex items-center px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
+                          >
+                            Buka Kursus
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      <Link
+                        href={route('dashboard.elearning.learner.courses.index')}
+                        className="inline-flex items-center px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
+                      >
+                        Buka Kursus di LMS
+                      </Link>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-emerald-800">
+                  Setelah pembayaran dikonfirmasi, akses kursus LMS akan aktif dan
+                  dapat dibuka dari halaman ini.
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="bg-white border rounded-lg p-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">
               Status Pembayaran
@@ -272,9 +358,69 @@ export default function OrderShow() {
               </p>
             )}
           </div>
+
+          <div className="bg-white border rounded-lg p-4">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">
+              Pembayaran Manual / Transfer Bank
+            </h2>
+            <div className="space-y-3 text-sm">
+              <div className="bg-gray-50 border border-dashed border-gray-200 rounded-md p-3">
+                <p className="font-semibold text-gray-800 mb-1">
+                  Transfer ke Rekening BCA
+                </p>
+                <p className="text-gray-700">A.N. IKA UNIMED</p>
+                <p className="text-lg font-bold text-gray-900 tracking-wider">
+                  8115141186
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  {isPaid
+                    ? 'Pembayaran Anda sudah dikonfirmasi admin. Pesanan akan segera diproses.'
+                    : 'Setelah melakukan transfer, upload bukti pembayaran di bawah ini agar tim admin dapat memverifikasi dan mengkonfirmasi pesanan Anda.'}
+                </p>
+              </div>
+
+              {!isPaid && (
+                <>
+                  <form onSubmit={handleUploadProof} className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Upload Bukti Pembayaran (JPG, PNG, PDF, maks 5MB)
+                      </label>
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={handleProofChange}
+                        className="block w-full text-xs text-gray-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                      />
+                      {errors.proof && (
+                        <p className="mt-1 text-xs text-red-600">
+                          {errors.proof}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={processing || !data.proof}
+                      className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      Kirim Bukti Pembayaran
+                    </button>
+                  </form>
+
+                  {payment?.manual_proof_path && (
+                    <p className="text-xs text-emerald-700">
+                      Bukti pembayaran sudah diupload. Admin akan memverifikasi
+                      pembayaran Anda.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+      </div>
+    </MainLayout>
   );
 }
-

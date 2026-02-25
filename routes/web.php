@@ -67,6 +67,10 @@ Route::middleware([HandleInertiaRequests::class])->group(function () {
         ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class, 'throttle:20,1'])
         ->name('shop.checkout.process');
 
+    Route::post('/shop/checkout/check-coupon', [ShopController::class, 'checkCoupon'])
+        ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class, 'throttle:20,1'])
+        ->name('shop.checkout.check-coupon');
+
     Route::get('/shop/orders', [ShopController::class, 'orders'])
         ->middleware(['auth'])
         ->name('shop.orders.index');
@@ -74,6 +78,10 @@ Route::middleware([HandleInertiaRequests::class])->group(function () {
     Route::get('/shop/orders/{order}', [ShopController::class, 'showOrder'])
         ->middleware(['auth'])
         ->name('shop.orders.show');
+
+    Route::post('/shop/orders/{order}/upload-proof', [ShopController::class, 'uploadPaymentProof'])
+        ->middleware(['auth'])
+        ->name('shop.orders.upload-proof');
 
     Route::post('/shop/{product:slug}/cart', [ShopController::class, 'addToCart'])
         ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class, 'throttle:20,1'])
@@ -154,6 +162,14 @@ Route::middleware([HandleInertiaRequests::class])->group(function () {
     Route::post('/courses/{course:slug}/enroll', [CourseController::class, 'enroll'])
         ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class, 'throttle:10,1'])
         ->name('courses.enroll');
+
+    Route::get('/courses/{course:slug}/lessons/{lesson}', [CourseController::class, 'showLesson'])
+        ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class])
+        ->name('courses.lessons.show');
+
+    Route::post('/courses/{course:slug}/lessons/{lesson}/quiz-attempts', [CourseController::class, 'attemptQuiz'])
+        ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class, 'throttle:30,1'])
+        ->name('courses.lessons.quiz.attempt');
 
     Route::post('/courses/{course:slug}/lessons/{lesson}/complete', [CourseController::class, 'completeLesson'])
         ->middleware(['auth', 'role:subscriber', EnsureProfileCompleted::class])
@@ -261,11 +277,11 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | PROFILE
+    | PROFILE (Moved to settings.php)
     |--------------------------------------------------------------------------
     */
-    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    // Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    // Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     /*
     |--------------------------------------------------------------------------
@@ -386,19 +402,25 @@ Route::middleware(['auth'])->group(function () {
             Route::get('courses/{course}/participants', [CourseDashboardController::class, 'participants'])
                 ->name('courses.participants');
         });
-
-        Route::prefix('dashboard/elearning')
-            ->name('dashboard.elearning.')
-            ->group(function () {
-                Route::get('learner/courses', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'index'])
-                    ->middleware(EnsureProfileCompleted::class)
-                    ->name('learner.courses.index');
-                Route::post('learner/enrollments/{enrollment}/cancel', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'cancel'])
-                    ->middleware(EnsureProfileCompleted::class)
-                    ->name('enrollments.cancel');
-                Route::get('moderator/courses', [\App\Http\Controllers\Dashboard\CourseDashboardController::class, 'moderator'])
-                    ->name('moderator.courses.index');
-            });
+    
+    Route::prefix('dashboard/elearning')
+        ->name('dashboard.elearning.')
+        ->group(function () {
+            Route::get('learner/courses', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'index'])
+                ->middleware(EnsureProfileCompleted::class)
+                ->name('learner.courses.index');
+            Route::get('learner/certificates', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'certificates'])
+                ->middleware(EnsureProfileCompleted::class)
+                ->name('learner.certificates.index');
+            Route::get('learner/certificates/{certificate}/download', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'downloadCertificate'])
+                ->middleware(EnsureProfileCompleted::class)
+                ->name('learner.certificates.download');
+            Route::post('learner/enrollments/{enrollment}/cancel', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'cancel'])
+                ->middleware(EnsureProfileCompleted::class)
+                ->name('enrollments.cancel');
+            Route::get('moderator/courses', [\App\Http\Controllers\Dashboard\CourseDashboardController::class, 'moderator'])
+                ->name('moderator.courses.index');
+        });
 
     /*
     |--------------------------------------------------------------------------

@@ -1,8 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import React from 'react';
-import TopBar from '@/components/TopBar';
-import { HeaderEnterprise as Header } from '@/components/navigation/HeaderEnterprise';
-import Footer from '@/components/Footer';
+import MainLayout from '@/components/MainLayout';
 import NewsCard from '@/components/NewsCard';
 import CategoryNavigation from '@/components/CategoryNavigation';
 import Pagination from '@/components/Pagination';
@@ -56,11 +54,7 @@ const CategoryShow = ({ category, news }: CategoryShowProps) => {
         <meta property="og:type" content="website" />
       </Head>
 
-      <div className="min-h-screen bg-[#F8FAF9] flex flex-col">
-        <TopBar />
-        <Header />
-
-        <main className="flex-grow">
+      <MainLayout variant="full">
           {/* Category Header */}
           <section className="bg-[#0F766E] text-white py-12 sm:py-16">
             <div className="container mx-auto px-4 max-w-7xl">
@@ -134,10 +128,7 @@ const CategoryShow = ({ category, news }: CategoryShowProps) => {
               )}
             </div>
           </section>
-        </main>
-
-        <Footer />
-      </div>
+      </MainLayout>
     </>
   );
 };

@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
-import TopBar from '@/Components/TopBar';
-import { HeaderEnterprise as Header } from '@/components/navigation/HeaderEnterprise';
-import Footer from '@/Components/Footer';
+import MainLayout from '@/components/MainLayout';
 import NewsCard from '@/Components/NewsCard';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
@@ -143,9 +141,7 @@ export default function Show({ organization, members, departments, news, agenda 
         <>
             <Head title={`${organization.name} - Struktur & Profil`} />
 
-            <div className="min-h-screen bg-[#F8FAF9] flex flex-col font-sans">
-                <TopBar />
-                <Header />
+            <MainLayout variant="full">
 
                 {/* 1️⃣ Header Organisasi */}
                 <div className="bg-white border-b border-gray-200 relative overflow-hidden">
@@ -392,9 +388,7 @@ export default function Show({ organization, members, departments, news, agenda 
                         </div>
                     </div>
                 </div>
-
-                <Footer />
-            </div>
+            </MainLayout>
         </>
     );
 }

@@ -1,6 +1,4 @@
-import TopBar from '@/components/TopBar';
-import { HeaderEnterprise as Header } from '@/components/navigation/HeaderEnterprise';
-import Footer from '@/components/Footer';
+import MainLayout from '@/components/MainLayout';
 import NewsCard from '@/components/NewsCard';
 import NewsLayout from '@/components/NewsLayout';
 import AdInline from '@/components/AdInline';
@@ -8,6 +6,11 @@ import AdSidebar from '@/components/AdSidebar';
 import { Head, Link } from '@inertiajs/react';
 import { formatNumber } from '@/lib/utils';
 import { useEffect, useState } from 'react';
+
+interface AdsConfig {
+  inline_article_slot?: string;
+  infeed_slot?: string;
+}
 
 interface NewsItem {
   id: number;
@@ -28,17 +31,18 @@ interface NewsItem {
     name: string;
     slug: string;
   }>;
+  video_urls?: any;
 }
 
 interface RelatedNews extends NewsItem {}
 
-export default function NewsShow({
-  news,
-  relatedNews = [],
-}: {
+interface NewsShowProps {
   news: NewsItem;
   relatedNews?: RelatedNews[];
-}) {
+  ads?: AdsConfig;
+}
+
+export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps) {
   const [shareUrl, setShareUrl] = useState('');
 
   useEffect(() => {
@@ -46,6 +50,12 @@ export default function NewsShow({
   }, []);
 
   const imageUrl = news.image ?? undefined;
+  const rawVideoUrls = (news as any).video_urls ?? [];
+  const videoUrls = Array.isArray(rawVideoUrls)
+    ? rawVideoUrls
+    : rawVideoUrls
+    ? [rawVideoUrls]
+    : [];
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -110,9 +120,7 @@ export default function NewsShow({
         />
       </Head>
 
-      <div className="min-h-screen bg-[#F8FAF9] flex flex-col">
-        <TopBar />
-        <Header />
+      <MainLayout variant="full">
 
         {/* Article dengan NewsLayout 3 kolom */}
         <NewsLayout>
@@ -129,7 +137,7 @@ export default function NewsShow({
                     href={route('categories.show', news.categories[0].slug)}
                     className="hover:text-[#0F766E] whitespace-nowrap"
                   >
-                    {news.categories[0].slug}
+                    {news.categories[0].name}
                   </Link>
                   <span>/</span>
                 </>
@@ -146,7 +154,7 @@ export default function NewsShow({
                     href={route('categories.show', cat.slug)}
                     className="bg-[#0F766E]/10 text-[#0F766E] px-3 py-1 rounded-full text-xs font-semibold hover:bg-[#0F766E]/20"
                   >
-                    {cat.slug}
+                    {cat.name}
                   </Link>
                 ))}
               </div>
@@ -213,7 +221,7 @@ export default function NewsShow({
                       return (
                         <div key={idx}>
                           <div dangerouslySetInnerHTML={{ __html: section }} />
-                          <AdInline position={`middle-after-paragraph-${currentParagraph}`} />
+                          <AdInline position={`middle-after-paragraph-${currentParagraph}`} slot={ads?.inline_article_slot} />
                         </div>
                       );
                     }
@@ -225,13 +233,14 @@ export default function NewsShow({
             </div>
 
             {/* Video Gallery Section */}
-            {news.video_urls && news.video_urls.length > 0 && (
+            {videoUrls.length > 0 && (
               <div className="mb-12">
                 <h3 className="text-2xl font-bold text-[#0F172A] mb-6 flex items-center gap-2">
                   <span className="text-3xl">🎥</span> Galeri Video
                 </h3>
-                <div className={`grid grid-cols-1 ${news.video_urls.length > 1 ? 'md:grid-cols-2' : ''} gap-6`}>
-              {news.video_urls.map((url, index) => {
+                <div className={`grid grid-cols-1 ${videoUrls.length > 1 ? 'md:grid-cols-2' : ''} gap-6`}>
+              {videoUrls.map((rawUrl, index) => {
+                const url = typeof rawUrl === 'string' ? rawUrl : String(rawUrl ?? '');
                 let embedUrl = null;
                 let isTikTok = false;
                 let isShorts = false;
@@ -386,9 +395,7 @@ export default function NewsShow({
             </div>
           </section>
         )}
-
-        <Footer />
-      </div>
+      </MainLayout>
     </>
   );
 }
