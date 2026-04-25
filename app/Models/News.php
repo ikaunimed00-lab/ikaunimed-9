@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 
 class News extends Model
@@ -43,12 +45,91 @@ class News extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (News $news) {
+            if ($news->status === 'published' && empty($news->published_at)) {
+                $news->published_at = now();
+            }
+        });
+
+        static::saved(function (News $news) {
+            Cache::forget('news.list.page.1');
+            Cache::forget('news.latest_videos');
+            Cache::forget('news.popular_videos');
+            Cache::forget('news.opinion_columns');
+            Cache::forget('news.popular_news');
+            Cache::forget('news.popular_tags');
+            Cache::forget('news.dashboard.stats');
+            Cache::forget('categories.all');
+        });
+
+        static::deleted(function (News $news) {
+            Cache::forget('news.list.page.1');
+            Cache::forget('news.latest_videos');
+            Cache::forget('news.popular_videos');
+            Cache::forget('news.opinion_columns');
+            Cache::forget('news.popular_news');
+            Cache::forget('news.popular_tags');
+            Cache::forget('news.dashboard.stats');
+            Cache::forget('categories.all');
+        });
+    }
+
     /**
      * Gunakan slug untuk route binding
      */
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    /**
+     * Get reading time estimate
+     */
+    public function getReadingTimeAttribute(): string
+    {
+        $words = str_word_count(strip_tags($this->content ?? ''));
+        $minutes = ceil($words / 200);
+        return $minutes . ' min read';
+    }
+
+    public static function buildImageUrl(?string $image): ?string
+    {
+        if (! $image) {
+            return null;
+        }
+
+        $basename = basename($image);
+        $newsPath = str_starts_with($image, 'news/') ? $image : 'news/' . $basename;
+
+        $appendVersion = function (string $diskName, string $path, string $url): string {
+            try {
+                $version = Storage::disk($diskName)->lastModified($path);
+                return $url.(str_contains($url, '?') ? '&' : '?').'v='.$version;
+            } catch (\Throwable) {
+                return $url;
+            }
+        };
+
+        if (Storage::disk('public')->exists($newsPath)) {
+            $url = Storage::disk('public')->url($newsPath);
+            return $appendVersion('public', $newsPath, $url);
+        }
+
+        if (Storage::disk('public_images')->exists($newsPath)) {
+            $url = Storage::disk('public_images')->url($newsPath);
+            return $appendVersion('public_images', $newsPath, $url);
+        }
+
+        if (Storage::disk('local')->exists($newsPath)) {
+            $url = url('/storage/'.$newsPath);
+            return $appendVersion('local', $newsPath, $url);
+        }
+
+        $fallbackPath = 'news/' . $basename;
+        $url = Storage::disk('public_images')->url($fallbackPath);
+        return $appendVersion('public_images', $fallbackPath, $url);
     }
 
     /**
@@ -176,6 +257,11 @@ class News extends Model
     public function incrementViewCount(): void
     {
         $this->increment('view_count');
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return self::buildImageUrl($this->image);
     }
 
     /**

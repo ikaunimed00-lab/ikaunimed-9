@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\News;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class CategoryController extends Controller
@@ -30,7 +29,7 @@ class CategoryController extends Controller
                     'title' => $item->title,
                     'excerpt' => $item->excerpt,
                     'slug' => $item->slug,
-                    'image' => $item->image ? Storage::url('news/' . $item->image) : null,
+                    'image' => News::buildImageUrl($item->image),
                     'view_count' => $item->view_count,
                     'author' => ['name' => $item->author?->name],
                     'published_at' => $item->published_at?->toISOString(),
@@ -54,8 +53,20 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $categories = Cache::remember('categories.all', 60 * 60, function () {
+        $allowedSlugs = [
+            'politik',
+            'ekonomi',
+            'pendidikan',
+            'kesehatan',
+            'teknologi',
+            'olahraga',
+            'hiburan',
+            'gaya-hidup',
+        ];
+
+        $categories = Cache::remember('categories.all', 60 * 60, function () use ($allowedSlugs) {
             return Category::select('id', 'name', 'slug', 'icon', 'order')
+                ->whereIn('slug', $allowedSlugs)
                 ->withCount([
                     'news' => fn($query) => $query->published()
                 ])
@@ -83,7 +94,7 @@ class CategoryController extends Controller
                 ->map(fn ($item) => [
                     'title' => $item->title,
                     'slug' => $item->slug,
-                    'image' => $item->image ? Storage::url('news/' . $item->image) : null,
+                    'image' => News::buildImageUrl($item->image),
                     'view_count' => $item->view_count,
                 ])
                 ->toArray()

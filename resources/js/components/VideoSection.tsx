@@ -13,7 +13,11 @@ const VideoSection = ({ content }: { content?: any }) => {
   const videoTags = content?.videoTags || ['Terintegrasi', 'Kolaboratif', 'Inovatif'];
   const description = content?.videoDescription || content?.description || "Wadah resmi kolaborasi dan koneksi bagi seluruh alumni Universitas Negeri Medan. Bersama kita berkontribusi bagi almamater, nusa, dan bangsa melalui jaringan profesional yang kuat, unggul, dan berkelanjutan.";
   const videoUrl = content?.videoUrl || content?.videoLink || "";
-  const videoThumbnail = content?.videoThumbnail ? `/storage/${content.videoThumbnail}` : null;
+  const videoThumbnail = content?.videoThumbnail 
+    ? (content.videoThumbnail.startsWith('http') || content.videoThumbnail.startsWith('/') 
+        ? content.videoThumbnail 
+        : `/storage/${content.videoThumbnail}`) 
+    : null;
 
   // Helper untuk mendapatkan Embed URL dari YouTube/Vimeo
   const getEmbedUrl = (url: string) => {

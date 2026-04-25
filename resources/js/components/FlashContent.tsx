@@ -43,7 +43,7 @@ export const FlashContent: React.FC<FlashContentProps> = ({ videos = [] }) => {
     <div className="w-full bg-white border-b border-[#E6EAE8]">
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-[1440px] py-6 sm:py-8">
         <HorizontalScroll
-          title="🎬 Konten Video"
+          title="🎬 Video Alumni & Kegiatan IKA UNIMED"
           viewAllLink="/media/video"
           showArrows={true}
         >

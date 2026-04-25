@@ -32,6 +32,7 @@ interface NewsItem {
     slug: string;
   }>;
   video_urls?: any;
+  reading_time?: string;
 }
 
 interface RelatedNews extends NewsItem {}
@@ -44,6 +45,7 @@ interface NewsShowProps {
 
 export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps) {
   const [shareUrl, setShareUrl] = useState('');
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     setShareUrl(window.location.href);
@@ -56,6 +58,8 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
     : rawVideoUrls
     ? [rawVideoUrls]
     : [];
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://ikaunimed.or.id';
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -74,7 +78,7 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
       name: 'IKA UNIMED',
       logo: {
         '@type': 'ImageObject',
-        url: `${window.location.origin}/images/logo.png`,
+        url: `${origin}/images/logo.png`,
       },
     },
     mainEntityOfPage: {
@@ -167,16 +171,25 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
 
             {/* Meta Info */}
             <div className="flex flex-wrap items-center gap-6 pb-6 border-b border-[#E6EAE8] mb-6 text-sm text-[#6B7280]">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 bg-[#0F766E] rounded-full flex items-center justify-center text-white font-bold text-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#0F766E] rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0">
                   {news.author?.name?.charAt(0).toUpperCase() || 'A'}
-                </span>
+                </div>
                 <div>
-                  <p className="font-medium text-[#0F172A]">{news.author?.name || 'Admin'}</p>
-                  <time dateTime={news.published_at}>{publishDate}</time>
+                  <p className="font-bold text-[#0F172A]">{news.author?.name || 'Admin'}</p>
+                  <div className="flex items-center gap-2 text-xs sm:text-sm">
+                    <time dateTime={news.published_at}>{publishDate}</time>
+                    {news.reading_time && (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <span>{news.reading_time}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              
+              <div className="flex items-center gap-1 ml-auto sm:ml-0 text-xs sm:text-sm bg-gray-100 px-3 py-1 rounded-full">
                 <span>👁️</span>
                 <span>{formatNumber(news.view_count)} pembaca</span>
               </div>
@@ -203,7 +216,7 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
             )}
 
             {/* Content dengan Ad Inline */}
-            <div className="prose prose-lg max-w-none mb-12 prose-img:rounded-lg prose-img:shadow-lg">
+            <div className="prose prose-lg prose-slate max-w-none mb-12 prose-img:rounded-lg prose-img:shadow-lg prose-a:text-[#0F766E] prose-a:no-underline hover:prose-a:underline prose-headings:text-slate-900 prose-p:text-slate-700 prose-p:leading-relaxed">
               {/* Parse content dan inject ad di tengah-tengah */}
               {(() => {
                 // Split content by paragraph tags untuk smart ad placement
@@ -230,6 +243,27 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
                   return <div key={idx} dangerouslySetInnerHTML={{ __html: section }} />;
                 });
               })()}
+            </div>
+
+            {/* Author Box */}
+            <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 mb-12 flex items-start gap-4 sm:gap-6">
+              <div className="shrink-0">
+                <div className="w-16 h-16 bg-[#0F766E] rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-sm">
+                  {news.author?.name?.charAt(0).toUpperCase() || 'A'}
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-slate-900 mb-2">
+                  Tentang {news.author?.name || 'Admin'}
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed mb-3">
+                  Penulis aktif di Portal Berita IKA UNIMED. Menyajikan informasi terkini dan terpercaya seputar alumni, universitas, dan pendidikan.
+                </p>
+                <div className="flex gap-3">
+                   {/* Social Links Placeholder - Bisa dikembangkan nanti */}
+                   <span className="text-xs font-medium text-slate-400 bg-slate-200 px-2 py-1 rounded">Penulis Terverifikasi</span>
+                </div>
+              </div>
             </div>
 
             {/* Video Gallery Section */}
@@ -299,63 +333,88 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
               </div>
             )}
 
+            {/* Author Box */}
+            <div className="bg-white border border-[#E6EAE8] rounded-xl p-6 mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left shadow-sm">
+              <div className="w-16 h-16 bg-[#F0FDF4] rounded-full flex items-center justify-center text-2xl font-bold text-[#166534] shrink-0 border border-[#DCFCE7]">
+                {news.author?.name?.charAt(0).toUpperCase() || 'A'}
+              </div>
+              <div className="flex-1">
+                <div className="text-xs text-[#6B7280] font-bold mb-1 uppercase tracking-wider">Ditulis Oleh</div>
+                <h3 className="text-lg font-bold text-[#0F172A] mb-2">
+                  {news.author?.name || 'Admin IKA UNIMED'}
+                </h3>
+                <p className="text-[#374151] text-sm leading-relaxed">
+                  Kontributor aktif di portal berita IKA UNIMED. Menyajikan informasi terkini seputar alumni dan kampus Universitas Negeri Medan.
+                </p>
+              </div>
+            </div>
+
             {/* Share Section */}
-<div className="bg-[#F8FAF9] border border-[#E6EAE8] rounded-lg p-5 mb-8">
-  <h3 className="font-bold text-[#0F172A] mb-4 text-sm">
-    📢 Bagikan Berita Ini:
-  </h3>
+            <div className="bg-[#F8FAF9] border border-[#E6EAE8] rounded-lg p-5 mb-8">
+              <h3 className="font-bold text-[#0F172A] mb-4 text-sm flex items-center gap-2">
+                <span className="text-xl">📢</span> Bagikan Berita Ini:
+              </h3>
 
-  <div className="flex flex-wrap gap-2">
-    {/* WhatsApp */}
-    <a
-      href={shareLinks.whatsapp}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium
-                 bg-green-50 text-green-700 hover:bg-green-100 transition"
-    >
-      <span className="text-base">📱</span>
-      <span>WhatsApp</span>
-    </a>
+              <div className="flex flex-wrap gap-2">
+                {/* WhatsApp */}
+                <a
+                  href={shareLinks.whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium
+                             bg-green-50 text-green-700 hover:bg-green-100 transition"
+                >
+                  <span className="text-base">📱</span>
+                  <span>WhatsApp</span>
+                </a>
 
-    {/* Facebook */}
-    <a
-      href={shareLinks.facebook}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium
-                 bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
-    >
-      <span className="text-base">👍</span>
-      <span>Facebook</span>
-    </a>
+                {/* Facebook */}
+                <a
+                  href={shareLinks.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium
+                             bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                >
+                  <span className="text-base">👍</span>
+                  <span>Facebook</span>
+                </a>
 
-    {/* Twitter / X */}
-    <a
-      href={shareLinks.twitter}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium
-                 bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
-    >
-      <span className="text-base">𝕏</span>
-      <span>Twitter</span>
-    </a>
+                {/* Twitter / X */}
+                <a
+                  href={shareLinks.twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium
+                             bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
+                >
+                  <span className="text-base">𝕏</span>
+                  <span>Twitter</span>
+                </a>
 
-    {/* Copy Link */}
-    <button
-      onClick={() => {
-        navigator.clipboard.writeText(shareUrl);
-        alert('Link berhasil disalin!');
-      }}
-      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium
-                 bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
-    >
-      <span className="text-base">🔗</span>
-      <span>Salin Link</span>
-    </button>
-  </div>
-</div>
+                {/* Copy Link */}
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareUrl);
+                    setShowToast(true);
+                    setTimeout(() => setShowToast(false), 3000);
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium
+                             bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+                >
+                  <span className="text-base">🔗</span>
+                  <span>Salin Link</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Toast Notification */}
+            {showToast && (
+              <div className="fixed bottom-4 right-4 bg-[#0F172A] text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3 animate-bounce">
+                <span className="text-green-400 font-bold">✓</span>
+                <span className="font-medium text-sm">Link berhasil disalin!</span>
+              </div>
+            )}
 
 
             {/* Back to news */}

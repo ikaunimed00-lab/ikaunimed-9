@@ -16,7 +16,7 @@ class CreateNews extends CreateRecord
         $data['user_id'] = $user->id;
         
         // Jika bukan admin pusat, paksa organization_id sesuai user
-        if (!$user->isCentralAdmin()) {
+        if (! $user->isCentralAdmin() && ! $user->isPpAdmin()) {
             $data['organization_id'] = $user->organization_id;
         }
         

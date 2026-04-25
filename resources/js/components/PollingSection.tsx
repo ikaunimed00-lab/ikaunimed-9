@@ -14,12 +14,12 @@ export const PollingSection: React.FC = () => {
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
 
-  const mockQuestion = 'Apakah Anda tertarik dengan konten video edukasi?';
+  const mockQuestion = 'Program apa dari IKA UNIMED yang paling ingin Anda ikuti tahun ini?';
   const mockOptions: PollOption[] = [
-    { id: 1, label: 'Sangat Tertarik', votes: 245 },
-    { id: 2, label: 'Cukup Tertarik', votes: 187 },
-    { id: 3, label: 'Tidak Terlalu', votes: 89 },
-    { id: 4, label: 'Tidak Tertarik', votes: 34 },
+    { id: 1, label: 'Program Pengembangan Karier Alumni', votes: 245 },
+    { id: 2, label: 'Kegiatan Sosial & Pengabdian Masyarakat', votes: 187 },
+    { id: 3, label: 'Networking & Reuni Alumni', votes: 89 },
+    { id: 4, label: 'Beasiswa & Dukungan Pendidikan', votes: 34 },
   ];
 
   const totalVotes = mockOptions.reduce((sum, opt) => sum + opt.votes, 0);
@@ -35,7 +35,7 @@ export const PollingSection: React.FC = () => {
       {/* Header */}
       <div className="mb-6 pb-4 border-b border-[#E6EAE8]">
         <h3 className="text-lg font-bold text-[#0F172A] flex items-center gap-2">
-          📊 Polling
+          📊 Suara Alumni IKA UNIMED
         </h3>
       </div>
 
@@ -87,7 +87,7 @@ export const PollingSection: React.FC = () => {
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-[#E6EAE8] text-center">
         <p className="text-sm text-[#6B7280]">
-          Total: {totalVotes} suara
+          Total: {totalVotes} suara alumni
         </p>
       </div>
     </div>

@@ -25,7 +25,9 @@ interface NewsCardProps {
     name: string;
     slug: string;
   }>;
+  reading_time?: string;
   size?: 'sm' | 'md' | 'lg';
+  compact?: boolean;
 }
 
 const NewsCard: React.FC<NewsCardProps> = ({
@@ -38,7 +40,9 @@ const NewsCard: React.FC<NewsCardProps> = ({
   author,
   organization,
   categories,
+  reading_time,
   size = 'md',
+  compact = false,
 }) => {
   const [imageError, setImageError] = React.useState(false);
   const [imageLoaded, setImageLoaded] = React.useState(false);
@@ -51,12 +55,6 @@ const NewsCard: React.FC<NewsCardProps> = ({
     return `/storage/${img}`;
   };
 
-  const sizeClasses = {
-    sm: 'grid-cols-1',
-    md: 'grid-cols-2 gap-4',
-    lg: 'grid-cols-1 gap-6',
-  };
-
   const imgUrl = getImageUrl(image);
 
   const badgeColor = {
@@ -65,11 +63,23 @@ const NewsCard: React.FC<NewsCardProps> = ({
     dpc: "bg-sky-100 text-sky-700",
   };
 
+  const imageHeight = {
+    sm: 'h-40',
+    md: 'h-48 sm:h-56',
+    lg: 'h-64 sm:h-72',
+  };
+
+  const titleSize = {
+    sm: 'text-base',
+    md: 'text-lg',
+    lg: 'text-xl sm:text-2xl',
+  };
+
   return (
-    <Link href={`/news/${slug}`}>
-      <article className="bg-white rounded-lg overflow-hidden hover:border-[#0F766E] transition-colors duration-300 border border-[#E6EAE8] group cursor-pointer h-full">
+    <Link href={route('news.show', slug)}>
+      <article className="bg-white rounded-lg overflow-hidden hover:border-[#0F766E] transition-colors duration-300 border border-[#E6EAE8] group cursor-pointer h-full flex flex-col">
         {/* Image Container dengan lazy loading */}
-        <div className="relative overflow-hidden bg-[#E6EAE8] h-48 sm:h-56">
+        <div className={`relative overflow-hidden bg-[#E6EAE8] ${imageHeight[size]}`}>
           {imgUrl && !imageError ? (
             <>
               {!imageLoaded && (
@@ -108,53 +118,52 @@ const NewsCard: React.FC<NewsCardProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-4 sm:p-5">
+        <div className={`p-4 ${size === 'sm' ? 'sm:p-4' : 'sm:p-5'} flex-1 flex flex-col`}>
           {/* Organization Badge */}
           {organization && (
-             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mb-2 ${badgeColor[organization.type.toLowerCase() as keyof typeof badgeColor] ?? "bg-slate-100 text-slate-700"}`}>
+             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mb-2 w-fit ${badgeColor[organization.type.toLowerCase() as keyof typeof badgeColor] ?? "bg-slate-100 text-slate-700"}`}>
                {organization.type.toUpperCase()} {organization.name}
              </span>
           )}
 
-          {/* Kategori di content */}
-          {categories && categories.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {categories.slice(0, 2).map((cat) => (
-                <span key={cat.slug} className="text-xs text-[#0F766E] bg-[#F8FAF9] px-2 py-1 rounded border border-[#E6EAE8]">
-                  {cat.name}
-                </span>
-              ))}
-            </div>
-          )}
-
           {/* Title */}
-          <h3 className="text-lg font-bold text-[#0F172A] mb-2 line-clamp-2 group-hover:text-[#0F766E] transition-colors">
+          <h3 className={`${titleSize[size]} font-bold text-[#0F172A] mb-2 line-clamp-2 group-hover:text-[#0F766E] transition-colors`}>
             {title}
           </h3>
 
           {/* Excerpt */}
-          <p className="text-[#374151] text-sm mb-3 line-clamp-2">
-            {excerpt}
-          </p>
+          {!compact && (
+            <p className="text-[#374151] text-sm mb-3 line-clamp-2 flex-1">
+                {excerpt}
+            </p>
+          )}
 
           {/* Footer: Author & Date */}
-          <div className="flex items-center justify-between pt-3 border-t border-[#E6EAE8] text-xs text-[#6B7280]">
-            <div className="flex items-center gap-1">
+          <div className={`flex items-center justify-between pt-3 border-t border-[#E6EAE8] text-xs text-[#6B7280] ${compact ? 'mt-auto' : ''}`}>
+            <div className="flex items-center gap-2">
               {author?.name && (
-                <>
-                  <span className="w-6 h-6 bg-[#E6EAE8] rounded-full flex items-center justify-center font-bold text-[#0F766E]">
+                <div className="flex items-center gap-1">
+                  <span className="w-6 h-6 bg-[#E6EAE8] rounded-full flex items-center justify-center font-bold text-[#0F766E] text-xs">
                     {author.name.charAt(0)}
                   </span>
-                  <span>{author.name}</span>
+                  <span className="truncate max-w-[80px] sm:max-w-[100px]">{author.name}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-1 text-[10px] sm:text-xs whitespace-nowrap">
+              <time dateTime={published_at}>
+                {formatDistanceToNow(new Date(published_at), {
+                  addSuffix: true,
+                  locale: id,
+                })}
+              </time>
+              {reading_time && !compact && (
+                <>
+                  <span className="text-gray-300">•</span>
+                  <span>{reading_time}</span>
                 </>
               )}
             </div>
-            <time dateTime={published_at}>
-              {formatDistanceToNow(new Date(published_at), {
-                addSuffix: true,
-                locale: id,
-              })}
-            </time>
           </div>
         </div>
       </article>

@@ -7,9 +7,14 @@ use App\Models\User;
 
 class NewsPolicy
 {
+    private function canPublish(User $user): bool
+    {
+        return $user->can('cms.news.publish') || $user->hasSystemRole(['super_admin', 'admin']);
+    }
+
     public function view(User $user, News $news): bool
     {
-        if ($user->can('cms.news.publish')) {
+        if ($this->canPublish($user)) {
             return true;
         }
 
@@ -23,7 +28,7 @@ class NewsPolicy
 
     public function update(User $user, News $news): bool
     {
-        if ($user->can('cms.news.publish')) {
+        if ($this->canPublish($user)) {
             return true;
         }
 
@@ -32,12 +37,11 @@ class NewsPolicy
 
     public function delete(User $user, News $news): bool
     {
-        return $user->can('cms.news.publish');
+        return $this->canPublish($user);
     }
 
     public function deleteAny(User $user): bool
     {
-        return $user->can('cms.news.publish');
+        return $this->canPublish($user);
     }
 }
-

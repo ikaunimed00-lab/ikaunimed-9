@@ -19,3 +19,5 @@ export { KolumOpini } from './KolumOpini';
 export { KomentarTerbanyak } from './KomentarTerbanyak';
 export { SuratPembaca } from './SuratPembaca';
 export { HorizontalScroll } from './HorizontalScroll';
+export { default as BreakingNews } from './BreakingNews';
+export { default as NewsHeroSection } from './NewsHeroSection';

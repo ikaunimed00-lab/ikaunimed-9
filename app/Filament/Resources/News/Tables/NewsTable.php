@@ -66,7 +66,7 @@ class NewsTable
                     ->preload(),
                 SelectFilter::make('organization')
                     ->relationship('organization', 'name')
-                    ->hidden(fn () => !auth()->user()->isCentralAdmin())
+                    ->hidden(fn () => !auth()->user()->isCentralAdmin() && !auth()->user()->isPpAdmin())
                     ->searchable()
                     ->preload(),
                 TrashedFilter::make(),

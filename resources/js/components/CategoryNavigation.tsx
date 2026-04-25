@@ -50,7 +50,7 @@ const CategoryNavigation: React.FC = () => {
   return (
     <nav className="mb-8">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-[#0F172A]">Kategori</h3>
+        <h3 className="text-lg font-bold text-[#0F172A]">Kategori Berita</h3>
       </div>
 
       {/* Horizontal scrollable categories */}
@@ -65,7 +65,7 @@ const CategoryNavigation: React.FC = () => {
           <Link key={cat.slug} href={route('categories.show', cat.slug)}>
             <button className="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap flex-shrink-0 bg-[#F8FAF9] text-[#0F172A] hover:bg-[#0F766E] hover:text-white transition-colors flex items-center gap-2 capitalize border border-[#E6EAE8]">
               <span>{cat.icon || '📌'}</span>
-              <span>{cat.slug}</span>
+              <span>{cat.name}</span>
               {cat.news_count && <span className="text-xs">({cat.news_count})</span>}
             </button>
           </Link>

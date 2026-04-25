@@ -8,8 +8,8 @@ const HeroCarousel = ({ content }: { content?: any }) => {
   const slides = content?.slides?.map((slide: any, index: number) => ({
     ...slide,
     id: slide.id || `custom-${index}`,
-    bgDesktop: slide.image ? `/storage/${slide.image}` : null,
-    bgMobile: slide.image_mobile ? `/storage/${slide.image_mobile}` : (slide.image ? `/storage/${slide.image}` : null),
+    bgDesktop: slide.image ? `/storage/${slide.image}` : (slide.bgDesktop ? (slide.bgDesktop.startsWith('/') ? slide.bgDesktop : `/images/${slide.bgDesktop}`) : null),
+    bgMobile: slide.image_mobile ? `/storage/${slide.image_mobile}` : (slide.image ? `/storage/${slide.image}` : (slide.bgMobile ? (slide.bgMobile.startsWith('/') ? slide.bgMobile : `/images/${slide.bgMobile}`) : null)),
   })) || [];
 
   useEffect(() => {

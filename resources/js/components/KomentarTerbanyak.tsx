@@ -20,10 +20,10 @@ export const KomentarTerbanyak: React.FC<KomentarTerbanyakProps> = ({ maxItems =
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-lg font-bold text-[#0F172A]">💬 Komentar Terbanyak</h3>
-        <a href="#" className="text-sm text-[#0F766E] font-medium hover:text-[#115E59] transition-colors">
-          Lihat →
-        </a>
+        <h3 className="text-lg font-bold text-[#0F172A]">💬 Diskusi Terbanyak</h3>
+        <span className="text-sm text-[#6B7280]">
+          Ruang diskusi paling aktif di berita alumni
+        </span>
       </div>
 
       {/* List */}

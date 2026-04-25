@@ -1,26 +1,39 @@
 import React from 'react';
+import { Link } from '@inertiajs/react';
 import { HorizontalScroll } from './HorizontalScroll';
+
+interface EditorsPickItem {
+  id: number;
+  title: string;
+  slug: string;
+}
+
+interface EditorsPicksProps {
+  items?: EditorsPickItem[];
+}
 
 /**
  * EditorsPicks - Editor's curated picks dengan horizontal scroll
- * Bisa standalone atau di-integrate ke main content
+ * Data diisi dari daftar berita populer / kurasi editor.
  */
-export const EditorsPicks: React.FC = () => {
-  const mockPicks = Array.from({ length: 6 }, (_, i) => ({
-    id: i + 1,
-    title: `Pick ${i + 1}`,
-  }));
+export const EditorsPicks: React.FC<EditorsPicksProps> = ({ items = [] }) => {
+  const picks = items.slice(0, 6);
+
+  if (!picks.length) {
+    return null;
+  }
 
   return (
     <HorizontalScroll
-      title="📌 Editor's Picks"
-      viewAllLink="#"
+      title="📌 Pilihan Editor IKA UNIMED"
+      viewAllLink={route('news.index')}
       showArrows={true}
     >
-      {mockPicks.map((pick) => (
-        <div
+      {picks.map((pick) => (
+        <Link
           key={pick.id}
-          className="flex-shrink-0 w-56 bg-white border border-[#E6EAE8] rounded-lg overflow-hidden hover:border-[#0F766E] transition-colors cursor-pointer group"
+          href={route('news.show', pick.slug)}
+          className="flex-shrink-0 w-56 bg-white border border-[#E6EAE8] rounded-lg overflow-hidden hover:border-[#0F766E] transition-colors cursor-pointer group relative block"
         >
           {/* Thumbnail */}
           <div className="w-full aspect-video bg-[#E6EAE8] animate-pulse" />
@@ -37,7 +50,7 @@ export const EditorsPicks: React.FC = () => {
           <div className="absolute top-2 right-2 bg-[#0F766E] text-white text-xs font-bold px-2 py-1 rounded">
             ⭐
           </div>
-        </div>
+        </Link>
       ))}
     </HorizontalScroll>
   );

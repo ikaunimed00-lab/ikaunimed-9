@@ -42,9 +42,12 @@ export const VideoPopular: React.FC<VideoPopularProps> = ({ videos = [] }) => {
     <div className="space-y-3 mb-8">
       {/* Header */}
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-lg font-bold text-[#0F172A]">🎥 Video Populer</h3>
-        <Link href="/media/video" className="text-sm text-[#0F766E] font-medium hover:text-[#115E59] transition-colors">
-          Ke Halaman Video →
+        <h3 className="text-lg font-bold text-[#0F172A]">🎥 Video Alumni Terpopuler</h3>
+        <Link
+          href="/media/video"
+          className="text-sm text-[#0F766E] font-medium hover:text-[#115E59] transition-colors"
+        >
+          Lihat Semua Video Alumni →
         </Link>
       </div>
 

@@ -6,6 +6,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Utilities\Get;
@@ -38,7 +39,7 @@ class NewsForm
                             ->relationship('organization', 'name')
                             ->searchable()
                             ->preload(false)
-                            ->hidden(fn () => !auth()->user()->isCentralAdmin())
+                            ->hidden(fn () => !auth()->user()->isCentralAdmin() && !auth()->user()->isPpAdmin())
                             ->default(fn () => auth()->user()->organization_id),
                         Select::make('status')
                             ->options([
@@ -70,8 +71,14 @@ class NewsForm
                         FileUpload::make('image')
                             ->label('Gambar Utama')
                             ->image()
+                            ->disk('public')
                             ->directory('news')
                             ->required(),
+                        TagsInput::make('video_urls')
+                            ->label('Daftar Video (YouTube/TikTok)')
+                            ->placeholder('Tempel URL video lalu tekan Enter')
+                            ->helperText('Satu tag = satu URL video. Mendukung YouTube (termasuk /shorts) dan TikTok.')
+                            ->separator(','),
                     ]),
             ]);
     }

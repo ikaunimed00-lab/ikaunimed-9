@@ -6,7 +6,9 @@ use App\Models\News;
 use App\Models\User;
 use App\Models\Organization;
 use App\Models\Category;
+use App\Models\Tag;
 use App\Models\Legalization;
+use App\Models\SiteSetting;
 use App\Http\Requests\StoreNewsRequest;
 use App\Http\Requests\UpdateNewsRequest;
 use Illuminate\Http\Request;
@@ -31,25 +33,82 @@ class NewsController extends Controller
         $page = $request->get('page', 1);
         $cacheKey = "news.list.page.{$page}";
 
-        $news = Cache::remember($cacheKey, 60 * 60, function () {
+        // Helper untuk transform news item
+        $transformNews = fn ($item) => [
+            'id' => $item->id,
+            'title' => $item->title,
+            'excerpt' => $item->excerpt,
+            'slug' => $item->slug,
+            'image' => News::buildImageUrl($item->image),
+            'view_count' => $item->view_count,
+            'author' => ['name' => $item->author?->name],
+            'categories' => $item->categories->map(fn($c) => [
+                'name' => $c->name,
+                'slug' => $c->slug,
+            ])->toArray(),
+            'published_at' => $item->published_at?->toISOString(),
+            'reading_time' => $item->reading_time,
+        ];
+
+        // 1. Breaking News (Running Text - Khusus Berita Alumni)
+        $breakingNews = Cache::remember('news.breaking', 60 * 5, function () {
+            return News::published()
+                ->whereHas('categories', fn($q) => $q->whereIn('slug', ['alumni', 'kabar-alumni', 'pendidikan', 'sosial']))
+                ->latest()
+                ->take(5)
+                ->get()
+                ->map(fn($item) => [
+                    'id' => $item->id,
+                    'title' => $item->title,
+                    'slug' => $item->slug,
+                ]);
+        });
+
+        // 2. Hero News (Top 3 Latest)
+        $heroNews = Cache::remember('news.hero', 60 * 5, function () use ($transformNews) {
             return News::published()
                 ->with('author:id,name', 'categories:id,slug,name')
                 ->latest()
+                ->take(3)
+                ->get()
+                ->map($transformNews);
+        });
+
+        // ID yang sudah muncul di Hero, exclude dari list lain agar variatif
+        $excludeIds = collect($heroNews)->pluck('id')->toArray();
+
+        // 3. Alumni News (Prioritas kategori alumni/pendidikan)
+        $alumniNews = Cache::remember('news.section.alumni', 60 * 5, function () use ($excludeIds, $transformNews) {
+            return News::published()
+                ->whereNotIn('id', $excludeIds)
+                ->whereHas('categories', fn($q) => $q->whereIn('slug', ['alumni', 'kabar-alumni', 'pendidikan', 'sosial']))
+                ->with('author:id,name', 'categories:id,slug,name')
+                ->latest()
+                ->take(6)
+                ->get()
+                ->map($transformNews);
+        });
+
+        // 4. Opinion/Artikel News (Prioritas kategori opini/ekonomi/teknologi)
+        $opinionNews = Cache::remember('news.section.opinion', 60 * 5, function () use ($excludeIds, $transformNews) {
+            return News::published()
+                ->whereNotIn('id', $excludeIds)
+                ->whereHas('categories', fn($q) => $q->whereIn('slug', ['opini', 'artikel', 'ekonomi', 'teknologi', 'gaya-hidup']))
+                ->with('author:id,name', 'categories:id,slug,name')
+                ->latest()
+                ->take(5)
+                ->get()
+                ->map($transformNews);
+        });
+
+        // 5. General News (Paginated) - Sisa berita
+        $news = Cache::remember($cacheKey, 60 * 60, function () use ($excludeIds, $transformNews) {
+            return News::published()
+                ->whereNotIn('id', $excludeIds)
+                ->with('author:id,name', 'categories:id,slug,name')
+                ->latest()
                 ->paginate(12)
-                ->through(fn ($item) => [
-                    'id' => $item->id,
-                    'title' => $item->title,
-                    'excerpt' => $item->excerpt,
-                    'slug' => $item->slug,
-                    'image' => $item->image ? Storage::url('news/' . $item->image) : null,
-                    'view_count' => $item->view_count,
-                    'author' => ['name' => $item->author?->name],
-                    'categories' => $item->categories->map(fn($c) => [
-                        'name' => $c->name,
-                        'slug' => $c->slug,
-                    ])->toArray(),
-                    'published_at' => $item->published_at?->toISOString(),
-                ]);
+                ->through($transformNews);
         });
 
         // Latest Videos for FlashContent
@@ -64,7 +123,7 @@ class NewsController extends Controller
                     'id' => $item->id,
                     'title' => $item->title,
                     'slug' => $item->slug,
-                    'image' => $item->image ? Storage::url('news/' . $item->image) : null,
+                    'image' => News::buildImageUrl($item->image),
                     'video_urls' => $item->video_urls,
                     'published_at' => $item->published_at?->toISOString(),
                 ]);
@@ -82,14 +141,79 @@ class NewsController extends Controller
                     'id' => $item->id,
                     'title' => $item->title,
                     'slug' => $item->slug,
-                    'image' => $item->image ? Storage::url('news/' . $item->image) : null,
+                    'image' => News::buildImageUrl($item->image),
                     'video_urls' => $item->video_urls,
                     'view_count' => $item->view_count,
                     'published_at' => $item->published_at?->toISOString(),
                 ]);
         });
 
-        return Inertia::render('News/Index', compact('news', 'latestVideos', 'popularVideos'));
+        // Opinion Columns for KolumOpini (berdasarkan kategori 'opini' jika ada)
+        $opinionColumns = Cache::remember('news.opinion_columns', 60 * 15, function () {
+            return News::published()
+                ->whereHas('categories', fn($q) => $q->where('slug', 'opini'))
+                ->with(['author:id,name', 'categories:id,name,slug'])
+                ->latest('published_at')
+                ->take(8)
+                ->get()
+                ->map(fn ($item) => [
+                    'id' => $item->id,
+                    'title' => $item->title,
+                    'slug' => $item->slug,
+                    'author' => $item->author?->name,
+                    'category' => $item->categories->first()?->name,
+                ]);
+        });
+
+        // Popular News (trending) untuk BeritaPopuler & EditorsPicks
+        $popularNews = Cache::remember('news.popular_news', 60 * 30, function () {
+            return News::published()
+                ->trending()
+                ->select('id', 'title', 'slug', 'image', 'view_count', 'published_at')
+                ->take(10)
+                ->get()
+                ->map(fn ($news) => [
+                    'id' => $news->id,
+                    'title' => $news->title,
+                    'slug' => $news->slug,
+                    'image' => News::buildImageUrl($news->image),
+                    'view_count' => $news->view_count,
+                    'published_at' => $news->published_at?->toISOString(),
+                ]);
+        });
+
+        // Popular Tags untuk TagPopuler (berdasarkan jumlah berita terbit)
+        $popularTags = Cache::remember('news.popular_tags', 60 * 60, function () {
+            return Tag::withCount(['news' => fn($q) => $q->published()])
+                ->orderBy('news_count', 'desc')
+                ->take(30)
+                ->get()
+                ->map(fn ($tag) => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'slug' => $tag->slug,
+                    'count' => $tag->news_count,
+                ]);
+        });
+
+        $adsConfig = [
+            'inline_article_slot' => SiteSetting::getValue('adsense_slot_inline_article'),
+            'infeed_slot' => SiteSetting::getValue('adsense_slot_list_item'),
+        ];
+
+        return Inertia::render('News/Index', [
+            'news' => $news,
+            'breakingNews' => $breakingNews,
+            'heroNews' => $heroNews,
+            'alumniNews' => $alumniNews,
+            'opinionNews' => $opinionNews,
+            'latestVideos' => $latestVideos,
+            'popularVideos' => $popularVideos,
+            'opinionColumns' => $opinionColumns,
+            'popularNews' => $popularNews,
+            'popularTags' => $popularTags,
+            'ads' => $adsConfig,
+        ]);
     }
 
     public function show(News $news)
@@ -112,12 +236,17 @@ class NewsController extends Controller
                     'id' => $item->id,
                     'title' => $item->title,
                     'slug' => $item->slug,
-                    'image' => $item->image ? Storage::url('news/' . $item->image) : null,
+                    'image' => News::buildImageUrl($item->image),
                     'excerpt' => $item->excerpt,
                     'published_at' => $item->published_at?->toISOString(),
                 ])
                 ->toArray()
         );
+
+        $adsConfig = [
+            'inline_article_slot' => SiteSetting::getValue('adsense_slot_inline_article'),
+            'infeed_slot' => SiteSetting::getValue('adsense_slot_list_item'),
+        ];
 
         return Inertia::render('News/Show', [
             'news' => [
@@ -126,12 +255,13 @@ class NewsController extends Controller
                 'content' => $news->content,
                 'excerpt' => $news->excerpt,
                 'slug' => $news->slug,
-                'image' => $news->image ? Storage::url('news/' . $news->image) : null,
+                'image' => News::buildImageUrl($news->image),
                 'video_urls' => $news->video_urls,
                 'view_count' => $news->view_count,
                 'published_at' => $news->published_at?->toISOString(),
                 'created_at' => $news->created_at?->toISOString(),
                 'updated_at' => $news->updated_at?->toISOString(),
+                'reading_time' => $news->reading_time,
                 'author' => [
                     'id' => $news->author?->id,
                     'name' => $news->author?->name,
@@ -147,6 +277,7 @@ class NewsController extends Controller
                 ] : null,
             ],
             'relatedNews' => $relatedNews,
+            'ads' => $adsConfig,
         ]);
     }
 
@@ -173,7 +304,7 @@ class NewsController extends Controller
                 'title' => $item->title,
                 'excerpt' => $item->excerpt,
                 'slug' => $item->slug,
-                'image' => $item->image ? Storage::url('news/' . $item->image) : null,
+                'image' => News::buildImageUrl($item->image),
                 'view_count' => $item->view_count,
                 'author' => ['name' => $item->author?->name],
                 'organization' => $item->organization ? [
@@ -208,7 +339,7 @@ class NewsController extends Controller
                 'id' => $item->id,
                 'title' => $item->title,
                 'slug' => $item->slug,
-                'image' => Storage::url('news/' . $item->image),
+                'image' => News::buildImageUrl($item->image),
                 'published_at' => $item->published_at?->toISOString(),
             ]);
 
@@ -232,7 +363,7 @@ class NewsController extends Controller
                 'id' => $item->id,
                 'title' => $item->title,
                 'slug' => $item->slug,
-                'image' => $item->image ? Storage::url('news/' . $item->image) : null,
+                'image' => News::buildImageUrl($item->image),
                 'video_urls' => $item->video_urls,
                 'published_at' => $item->published_at?->toISOString(),
             ]);
@@ -257,13 +388,18 @@ class NewsController extends Controller
                     'id' => $news->id,
                     'title' => $news->title,
                     'slug' => $news->slug,
-                    'image' => $news->image ? Storage::url('news/' . $news->image) : null,
+                    'image' => News::buildImageUrl($news->image),
                     'view_count' => $news->view_count,
                 ])
                 ->toArray();
         });
 
         return response()->json($trending);
+    }
+
+    private function buildNewsImageUrl(?string $image): ?string
+    {
+        return News::buildImageUrl($image);
     }
 
     /*
