@@ -3,8 +3,10 @@
 namespace App\Http\Middleware;
 
 use App\Models\CartItem;
+use App\Models\HomepageSection;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -64,6 +66,12 @@ class HandleInertiaRequests extends Middleware
                 'item_count' => $this->cartItemCount($request),
             ],
 
+            'topbar' => Cache::remember('global_topbar_content', 3600, function () {
+                return HomepageSection::where('slug', 'topbar')
+                    ->where('is_active', true)
+                    ->first()?->content;
+            }),
+
             'sidebarOpen' =>
                 ! $request->hasCookie('sidebar_state')
                 || $request->cookie('sidebar_state') === 'true',
@@ -97,7 +105,7 @@ class HandleInertiaRequests extends Middleware
             return route('home');
         }
 
-        if ($user->hasAnyRole(['admin', 'editor', 'writer'])) {
+        if ($user->hasAnyRole(['super_admin', 'admin', 'editor', 'writer'])) {
             return '/admin';
         }
 

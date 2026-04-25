@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
@@ -24,6 +25,7 @@ class FortifyServiceProvider extends ServiceProvider
     {
         $this->configureActions();
         $this->configureViews();
+        $this->configureResponses();
         $this->configureRateLimiting();
     }
 
@@ -61,41 +63,69 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
     }
 
+    private function configureResponses(): void
+    {
+        Fortify::redirects('register', function () {
+            return route('profile.edit');
+        });
+
+        $this->app->singleton(LoginResponseContract::class, function () {
+            return new class implements LoginResponseContract {
+                public function toResponse($request)
+                {
+                    $user = $request->user();
+
+                    $fallback = route('home');
+
+                    if (! $user) {
+                        return redirect()->intended($fallback);
+                    }
+
+                    if ($user->hasSystemRole(['super_admin', 'admin', 'editor', 'writer'])) {
+                        $target = '/admin';
+                    } else {
+                        $requiredFields = [
+                            'wa',
+                            'nik',
+                            'tempat_lahir',
+                            'tanggal_lahir',
+                            'alamat_lengkap',
+                            's1_fakultas',
+                            's1_prodi',
+                            's1_tahun_masuk',
+                            's1_tahun_tamat',
+                        ];
+
+                        $profileIncomplete = false;
+                        foreach ($requiredFields as $field) {
+                            if (empty($user->{$field})) {
+                                $profileIncomplete = true;
+                                break;
+                            }
+                        }
+
+                        $target = $profileIncomplete ? route('profile.edit') : route('dashboard.subscriber');
+                    }
+
+                    $intended = $request->session()->get('url.intended');
+                    $destination = $intended ?: $target;
+                    $destinationPath = parse_url($destination, PHP_URL_PATH) ?: '';
+
+                    if ($request->header('X-Inertia') && str_starts_with($destinationPath, '/admin')) {
+                        return Inertia::location($destination);
+                    }
+
+                    return redirect()->intended($target);
+                }
+            };
+        });
+    }
+
     private function configureRateLimiting(): void
     {
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::lower($request->input(Fortify::username())).'|'.$request->ip();
             return Limit::perMinute(5)->by($throttleKey);
-        });
-
-        // After registration, redirect to profile completion
-        Fortify::redirects('register', function () {
-            return route('profile.edit');
-        });
-
-        // After login, redirect to profile if incomplete
-        Fortify::redirects('login', function (Request $request) {
-            if (auth()->check()) {
-                $user = auth()->user();
-                
-                if ($user->hasAnyRole(['admin', 'editor', 'writer'])) {
-                    return '/admin';
-                }
-
-                // Check if profile is incomplete
-                $requiredFields = ['wa', 'nik', 'tempat_lahir', 'tanggal_lahir', 'alamat_lengkap', 
-                                   's1_fakultas', 's1_prodi', 's1_tahun_masuk', 's1_tahun_tamat'];
-                
-                foreach ($requiredFields as $field) {
-                    if (empty($user->{$field})) {
-                        return route('profile.edit');
-                    }
-                }
-                
-                return route('dashboard.subscriber');
-            }
-
-            return route('home');
         });
     }
 }

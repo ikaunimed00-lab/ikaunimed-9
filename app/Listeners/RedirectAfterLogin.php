@@ -11,7 +11,7 @@ class RedirectAfterLogin
     {
         $user = $event->user;
 
-        if ($user->hasSystemRole(['admin', 'editor', 'writer'])) {
+        if ($user->hasSystemRole(['super_admin', 'admin', 'editor', 'writer'])) {
             Redirect::setIntendedUrl('/admin');
             return;
         }
