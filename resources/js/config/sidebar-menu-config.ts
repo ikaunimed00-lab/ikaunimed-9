@@ -34,6 +34,12 @@ export const SIDEBAR_MENU: SidebarGroup[] = [
                 icon: GraduationCap,
                 requiredPermissions: ["elearning.participant.enroll"],
             },
+            {
+                label: "Sertifikat Saya",
+                route: "learner.certificates.index",
+                icon: GraduationCap,
+                requiredPermissions: ["elearning.participant.enroll"],
+            },
         ],
     },
     {

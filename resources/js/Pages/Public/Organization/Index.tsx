@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import TopBar from '@/Components/TopBar';
-import { HeaderEnterprise as Header } from '@/components/navigation/HeaderEnterprise';
-import Footer from '@/Components/Footer';
+import MainLayout from '@/components/MainLayout';
 import { Card, CardContent, CardFooter, CardHeader } from '@/Components/ui/card';
 import { Badge } from '@/Components/ui/badge';
 
@@ -86,10 +84,7 @@ export default function Index({ organizations, filters }: Props) {
         <>
             <Head title="Organisasi IKA UNIMED" />
 
-            <div className="min-h-screen bg-[#F8FAF9] flex flex-col">
-                <TopBar />
-                <Header />
-
+            <MainLayout variant="full">
                 {/* Hero / Header Section */}
                 <div className="bg-white border-b border-gray-200">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
@@ -236,9 +231,7 @@ export default function Index({ organizations, filters }: Props) {
                         )}
                     </div>
                 </main>
-
-                <Footer />
-            </div>
+            </MainLayout>
         </>
     );
 }

@@ -16,7 +16,7 @@ class OrganizationScopeService
      */
     public function applyScope(Builder $query, User $user): Builder
     {
-        if ($user->isCentralAdmin()) {
+        if ($user->isCentralAdmin() || $user->isPpAdmin()) {
             return $query;
         }
 

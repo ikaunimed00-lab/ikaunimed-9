@@ -10,10 +10,33 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use App\Core\Traits\HasProgramRoles;
+use Spatie\Permission\Models\Role as SpatieRole;
+use App\Models\Organization;
 
 class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable, TwoFactorAuthenticatable, HasProgramRoles, HasRoles;
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $user) {
+            if ($user->roles()->count() > 0) {
+                return;
+            }
+
+            $roleName = $user->role;
+            if (! is_string($roleName) || $roleName === '') {
+                return;
+            }
+
+            if (! in_array($roleName, ['super_admin', 'admin', 'editor', 'writer', 'subscriber'], true)) {
+                return;
+            }
+
+            SpatieRole::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+            $user->assignRole($roleName);
+        });
+    }
 
     public function canAccessPanel(Panel $panel): bool
     {
@@ -99,6 +122,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(LessonProgress::class);
     }
 
+    public function quizAttempts()
+    {
+        return $this->hasMany(QuizAttempt::class);
+    }
+
     public function hasSystemRole(array|string $roles): bool
     {
         if ($this->roles()->count() > 0) {
@@ -146,7 +174,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function isAdmin(): bool
     {
-        return $this->hasSystemRole('admin');
+        return $this->hasSystemRole('admin') || $this->hasSystemRole('super_admin');
     }
 
     /**
@@ -172,8 +200,31 @@ class User extends Authenticatable implements FilamentUser
      */
     public function isCentralAdmin(): bool
     {
+        if ($this->hasSystemRole('super_admin')) {
+            return true;
+        }
+
         // Gunakan organization_id langsung untuk menghindari memuat relasi organization
         return $this->isAdmin() && is_null($this->organization_id);
+    }
+
+    public function isPpAdmin(): bool
+    {
+        if (! $this->isAdmin() || ! $this->organization_id) {
+            return false;
+        }
+
+        static $cache = [];
+        $cacheKey = $this->getKey().':'.$this->organization_id;
+
+        if (array_key_exists($cacheKey, $cache)) {
+            return $cache[$cacheKey];
+        }
+
+        $type = Organization::query()->whereKey($this->organization_id)->value('type');
+        $cache[$cacheKey] = $type === 'pp';
+
+        return $cache[$cacheKey];
     }
 
     /**

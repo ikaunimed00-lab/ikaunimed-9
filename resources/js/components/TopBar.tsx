@@ -1,5 +1,6 @@
 import { MapPin, ShoppingBag, GraduationCap, TrendingUp, Heart } from "lucide-react";
 import React from "react";
+import { usePage } from "@inertiajs/react";
 
 const iconMap = {
   ShoppingBag: <ShoppingBag className="w-3 h-3 text-orange-400" />,
@@ -9,9 +10,11 @@ const iconMap = {
 };
 
 const TopBar = ({ content }: { content?: any }) => {
-  const links = content?.links || [];
-  const rightLabel = content?.right_label || "Cek Area";
-  const rightHref = content?.right_href || "#";
+  const { topbar } = usePage().props as any;
+  const finalContent = content || topbar;
+  const links = finalContent?.links || [];
+  const rightLabel = finalContent?.right_label || "Cek Area";
+  const rightHref = finalContent?.right_href || "#";
 
   if (!links || links.length === 0) return null;
 

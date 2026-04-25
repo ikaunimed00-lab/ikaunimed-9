@@ -23,7 +23,7 @@ return new class extends Migration
         Schema::create('transaction_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade');
-            $table->string('item_type');
+            $table->string('item_type', 100); // Limit length to avoid index key too long error
             $table->unsignedBigInteger('item_id');
             $table->decimal('price', 12, 2);
             $table->unsignedInteger('quantity')->default(1);

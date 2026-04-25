@@ -154,6 +154,77 @@ class HomepageSeeder extends Seeder
                 'group' => 'seo',
                 'label' => 'SEO Description',
             ],
+            // Ads
+            [
+                'key' => 'ads_enabled',
+                'value' => true,
+                'type' => 'text',
+                'group' => 'ads',
+                'label' => 'Enable Ads',
+            ],
+            [
+                'key' => 'ads_provider_primary',
+                'value' => 'adsense',
+                'type' => 'text',
+                'group' => 'ads',
+                'label' => 'Primary Ads Provider',
+            ],
+            [
+                'key' => 'adsense_client_id',
+                'value' => 'ca-pub-xxxxxxxxxxxxxxxx',
+                'type' => 'text',
+                'group' => 'ads',
+                'label' => 'AdSense Client ID',
+            ],
+            [
+                'key' => 'adsense_slot_inline_article',
+                'value' => 'in-article-ad',
+                'type' => 'text',
+                'group' => 'ads',
+                'label' => 'AdSense Inline Article Slot',
+            ],
+            [
+                'key' => 'adsense_slot_sidebar_1',
+                'value' => 'sidebar-ad-1',
+                'type' => 'text',
+                'group' => 'ads',
+                'label' => 'AdSense Sidebar Slot 1',
+            ],
+            [
+                'key' => 'adsense_slot_sidebar_2',
+                'value' => 'sidebar-ad-2',
+                'type' => 'text',
+                'group' => 'ads',
+                'label' => 'AdSense Sidebar Slot 2',
+            ],
+            [
+                'key' => 'adsense_slot_list_item',
+                'value' => 'list-ad-item',
+                'type' => 'text',
+                'group' => 'ads',
+                'label' => 'AdSense List Item Slot',
+            ],
+            [
+                'key' => 'adsense_slot_banner',
+                'value' => 'ad-banner-default',
+                'type' => 'text',
+                'group' => 'ads',
+                'label' => 'AdSense Banner Slot',
+            ],
+            [
+                'key' => 'adsterra_enabled',
+                'value' => false,
+                'type' => 'text',
+                'group' => 'ads',
+                'label' => 'Enable Adsterra',
+            ],
+            [
+                'key' => 'adsterra_script_body',
+                'value' => '',
+                'type' => 'textarea',
+                'group' => 'ads',
+                'label' => 'Adsterra Body Snippet',
+            ],
         ];
 
         foreach ($settings as $setting) {
@@ -162,6 +233,27 @@ class HomepageSeeder extends Seeder
 
         // 2. Homepage Sections
         
+        // TopBar Section (NEW)
+        HomepageSection::updateOrCreate(
+            ['slug' => 'topbar'],
+            [
+                'type' => 'topbar',
+                'title' => 'Top Bar Navigation',
+                'order' => 0,
+                'is_active' => true,
+                'content' => [
+                    'links' => [
+                        ['label' => 'Karir', 'href' => '/karir', 'icon' => 'TrendingUp', 'isNew' => true],
+                        ['label' => 'Beasiswa', 'href' => '/beasiswa', 'icon' => 'GraduationCap', 'isNew' => false],
+                        ['label' => 'Donasi', 'href' => '/donasi', 'icon' => 'Heart', 'isNew' => false],
+                        ['label' => 'Shop', 'href' => '/shop', 'icon' => 'ShoppingBag', 'isNew' => false],
+                    ],
+                    'right_label' => 'Area Alumni',
+                    'right_href' => '/login',
+                ]
+            ]
+        );
+
         // Hero Section
         HomepageSection::updateOrCreate(
             ['slug' => 'hero'],
@@ -169,6 +261,7 @@ class HomepageSeeder extends Seeder
                 'type' => 'hero',
                 'title' => 'Hero Slider Utama',
                 'order' => 1,
+                'is_active' => true,
                 'content' => [
                     'slides' => [
                         [
@@ -180,8 +273,8 @@ class HomepageSeeder extends Seeder
                             'serviceName' => "Legalisir Online",
                             'primaryFeature' => "Verifikasi Ijazah",
                             'features' => ["Sistem Terintegrasi", "Legalitas Terjamin", "Update Data Real-time"],
-                            'bgDesktop' => "hero_slide_administrasi.png",
-                            'bgMobile' => "hero_slide_administrasi_mobile.png",
+                            'bgDesktop' => "/images/hero_slide_administrasi.png",
+                            'bgMobile' => "/images/hero_slide_administrasi_mobile.png",
                             'colors' => [
                                 'textPrimary' => 'text-first-dark-green',
                                 'textSecondary' => 'text-ika-yellow',
@@ -200,8 +293,8 @@ class HomepageSeeder extends Seeder
                             'serviceName' => "Berita Organisasi",
                             'primaryFeature' => "Jadwal Acara",
                             'features' => ["Liputan Kegiatan", "Galeri Foto", "Notifikasi Event"],
-                            'bgDesktop' => "hero_slide_agenda.png",
-                            'bgMobile' => "hero_slide_agenda_mobile.png",
+                            'bgDesktop' => "/images/hero_slide_agenda.png",
+                            'bgMobile' => "/images/hero_slide_agenda_mobile.png",
                             'colors' => [
                                 'textPrimary' => 'text-first-dark-green',
                                 'textSecondary' => 'text-second-dark-green',
@@ -220,8 +313,8 @@ class HomepageSeeder extends Seeder
                             'serviceName' => "Program Beasiswa",
                             'primaryFeature' => "Open Donasi",
                             'features' => ["Transparan", "Tepat Sasaran", "Wakaf Pendidikan"],
-                            'bgDesktop' => "hero_slide_mentoring.png",
-                            'bgMobile' => "hero_slide_mentoring_mobile.png",
+                            'bgDesktop' => "/images/hero_slide_mentoring.png",
+                            'bgMobile' => "/images/hero_slide_mentoring_mobile.png",
                             'colors' => [
                                 'textPrimary' => 'text-white',
                                 'textSecondary' => 'text-ika-yellow',
@@ -240,8 +333,8 @@ class HomepageSeeder extends Seeder
                             'serviceName' => "Job Portal",
                             'primaryFeature' => "Mentoring",
                             'features' => ["Mitra Industri", "Informasi Karir", "Worskhop Rutin"],
-                            'bgDesktop' => "hero_slide_karir.png",
-                            'bgMobile' => "hero_slide_karir_mobile.png",
+                            'bgDesktop' => "/images/hero_slide_karir.png",
+                            'bgMobile' => "/images/hero_slide_karir_mobile.png",
                             'colors' => [
                                 'textPrimary' => 'text-white',
                                 'textSecondary' => 'text-ika-yellow',
@@ -260,8 +353,8 @@ class HomepageSeeder extends Seeder
                             'serviceName' => "E-Learning",
                             'primaryFeature' => "Sertifikasi Online",
                             'features' => ["Modul Praktis", "Akses 24 Jam", "Dari Dosen UNIMED"],
-                            'bgDesktop' => "hero_slide_micro_learning.png",
-                            'bgMobile' => "hero_slide_micro_learning_mobile.png",
+                            'bgDesktop' => "/images/hero_slide_micro_learning.png",
+                            'bgMobile' => "/images/hero_slide_micro_learning_mobile.png",
                             'colors' => [
                                 'textPrimary' => 'text-white',
                                 'textSecondary' => 'text-ika-yellow',
@@ -283,13 +376,14 @@ class HomepageSeeder extends Seeder
                 'type' => 'cta_cards',
                 'title' => 'Kartu Akses Cepat (CTA Cards)',
                 'order' => 2,
+                'is_active' => true,
                 'content' => [
                     'cards' => [
-                        ['image' => 'card_administrasi.png', 'alt' => 'Administrasi Online', 'href' => '/legalisir'],
-                        ['image' => 'card_berita.png', 'alt' => 'Info Terbaru', 'href' => '/berita'],
-                        ['image' => 'card_donasi.png', 'alt' => 'Program Donasi', 'href' => '/donasi'],
-                        ['image' => 'card_karir.png', 'alt' => 'Pusat Karir', 'href' => '/karir'],
-                        ['image' => 'card_skill-upgrading.png', 'alt' => 'Skill Upgrading', 'href' => '/skill-upgrading'],
+                        ['imageName' => '/images/card_administrasi.png', 'altText' => 'Administrasi Online', 'href' => '/legalisir'],
+                        ['imageName' => '/images/card_berita.png', 'altText' => 'Info Terbaru', 'href' => '/berita'],
+                        ['imageName' => '/images/card_donasi.png', 'altText' => 'Program Donasi', 'href' => '/donasi'],
+                        ['imageName' => '/images/card_karir.png', 'altText' => 'Pusat Karir', 'href' => '/karir'],
+                        ['imageName' => '/images/card_skill-upgrading.png', 'altText' => 'Skill Upgrading', 'href' => '/skill-upgrading'],
                     ]
                 ]
             ]
@@ -302,13 +396,16 @@ class HomepageSeeder extends Seeder
                 'type' => 'video',
                 'title' => 'Video Profil / Sambutan',
                 'order' => 3,
+                'is_active' => true,
                 'content' => [
-                    'title' => 'Merajut Silaturahmi, Membangun Sinergi Alumni',
-                    'highlight' => 'Membangun Sinergi Alumni',
-                    'description' => 'Wadah resmi kolaborasi dan koneksi bagi seluruh alumni Universitas Negeri Medan. Bersama kita berkontribusi bagi almamater, nusa, dan bangsa melalui jaringan profesional yang kuat, unggul, dan berkelanjutan.',
-                    'features' => ['Terintegrasi', 'Kolaboratif', 'Inovatif'],
-                    'video_url' => '/media/video',
-                    'video_label' => 'Lihat Galeri Video',
+                    'videoTitle' => 'Merajut Silaturahmi, Membangun Sinergi Alumni',
+                    'videoSubTitle' => 'SAMBUTAN KETUA UMUM',
+                    'badgeTitle' => 'IKA UNIMED Official',
+                    'badgeSubtitle' => 'THE CHARACTER BUILDING UNIVERSITY',
+                    'videoTags' => ['Terintegrasi', 'Kolaboratif', 'Inovatif'],
+                    'videoDescription' => 'Wadah resmi kolaborasi dan koneksi bagi seluruh alumni Universitas Negeri Medan. Bersama kita berkontribusi bagi almamater, nusa, dan bangsa melalui jaringan profesional yang kuat, unggul, dan berkelanjutan.',
+                    'videoUrl' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Placeholder valid youtube link
+                    'videoThumbnail' => '/images/hero_slide_agenda.png', // Fallback thumbnail
                 ]
             ]
         );
@@ -320,17 +417,18 @@ class HomepageSeeder extends Seeder
                 'type' => 'features',
                 'title' => 'Keunggulan & Layanan',
                 'order' => 4,
+                'is_active' => true,
                 'content' => [
                     'subtitle' => 'Keunggulan Kami',
                     'title' => 'Kenapa IKA UNIMED?',
                     'description' => 'Fokus Kepada Kemajuan Universitas, Alumni dan Keluarga Alumni',
                     'items' => [
-                        ['icon' => 'Users', 'title' => 'Database Alumni', 'description' => 'Terhubung kembali dengan rekan sejawat', 'color' => 'text-primary', 'bg' => 'bg-primary/10', 'border' => 'bg-primary', 'href' => '/database'],
-                        ['icon' => 'Briefcase', 'title' => 'Info Karir', 'description' => 'Loker & peluang bisnis alumni', 'color' => 'text-oxygen-teal', 'bg' => 'bg-oxygen-teal/10', 'border' => 'bg-oxygen-teal', 'href' => '/karir'],
-                        ['icon' => 'Newspaper', 'title' => 'Berita Kampus', 'description' => 'Update terkini agenda UNIMED', 'color' => 'text-[#FFD700]', 'bg' => 'bg-[#FFD700]/10', 'border' => 'bg-[#FFD700]', 'href' => '/news'],
-                        ['icon' => 'GraduationCap', 'title' => 'Program Beasiswa', 'description' => 'Bantuan pendidikan mahasiswa', 'color' => 'text-primary', 'bg' => 'bg-primary/10', 'border' => 'bg-primary', 'href' => '/beasiswa'],
-                        ['icon' => 'CreditCard', 'title' => 'Kartu Alumni', 'description' => 'Akses identitas digital khusus', 'color' => 'text-oxygen-teal', 'bg' => 'bg-oxygen-teal/10', 'border' => 'bg-oxygen-teal', 'href' => '/kartu-alumni'],
-                        ['icon' => 'HeartHandshake', 'title' => 'Ruang Pengabdian', 'description' => 'Kontribusi nyata bagi almamater', 'color' => 'text-[#FFD700]', 'bg' => 'bg-[#FFD700]/10', 'border' => 'bg-[#FFD700]', 'href' => '/pengabdian'],
+                        ['icon' => 'Users', 'title' => 'Database Alumni', 'description' => 'Terhubung kembali dengan rekan sejawat', 'color' => '#006837', 'bg' => '#0068371a', 'href' => '/database'],
+                        ['icon' => 'Briefcase', 'title' => 'Info Karir', 'description' => 'Loker & peluang bisnis alumni', 'color' => '#00A69D', 'bg' => '#00A69D1a', 'href' => '/karir'],
+                        ['icon' => 'Newspaper', 'title' => 'Berita Kampus', 'description' => 'Update terkini agenda UNIMED', 'color' => '#FFD700', 'bg' => '#FFD7001a', 'href' => '/news'],
+                        ['icon' => 'GraduationCap', 'title' => 'Program Beasiswa', 'description' => 'Bantuan pendidikan mahasiswa', 'color' => '#006837', 'bg' => '#0068371a', 'href' => '/beasiswa'],
+                        ['icon' => 'CreditCard', 'title' => 'Kartu Alumni', 'description' => 'Akses identitas digital khusus', 'color' => '#00A69D', 'bg' => '#00A69D1a', 'href' => '/kartu-alumni'],
+                        ['icon' => 'HeartHandshake', 'title' => 'Ruang Pengabdian', 'description' => 'Kontribusi nyata bagi almamater', 'color' => '#FFD700', 'bg' => '#FFD7001a', 'href' => '/pengabdian'],
                     ]
                 ]
             ]
@@ -343,6 +441,7 @@ class HomepageSeeder extends Seeder
                 'type' => 'package',
                 'title' => 'Section Promosi Layanan (Alternating)',
                 'order' => 5,
+                'is_active' => true,
                 'content' => [
                     'items' => [
                         [

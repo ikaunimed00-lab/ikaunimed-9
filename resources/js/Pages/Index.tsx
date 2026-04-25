@@ -1,12 +1,10 @@
 import { Head } from "@inertiajs/react";
-import TopBar from "@/components/TopBar";
-import { HeaderEnterprise as Header } from '@/components/navigation/HeaderEnterprise';
+import MainLayout from "@/components/MainLayout";
 import HeroCarousel from "@/components/HeroCarousel";
 import CTACards from "@/components/CTACards";
 import VideoSection from "@/components/VideoSection";
 import PackageSection from "@/components/PackageSection";
 import FeaturesSection from "@/components/FeaturesSection";
-import Footer from "@/components/Footer";
 import FloatingCTA from "@/components/FloatingCTA";
 
 // Index.tsx
@@ -39,13 +37,11 @@ const Index = ({ settings, sections }: { settings: any, sections: any }) => {
         <meta property="og:description" content={settings?.general?.site_description || "Official Website Ikatan Alumni Universitas Negeri Medan"} />
       </Head>
       
-      <div className="min-h-screen bg-background flex flex-col"> 
-        <TopBar content={getSection('topbar')} />
-        <Header 
-          logoUrl={settings?.general?.site_logo || "/images/favicon_ikaunimed.png"} 
-          siteName={settings?.general?.site_name || "IKA UNIMED"} 
-          tagline={settings?.general?.site_tagline || "Connect, Collaborate, Contribute"}
-        />
+      <MainLayout 
+        variant="full" 
+        settings={settings} 
+        footerContent={getSection('footer')}
+      > 
         <main className="flex-grow"> 
           {mainSections.map((section: any) => {
             const Component = sectionComponents[section.type];
@@ -53,9 +49,8 @@ const Index = ({ settings, sections }: { settings: any, sections: any }) => {
             return <Component key={section.id} content={section.content} />;
           })}
         </main>
-        <Footer settings={settings} content={getSection('footer')} />
         <FloatingCTA settings={settings} />
-      </div>
+      </MainLayout>
     </>
   );
 };

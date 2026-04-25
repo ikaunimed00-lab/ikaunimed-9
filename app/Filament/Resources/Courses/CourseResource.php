@@ -112,6 +112,9 @@ class CourseResource extends Resource
                         Toggle::make('is_paid')
                             ->label('Berbayar')
                             ->default(false),
+                        Toggle::make('requires_premium')
+                            ->label('Hanya untuk member premium')
+                            ->default(false),
                         TextInput::make('price')
                             ->label('Harga')
                             ->numeric()

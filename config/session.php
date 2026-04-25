@@ -169,7 +169,7 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    'secure' => env('SESSION_SECURE_COOKIE', Str::startsWith((string) env('APP_URL', ''), 'https://')),
 
     /*
     |--------------------------------------------------------------------------

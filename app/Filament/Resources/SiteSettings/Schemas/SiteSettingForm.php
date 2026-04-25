@@ -2,10 +2,11 @@
 
 namespace App\Filament\Resources\SiteSettings\Schemas;
 
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\FileUpload;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -18,7 +19,6 @@ class SiteSettingForm
                 Section::make('Setting Detail')
                     ->schema([
                         TextInput::make('key')
-                            ->disabled()
                             ->required(),
                         TextInput::make('label')
                             ->required(),
@@ -29,12 +29,16 @@ class SiteSettingForm
                                 'social' => 'Social Media',
                                 'footer' => 'Footer',
                                 'seo' => 'SEO',
+                                'shop' => 'Shop',
+                                'ads' => 'Ads',
                             ])
-                            ->disabled()
                             ->required(),
                         Textarea::make('description')
                             ->columnSpanFull(),
                     ])->columns(2),
+
+                Hidden::make('type')
+                    ->default('text'),
 
                 Section::make('Value')
                     ->schema([

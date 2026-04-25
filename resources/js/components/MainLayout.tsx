@@ -1,10 +1,13 @@
 import React, { ReactNode } from 'react';
 import { HeaderEnterprise as Header } from './navigation/HeaderEnterprise';
 import Footer from './Footer';
+import TopBar from './TopBar';
 
 interface MainLayoutProps {
   children: ReactNode;
   variant?: 'default' | 'full';
+  settings?: any;
+  footerContent?: any;
 }
 
 /**
@@ -12,10 +15,20 @@ interface MainLayoutProps {
  * Contains only Header, Container, and Footer.
  * No sidebars or ads.
  */
-const MainLayout: React.FC<MainLayoutProps> = ({ children, variant = 'default' }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({ 
+  children, 
+  variant = 'default',
+  settings,
+  footerContent 
+}) => {
   return (
     <div className="min-h-screen bg-[#F8FAF9] flex flex-col">
-      <Header />
+      <TopBar />
+      <Header 
+        logoUrl={settings?.general?.site_logo}
+        siteName={settings?.general?.site_name}
+        tagline={settings?.general?.site_tagline}
+      />
       
       <main className="flex-grow">
         {variant === 'default' ? (
@@ -31,7 +44,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, variant = 'default' }
         )}
       </main>
 
-      <Footer />
+      <Footer settings={settings} content={footerContent} />
     </div>
   );
 };

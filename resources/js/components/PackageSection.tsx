@@ -12,7 +12,7 @@ const PackageSection = ({ content }: { content?: any }) => {
       <div className="flex flex-col gap-4 md:gap-6 px-4 md:px-0"> 
         {ctaData.map((item: any, index: number) => {
           // Handle image URL from storage or fallback
-          const bgImageUrl = item.bgImage?.startsWith('http') 
+          const bgImageUrl = item.bgImage?.startsWith('http') || item.bgImage?.startsWith('/')
             ? item.bgImage 
             : (item.bgImage ? `/storage/${item.bgImage}` : '/images/favicon_ikaunimed.png');
 

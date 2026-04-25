@@ -46,5 +46,6 @@ class SiteManagementService
     {
         Cache::forget('site_settings');
         Cache::forget('homepage_sections');
+        Cache::forget('global_topbar_content');
     }
 }
