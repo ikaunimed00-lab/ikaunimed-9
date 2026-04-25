@@ -7,7 +7,6 @@ import AdLeaderboard from '@/components/AdLeaderboard'; // New Component
 import NewsCard from '@/components/NewsCard';
 import CategoryNavigation from '@/components/CategoryNavigation';
 import Pagination from '@/components/Pagination';
-import AdListItem from '@/components/AdListItem';
 import AdsenseUnit from '@/components/AdsenseUnit';
 import { FlashContent, PollingSection, VideoPopular, EditorsPicks, KolumOpini, BeritaPopuler, TagPopuler, KomentarTerbanyak } from '@/components/editorial';
 
@@ -63,6 +62,14 @@ interface PopularNewsItem {
   published_at?: string;
 }
 
+interface EditorsPickItem {
+  id: number;
+  title: string;
+  slug: string;
+  image?: string | null;
+  published_at?: string;
+}
+
 interface TagItem {
   id: number;
   name: string;
@@ -71,8 +78,13 @@ interface TagItem {
 }
 
 interface AdsConfig {
-  inline_article_slot?: string;
-  infeed_slot?: string;
+  enabled?: boolean;
+  provider?: string;
+  leaderboard_slot?: string | null;
+  sidebar_1_slot?: string | null;
+  sidebar_2_slot?: string | null;
+  inline_article_slot?: string | null;
+  infeed_slot?: string | null;
 }
 
 interface BreakingNewsItem {
@@ -96,6 +108,7 @@ interface NewsIndexProps {
   popularVideos?: VideoItem[];
   opinionColumns?: OpinionItem[];
   popularNews?: PopularNewsItem[];
+  editorsPicks?: EditorsPickItem[];
   popularTags?: TagItem[];
   ads?: AdsConfig;
 }
@@ -110,6 +123,7 @@ const NewsIndex = ({
   popularVideos = [],
   opinionColumns = [],
   popularNews = [],
+  editorsPicks = [],
   popularTags = [],
   ads,
 }: NewsIndexProps) => {
@@ -124,16 +138,31 @@ const NewsIndex = ({
   return (
     <>
       <Head>
-        <title>Portal Berita - IKA UNIMED</title>
-        <meta name="description" content="Portal berita profesional dengan informasi terbaru dari Ikatan Alumni UNIMED" />
-        <meta property="og:title" content="Portal Berita IKA UNIMED" />
-        <meta property="og:description" content="Berita, artikel, dan informasi terkini" />
+        <title>Portal Berita Alumni - IKA UNIMED</title>
+        <meta
+          name="description"
+          content="Portal berita resmi Ikatan Alumni Universitas Negeri Medan (IKA UNIMED). Informasi terkini program alumni, kisah sukses, opini, dan kabar UNIMED."
+        />
+        <meta name="keywords" content="IKA UNIMED, alumni UNIMED, Universitas Negeri Medan, berita alumni, opini alumni, program alumni, kabar kampus" />
+        <meta property="og:title" content="Portal Berita Alumni - IKA UNIMED" />
+        <meta
+          property="og:description"
+          content="Berita, opini, dan informasi terkini dari Ikatan Alumni Universitas Negeri Medan."
+        />
+        <meta property="og:image" content="/images/cta_ikaunimed-002.png" />
         <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Portal Berita Alumni - IKA UNIMED" />
+        <meta name="twitter:image" content="/images/cta_ikaunimed-002.png" />
       </Head>
 
       <MainLayout variant="full">
-        {/* 1. Ad Leaderboard (Full Width) */}
-        <AdLeaderboard />
+        {/* 1. Ad Leaderboard (Full Width) — hanya render jika ads.enabled */}
+        <AdLeaderboard
+          enabled={ads?.enabled}
+          provider={ads?.provider}
+          slot={ads?.leaderboard_slot}
+        />
 
         {/* 2. Breaking News (Marquee) */}
         <BreakingNews items={breakingNews} />
@@ -304,9 +333,9 @@ const NewsIndex = ({
                         </div>
                     )}
 
-                    {/* 4. PollingSection */}
+                    {/* 4. PollingSection — placeholder hingga modul polling tersedia */}
                     <div className="bg-white rounded-lg border border-[#E6EAE8] p-6">
-                      <PollingSection />
+                      <PollingSection poll={null} />
                     </div>
 
                     {/* 5. VideoPopular */}
@@ -329,24 +358,35 @@ const NewsIndex = ({
                       {restNews.length > 0 ? (
                         <>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {restNews.map((item, idx) => (
-                              <React.Fragment key={item.id}>
-                                <NewsCard {...item} reading_time={item.reading_time} />
-                                {(idx + 1 === 3 || idx + 1 === 7 || idx + 1 === 11 || idx + 1 === 15) && ads?.infeed_slot && (
-                                  <div className="col-span-1 md:col-span-2 bg-white rounded-lg border border-[#E6EAE8] p-4">
-                                    <div className="flex justify-center items-center min-h-32 bg-[#F8FAF9] rounded border border-[#E6EAE8]">
-                                      <AdsenseUnit slot={ads.infeed_slot} format="auto" style={{ display: 'block', width: '100%' }} />
+                            {restNews.map((item, idx) => {
+                              // KEBIJAKAN IN-FEED: maks. 1 iklan setiap 4 berita.
+                              // Posisi: setelah item ke-4, ke-8, ke-12, ke-16.
+                              // Render hanya jika ads.enabled & slot terkonfigurasi.
+                              const showInfeedAd =
+                                ads?.enabled &&
+                                ads?.infeed_slot &&
+                                (idx + 1) % 4 === 0;
+
+                              return (
+                                <React.Fragment key={item.id}>
+                                  <NewsCard {...item} reading_time={item.reading_time} />
+                                  {showInfeedAd && (
+                                    <div className="col-span-1 md:col-span-2 bg-white rounded-lg border border-[#E6EAE8] p-4">
+                                      <div className="text-[10px] uppercase tracking-wider text-[#6B7280] text-center mb-2">
+                                        Advertisement
+                                      </div>
+                                      <div className="flex justify-center items-center min-h-32">
+                                        <AdsenseUnit
+                                          slot={ads.infeed_slot as string}
+                                          format="auto"
+                                          style={{ display: 'block', width: '100%' }}
+                                        />
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
-                                {/* Keep existing AdListItem ads (after items 5 and 10) for backward compatibility */}
-                                {(idx + 1 === 5 || idx + 1 === 10) && (
-                                  <div className="col-span-1 md:col-span-2 bg-white rounded-lg border border-[#E6EAE8] p-4">
-                                    <AdListItem afterItem={idx + 1} />
-                                  </div>
-                                )}
-                              </React.Fragment>
-                            ))}
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
                           </div>
 
                           {/* Pagination */}
@@ -383,7 +423,7 @@ const NewsIndex = ({
                   <div className="sticky top-24 space-y-6">
                     {/* EditorsPicks */}
                     <div className="bg-white rounded-lg border border-[#E6EAE8] p-4 md:p-5">
-                      <EditorsPicks items={popularNews} />
+                      <EditorsPicks items={editorsPicks} />
                     </div>
 
                     {/* BeritaPopuler */}
@@ -396,26 +436,34 @@ const NewsIndex = ({
                       <TagPopuler maxTags={12} tags={popularTags} />
                     </div>
 
-                    {/* KomentarTerbanyak */}
+                    {/* KomentarTerbanyak — placeholder hingga sistem komentar tersedia */}
                     <div className="bg-white rounded-lg border border-[#E6EAE8] p-4 md:p-5">
-                      <KomentarTerbanyak maxItems={5} />
+                      <KomentarTerbanyak maxItems={5} items={[]} />
                     </div>
                   </div>
                 </div>
 
-                {/* AREA 4: SIDEBAR IKLAN - Ads & Campaign (Hidden < 1280px) */}
+                {/* AREA 4: SIDEBAR IKLAN & CAMPAIGN (Hidden < 1280px) */}
                 <div className="hidden xl:block xl:col-span-2">
                   <div className="sticky top-24 space-y-6">
-                    {/* TUGAS 3: Ad Slot - Medium Rectangle (300x250) */}
-                    <div className="flex justify-center items-center min-h-72 bg-white rounded-lg border border-[#E6EAE8] p-2">
-                      <div className="text-xs text-[#6B7280] font-medium">IKLAN</div>
-                      <div id="ad-medium-rect-1" className="w-full flex justify-center">
-                        {/* Google AdSense / Adsera: 300x250 (Medium Rectangle) */}
-                        {/* Placeholder for external ad code */}
+                    {/* Sidebar Ad 1 - Medium Rectangle (300x250). Hanya render
+                        jika ads.enabled & slot terkonfigurasi di Site Settings. */}
+                    {ads?.enabled && ads?.sidebar_1_slot && (
+                      <div className="bg-white rounded-lg border border-[#E6EAE8] p-3">
+                        <div className="text-[10px] uppercase tracking-wider text-[#6B7280] text-center mb-2">
+                          Advertisement
+                        </div>
+                        <div className="flex justify-center items-center min-h-[250px]">
+                          <AdsenseUnit
+                            slot={ads.sidebar_1_slot}
+                            format="auto"
+                            style={{ display: 'block', width: '100%' }}
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Sticky Ads / Campaign Placeholder */}
+                    {/* Campaign Khusus IKA UNIMED */}
                     <div className="bg-gradient-to-br from-[#0F766E] to-[#115E59] rounded-lg p-6 text-white">
                       <h3 className="text-xs font-bold mb-2 truncate">CAMPAIGN KHUSUS</h3>
                       <p className="text-xs mb-4 opacity-90">
@@ -426,25 +474,33 @@ const NewsIndex = ({
                       </button>
                     </div>
 
-                    {/* Donation CTA */}
+                    {/* Donasi Alumni */}
                     <div className="bg-white rounded-lg border border-[#E6EAE8] p-6 text-center">
                       <h3 className="text-xs font-bold text-[#0F172A] mb-2 truncate">Dukung IKA UNIMED</h3>
                       <p className="text-xs text-[#6B7280] mb-4">
-                        Berkontribusi untuk kemajuan organisasi
+                        Berkontribusi untuk kemajuan organisasi alumni
                       </p>
                       <button className="w-full bg-[#0F766E] text-white text-xs font-bold py-2 rounded hover:bg-[#115E59] transition-colors">
                         Berdonasi
                       </button>
                     </div>
 
-                    {/* TUGAS 3: Ad Slot - Half Page (300x600) */}
-                    <div className="flex justify-center items-center min-h-96 bg-white rounded-lg border border-[#E6EAE8] p-2">
-                      <div className="text-xs text-[#6B7280] font-medium">IKLAN</div>
-                      <div id="ad-half-page-1" className="w-full flex justify-center">
-                        {/* Google AdSense / Adsera: 300x600 (Half Page) */}
-                        {/* Placeholder for external ad code */}
+                    {/* Sidebar Ad 2 - Half Page (300x600). Hanya render jika
+                        ads.enabled & slot terkonfigurasi di Site Settings. */}
+                    {ads?.enabled && ads?.sidebar_2_slot && (
+                      <div className="bg-white rounded-lg border border-[#E6EAE8] p-3">
+                        <div className="text-[10px] uppercase tracking-wider text-[#6B7280] text-center mb-2">
+                          Advertisement
+                        </div>
+                        <div className="flex justify-center items-center min-h-[600px]">
+                          <AdsenseUnit
+                            slot={ads.sidebar_2_slot}
+                            format="auto"
+                            style={{ display: 'block', width: '100%' }}
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Info Box */}
                     <div className="bg-[#F8FAF9] rounded-lg border border-[#E6EAE8] p-4">

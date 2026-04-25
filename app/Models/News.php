@@ -59,6 +59,7 @@ class News extends Model
             Cache::forget('news.popular_videos');
             Cache::forget('news.opinion_columns');
             Cache::forget('news.popular_news');
+            Cache::forget('news.editors_picks');
             Cache::forget('news.popular_tags');
             Cache::forget('news.dashboard.stats');
             Cache::forget('categories.all');
@@ -70,6 +71,7 @@ class News extends Model
             Cache::forget('news.popular_videos');
             Cache::forget('news.opinion_columns');
             Cache::forget('news.popular_news');
+            Cache::forget('news.editors_picks');
             Cache::forget('news.popular_tags');
             Cache::forget('news.dashboard.stats');
             Cache::forget('categories.all');

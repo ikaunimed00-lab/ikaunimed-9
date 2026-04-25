@@ -52,14 +52,14 @@
     <meta property="og:description" content="{{ $og_description ?? '' }}">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:image"
-          content="{{ $og_image ?? asset('images/og-default.jpg') }}">
+          content="{{ $og_image ?? asset('images/cta_ikaunimed-002.png') }}">
 
     {{-- Twitter --}}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $og_title ?? config('app.name') }}">
     <meta name="twitter:description" content="{{ $og_description ?? '' }}">
     <meta name="twitter:image"
-          content="{{ $og_image ?? asset('images/og-default.jpg') }}">
+          content="{{ $og_image ?? asset('images/cta_ikaunimed-002.png') }}">
 
     {{-- Favicon --}}
     <link rel="icon" href="{{ asset('images/favicon_ikaunimed.png') }}" type="image/png">

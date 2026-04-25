@@ -165,7 +165,8 @@ class NewsController extends Controller
                 ]);
         });
 
-        // Popular News (trending) untuk BeritaPopuler & EditorsPicks
+        // Popular News (trending by view_count) — sumber data BeritaPopuler.
+        // Kontrak: 10 berita teratas berdasarkan jumlah pembaca, status published.
         $popularNews = Cache::remember('news.popular_news', 60 * 30, function () {
             return News::published()
                 ->trending()
@@ -178,6 +179,35 @@ class NewsController extends Controller
                     'slug' => $news->slug,
                     'image' => News::buildImageUrl($news->image),
                     'view_count' => $news->view_count,
+                    'published_at' => $news->published_at?->toISOString(),
+                ]);
+        });
+
+        // Editor's Picks (kurasi) — sumber data EditorsPicks.
+        // Kontrak: berita ber-image terbaru, EXCLUDE hero & top-3 popular agar
+        // tidak duplikasi dengan blok lain. Ini "pilihan kurasi" — bukan
+        // ranking otomatis. Bila nanti ada kolom `is_editors_pick` di tabel
+        // news, query ini bisa diganti tanpa mengubah kontrak prop.
+        $editorsPickExcludeIds = collect($heroNews)
+            ->pluck('id')
+            ->merge($popularNews->take(3)->pluck('id'))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $editorsPicks = Cache::remember('news.editors_picks', 60 * 30, function () use ($editorsPickExcludeIds) {
+            return News::published()
+                ->whereNotIn('id', $editorsPickExcludeIds)
+                ->whereNotNull('image')
+                ->select('id', 'title', 'slug', 'image', 'published_at')
+                ->latest('published_at')
+                ->take(8)
+                ->get()
+                ->map(fn ($news) => [
+                    'id' => $news->id,
+                    'title' => $news->title,
+                    'slug' => $news->slug,
+                    'image' => News::buildImageUrl($news->image),
                     'published_at' => $news->published_at?->toISOString(),
                 ]);
         });
@@ -196,10 +226,7 @@ class NewsController extends Controller
                 ]);
         });
 
-        $adsConfig = [
-            'inline_article_slot' => SiteSetting::getValue('adsense_slot_inline_article'),
-            'infeed_slot' => SiteSetting::getValue('adsense_slot_list_item'),
-        ];
+        $adsConfig = $this->buildAdsConfig();
 
         return Inertia::render('News/Index', [
             'news' => $news,
@@ -211,6 +238,7 @@ class NewsController extends Controller
             'popularVideos' => $popularVideos,
             'opinionColumns' => $opinionColumns,
             'popularNews' => $popularNews,
+            'editorsPicks' => $editorsPicks,
             'popularTags' => $popularTags,
             'ads' => $adsConfig,
         ]);
@@ -250,10 +278,7 @@ class NewsController extends Controller
                 ->toArray()
         );
 
-        $adsConfig = [
-            'inline_article_slot' => SiteSetting::getValue('adsense_slot_inline_article'),
-            'infeed_slot' => SiteSetting::getValue('adsense_slot_list_item'),
-        ];
+        $adsConfig = $this->buildAdsConfig();
 
         return Inertia::render('News/Show', [
             'news' => [
@@ -407,6 +432,35 @@ class NewsController extends Controller
     private function buildNewsImageUrl(?string $image): ?string
     {
         return News::buildImageUrl($image);
+    }
+
+    /**
+     * Bentuk payload `ads` yang konsisten untuk semua halaman News publik.
+     *
+     * KEBIJAKAN IKLAN (Fase 1 — News modul):
+     *   - `enabled`   : master switch dari SiteSetting `ads_enabled`. Ketika
+     *                   `false`, semua komponen Ad* di frontend WAJIB tidak
+     *                   merender slot (cukup return null / tampilkan
+     *                   placeholder ramah). Ini menghindari kondisi review
+     *                   AdSense (Google bisa menolak situs jika `<ins>` kosong
+     *                   muncul tanpa konten resmi).
+     *   - `provider`  : `adsense` | `adsterra` | `none`. Saat ini hanya
+     *                   `adsense` yang punya komponen aktif; `adsterra`
+     *                   ditangani lewat snippet HTML di `app.blade.php`.
+     *   - Slot id     : satu sumber tunggal di SiteSetting agar satu titik
+     *                   ubah → semua halaman ikut. Slot kosong = tidak render.
+     */
+    private function buildAdsConfig(): array
+    {
+        return [
+            'enabled' => (bool) SiteSetting::getValue('ads_enabled', false),
+            'provider' => SiteSetting::getValue('ads_provider_primary', 'adsense'),
+            'leaderboard_slot' => SiteSetting::getValue('adsense_slot_banner'),
+            'sidebar_1_slot' => SiteSetting::getValue('adsense_slot_sidebar_1'),
+            'sidebar_2_slot' => SiteSetting::getValue('adsense_slot_sidebar_2'),
+            'inline_article_slot' => SiteSetting::getValue('adsense_slot_inline_article'),
+            'infeed_slot' => SiteSetting::getValue('adsense_slot_list_item'),
+        ];
     }
 
     /*

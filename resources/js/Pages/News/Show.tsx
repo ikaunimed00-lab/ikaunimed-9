@@ -2,14 +2,18 @@ import MainLayout from '@/components/MainLayout';
 import NewsCard from '@/components/NewsCard';
 import NewsLayout from '@/components/NewsLayout';
 import AdInline from '@/components/AdInline';
-import AdSidebar from '@/components/AdSidebar';
 import { Head, Link } from '@inertiajs/react';
 import { formatNumber } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 
 interface AdsConfig {
-  inline_article_slot?: string;
-  infeed_slot?: string;
+  enabled?: boolean;
+  provider?: string;
+  leaderboard_slot?: string | null;
+  sidebar_1_slot?: string | null;
+  sidebar_2_slot?: string | null;
+  inline_article_slot?: string | null;
+  infeed_slot?: string | null;
 }
 
 interface NewsItem {
@@ -51,7 +55,22 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
     setShareUrl(window.location.href);
   }, []);
 
+  const FALLBACK_OG_IMAGE = '/images/cta_ikaunimed-002.png';
   const imageUrl = news.image ?? undefined;
+  const ogImageUrl = imageUrl ?? FALLBACK_OG_IMAGE;
+
+  // Fallback meta description: jika excerpt kosong, ambil ~160 char pertama dari content (strip HTML).
+  const fallbackDescription = (() => {
+    if (news.excerpt && news.excerpt.trim().length > 0) {
+      return news.excerpt;
+    }
+    const plain = (news.content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (plain.length === 0) {
+      return 'Berita resmi dari Portal Alumni IKA UNIMED.';
+    }
+    return plain.length > 160 ? plain.slice(0, 157) + '...' : plain;
+  })();
+
   const rawVideoUrls = (news as any).video_urls ?? [];
   const videoUrls = Array.isArray(rawVideoUrls)
     ? rawVideoUrls
@@ -65,20 +84,20 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: news.title,
-    description: news.excerpt,
-    image: imageUrl ? [imageUrl] : undefined,
+    description: fallbackDescription,
+    image: [ogImageUrl],
     datePublished: news.published_at || news.created_at,
     dateModified: news.updated_at || news.created_at,
     author: {
       '@type': 'Person',
-      name: news.author?.name || 'Admin',
+      name: news.author?.name || 'Redaksi IKA UNIMED',
     },
     publisher: {
       '@type': 'Organization',
       name: 'IKA UNIMED',
       logo: {
         '@type': 'ImageObject',
-        url: `${origin}/images/logo.png`,
+        url: `${origin}/images/logo_ikaunimed.png`,
       },
     },
     mainEntityOfPage: {
@@ -105,16 +124,20 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
   return (
     <>
       <Head title={`${news.title} - IKA UNIMED`}>
-        <meta name="description" content={news.excerpt} />
+        <meta name="description" content={fallbackDescription} />
         <meta property="og:title" content={news.title} />
-        <meta property="og:description" content={news.excerpt} />
-        {imageUrl && <meta property="og:image" content={imageUrl} />}
+        <meta property="og:description" content={fallbackDescription} />
+        <meta property="og:image" content={ogImageUrl} />
         <meta property="og:url" content={shareUrl} />
         <meta property="og:type" content="article" />
+        {news.published_at && <meta property="article:published_time" content={news.published_at} />}
+        {news.updated_at && <meta property="article:modified_time" content={news.updated_at} />}
+        {news.author?.name && <meta property="article:author" content={news.author.name} />}
+        {news.categories?.[0]?.name && <meta property="article:section" content={news.categories[0].name} />}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={news.title} />
-        <meta name="twitter:description" content={news.excerpt} />
-        {imageUrl && <meta name="twitter:image" content={imageUrl} />}
+        <meta name="twitter:description" content={fallbackDescription} />
+        <meta name="twitter:image" content={ogImageUrl} />
         <link rel="canonical" href={shareUrl} />
         <script
           type="application/ld+json"
@@ -173,10 +196,10 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
             <div className="flex flex-wrap items-center gap-6 pb-6 border-b border-[#E6EAE8] mb-6 text-sm text-[#6B7280]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-[#0F766E] rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0">
-                  {news.author?.name?.charAt(0).toUpperCase() || 'A'}
+                  {news.author?.name?.charAt(0).toUpperCase() || 'R'}
                 </div>
                 <div>
-                  <p className="font-bold text-[#0F172A]">{news.author?.name || 'Admin'}</p>
+                  <p className="font-bold text-[#0F172A]">{news.author?.name || 'Redaksi IKA UNIMED'}</p>
                   <div className="flex items-center gap-2 text-xs sm:text-sm">
                     <time dateTime={news.published_at}>{publishDate}</time>
                     {news.reading_time && (
@@ -234,7 +257,12 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
                       return (
                         <div key={idx}>
                           <div dangerouslySetInnerHTML={{ __html: section }} />
-                          <AdInline position={`middle-after-paragraph-${currentParagraph}`} slot={ads?.inline_article_slot} />
+                          <AdInline
+                            position={`middle-after-paragraph-${currentParagraph}`}
+                            slot={ads?.inline_article_slot}
+                            enabled={ads?.enabled}
+                            provider={ads?.provider}
+                          />
                         </div>
                       );
                     }
@@ -243,27 +271,6 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
                   return <div key={idx} dangerouslySetInnerHTML={{ __html: section }} />;
                 });
               })()}
-            </div>
-
-            {/* Author Box */}
-            <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 mb-12 flex items-start gap-4 sm:gap-6">
-              <div className="shrink-0">
-                <div className="w-16 h-16 bg-[#0F766E] rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-sm">
-                  {news.author?.name?.charAt(0).toUpperCase() || 'A'}
-                </div>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-slate-900 mb-2">
-                  Tentang {news.author?.name || 'Admin'}
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed mb-3">
-                  Penulis aktif di Portal Berita IKA UNIMED. Menyajikan informasi terkini dan terpercaya seputar alumni, universitas, dan pendidikan.
-                </p>
-                <div className="flex gap-3">
-                   {/* Social Links Placeholder - Bisa dikembangkan nanti */}
-                   <span className="text-xs font-medium text-slate-400 bg-slate-200 px-2 py-1 rounded">Penulis Terverifikasi</span>
-                </div>
-              </div>
             </div>
 
             {/* Video Gallery Section */}
@@ -361,15 +368,15 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
             {/* Author Box */}
             <div className="bg-white border border-[#E6EAE8] rounded-xl p-6 mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left shadow-sm">
               <div className="w-16 h-16 bg-[#F0FDF4] rounded-full flex items-center justify-center text-2xl font-bold text-[#166534] shrink-0 border border-[#DCFCE7]">
-                {news.author?.name?.charAt(0).toUpperCase() || 'A'}
+                {news.author?.name?.charAt(0).toUpperCase() || 'R'}
               </div>
               <div className="flex-1">
                 <div className="text-xs text-[#6B7280] font-bold mb-1 uppercase tracking-wider">Ditulis Oleh</div>
                 <h3 className="text-lg font-bold text-[#0F172A] mb-2">
-                  {news.author?.name || 'Admin IKA UNIMED'}
+                  {news.author?.name || 'Redaksi IKA UNIMED'}
                 </h3>
                 <p className="text-[#374151] text-sm leading-relaxed">
-                  Kontributor aktif di portal berita IKA UNIMED. Menyajikan informasi terkini seputar alumni dan kampus Universitas Negeri Medan.
+                  Kontributor aktif di Portal Berita IKA UNIMED. Menyajikan informasi terkini seputar alumni dan Universitas Negeri Medan.
                 </p>
               </div>
             </div>
@@ -464,7 +471,7 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
                       Berita Terkait
                     </h2>
                     <p className="text-gray-600 mb-8">
-                      Artikel lain yang mungkin kamu tertarik
+                      Artikel lain yang mungkin menarik untuk Anda baca
                     </p>
 
                     <div className="space-y-4 sm:space-y-6">
