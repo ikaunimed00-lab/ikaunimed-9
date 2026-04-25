@@ -6,6 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseCategory;
 use App\Models\Enrollment;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\PaymentLog;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -28,6 +34,10 @@ class CourseDashboardController extends Controller
         $status = $request->get('status');
         $category = $request->get('category');
         $search = $request->get('search');
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
 
         $coursesQuery = (clone $baseQuery)
             ->with('category')
@@ -65,6 +75,7 @@ class CourseDashboardController extends Controller
 
         $totalActiveParticipants = 0;
         $averageProgress = 0;
+        $totalRevenue = 0;
 
         if ($courseIds->isNotEmpty()) {
             $totalActiveParticipants = Enrollment::whereIn('course_id', $courseIds)
@@ -75,6 +86,34 @@ class CourseDashboardController extends Controller
             $averageProgress = (int) floor(
                 Enrollment::whereIn('course_id', $courseIds)->avg('progress_percentage') ?? 0
             );
+
+            $revenueQuery = DB::table('order_items')
+                ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                ->join('products', 'order_items.product_id', '=', 'products.id')
+                ->whereIn('products.course_id', $courseIds)
+                ->where('products.type', 'digital')
+                ->where('orders.status', 'paid');
+
+            if ($dateFrom) {
+                $revenueQuery->whereDate('orders.paid_at', '>=', $dateFrom);
+            }
+
+            if ($dateTo) {
+                $revenueQuery->whereDate('orders.paid_at', '<=', $dateTo);
+            }
+
+            $revenueByCourse = $revenueQuery
+                ->groupBy('products.course_id')
+                ->selectRaw('products.course_id as course_id, SUM(order_items.total) as revenue')
+                ->pluck('revenue', 'course_id');
+
+            $totalRevenue = (int) $revenueByCourse->sum();
+
+            $courses->getCollection()->transform(function ($course) use ($revenueByCourse) {
+                $course->revenue_total = (int) ($revenueByCourse[$course->id] ?? 0);
+
+                return $course;
+            });
         }
 
         $categories = CourseCategory::query()
@@ -87,12 +126,15 @@ class CourseDashboardController extends Controller
                 'total_courses' => $totalCourses,
                 'active_participants' => $totalActiveParticipants,
                 'average_progress' => $averageProgress,
+                'total_revenue' => $totalRevenue,
             ],
             'categories' => $categories,
             'filters' => [
                 'status' => $status,
                 'category' => $category,
                 'search' => $search,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
             ],
             'lmsRoles' => [
                 'instructor' => $user->hasRole('instructor'),
@@ -113,6 +155,8 @@ class CourseDashboardController extends Controller
         $status = $request->get('status');
         $category = $request->get('category');
         $search = $request->get('search');
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
 
         $coursesQuery = Course::query()
             ->with('category')
@@ -146,19 +190,105 @@ class CourseDashboardController extends Controller
 
         $courseIds = Course::query()->pluck('id');
 
-        $totalCourses = $courseIds->count();
-        $totalActiveParticipants = 0;
-        $averageProgress = 0;
+        $stats = Cache::remember('lms.dashboard.moderator.stats', 60 * 15, function () use ($courseIds, $dateFrom, $dateTo) {
+            $totalCourses = $courseIds->count();
+            $totalActiveParticipants = 0;
+            $averageProgress = 0;
+            $totalRevenue = 0;
+            $revenueByCourse = [];
 
-        if ($courseIds->isNotEmpty()) {
-            $totalActiveParticipants = Enrollment::whereIn('course_id', $courseIds)
-                ->where('status', 'active')
-                ->distinct('user_id')
-                ->count('user_id');
+            if ($courseIds->isNotEmpty()) {
+                $totalActiveParticipants = Enrollment::whereIn('course_id', $courseIds)
+                    ->where('status', 'active')
+                    ->distinct('user_id')
+                    ->count('user_id');
 
-            $averageProgress = (int) floor(
-                Enrollment::whereIn('course_id', $courseIds)->avg('progress_percentage') ?? 0
-            );
+                $averageProgress = (int) floor(
+                    Enrollment::whereIn('course_id', $courseIds)->avg('progress_percentage') ?? 0
+                );
+
+                $revenueQuery = DB::table('order_items')
+                    ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                    ->join('products', 'order_items.product_id', '=', 'products.id')
+                    ->whereIn('products.course_id', $courseIds)
+                    ->where('products.type', 'digital')
+                    ->where('orders.status', 'paid');
+
+                if ($dateFrom) {
+                    $revenueQuery->whereDate('orders.paid_at', '>=', $dateFrom);
+                }
+
+                if ($dateTo) {
+                    $revenueQuery->whereDate('orders.paid_at', '<=', $dateTo);
+                }
+
+                $revenueByCourseCollection = $revenueQuery
+                    ->groupBy('products.course_id')
+                    ->selectRaw('products.course_id as course_id, SUM(order_items.total) as revenue')
+                    ->pluck('revenue', 'course_id');
+
+                $totalRevenue = (int) $revenueByCourseCollection->sum();
+                $revenueByCourse = $revenueByCourseCollection
+                    ->map(function ($value) {
+                        return (int) $value;
+                    })
+                    ->toArray();
+            }
+
+            $sevenDaysAgo = now()->subDays(7);
+
+            $webhookTotalLast7Days = PaymentLog::where('created_at', '>=', $sevenDaysAgo)->count();
+
+            $webhookErrorLast7Days = PaymentLog::where('created_at', '>=', $sevenDaysAgo)
+                ->where('status_code', '>=', 400)
+                ->count();
+
+            $enrollmentNewLast7Days = Enrollment::where('created_at', '>=', $sevenDaysAgo)->count();
+
+            $enrollmentCompletedLast7Days = Enrollment::whereNotNull('completed_at')
+                ->where('completed_at', '>=', $sevenDaysAgo)
+                ->count();
+
+            $webhookErrorRateLast7Days = $webhookTotalLast7Days > 0
+                ? (int) floor(($webhookErrorLast7Days / $webhookTotalLast7Days) * 100)
+                : 0;
+
+            $enrollmentCompletionRateLast7Days = $enrollmentNewLast7Days > 0
+                ? (int) floor(($enrollmentCompletedLast7Days / $enrollmentNewLast7Days) * 100)
+                : 0;
+
+            $health = [
+                'webhook_total_last_7_days' => $webhookTotalLast7Days,
+                'webhook_error_last_7_days' => $webhookErrorLast7Days,
+                'webhook_error_rate_last_7_days' => $webhookErrorRateLast7Days,
+                'enrollment_new_last_7_days' => $enrollmentNewLast7Days,
+                'enrollment_completed_last_7_days' => $enrollmentCompletedLast7Days,
+                'enrollment_completion_rate_last_7_days' => $enrollmentCompletionRateLast7Days,
+            ];
+
+            return [
+                'total_courses' => $totalCourses,
+                'active_participants' => $totalActiveParticipants,
+                'average_progress' => $averageProgress,
+                'total_revenue' => $totalRevenue,
+                'revenue_by_course' => $revenueByCourse,
+                'health' => $health,
+            ];
+        });
+
+        $totalCourses = $stats['total_courses'];
+        $totalActiveParticipants = $stats['active_participants'];
+        $averageProgress = $stats['average_progress'];
+        $totalRevenue = $stats['total_revenue'];
+        $revenueByCourse = $stats['revenue_by_course'];
+        $healthStats = $stats['health'];
+
+        if (! empty($revenueByCourse)) {
+            $courses->getCollection()->transform(function ($course) use ($revenueByCourse) {
+                $course->revenue_total = (int) ($revenueByCourse[$course->id] ?? 0);
+
+                return $course;
+            });
         }
 
         $categories = CourseCategory::query()
@@ -171,12 +301,16 @@ class CourseDashboardController extends Controller
                 'total_courses' => $totalCourses,
                 'active_participants' => $totalActiveParticipants,
                 'average_progress' => $averageProgress,
+                'total_revenue' => $totalRevenue,
             ],
+            'healthStats' => $healthStats,
             'categories' => $categories,
             'filters' => [
                 'status' => $status,
                 'category' => $category,
                 'search' => $search,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
             ],
             'lmsRoles' => [
                 'instructor' => $user->hasRole('instructor'),

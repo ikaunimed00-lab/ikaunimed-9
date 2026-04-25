@@ -30,6 +30,14 @@ class CoursePolicy
             return false;
         }
 
-        return ! $course->is_paid;
+        if ($course->is_paid) {
+            return false;
+        }
+
+        if (($course->requires_premium ?? false) && ! $user->hasRole('premium_member')) {
+            return false;
+        }
+
+        return true;
     }
 }

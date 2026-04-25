@@ -7,6 +7,8 @@ use App\Models\CourseCategory;
 use App\Models\Enrollment;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
+use App\Services\Courses\CourseLearningService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,6 +17,11 @@ use Inertia\Response;
 
 class CourseController extends Controller
 {
+    public function __construct(
+        private readonly CourseLearningService $courseLearningService
+    ) {
+    }
+
     public function index(Request $request): Response
     {
         $query = Course::query()
@@ -66,6 +73,7 @@ class CourseController extends Controller
             'creator:id,name',
             'modules.lessons',
             'lessons',
+            'product',
         ]);
 
         $related = Course::query()
@@ -96,48 +104,38 @@ class CourseController extends Controller
             }
         }
 
+        $nextLessonId = null;
+
+        if ($enrollment && $course->lessons->isNotEmpty()) {
+            $orderedLessons = $course->lessons->sortBy('order')->values();
+
+            foreach ($orderedLessons as $lesson) {
+                if (empty($lessonProgress[$lesson->id])) {
+                    $nextLessonId = $lesson->id;
+                    break;
+                }
+            }
+        }
+
         return Inertia::render('Course/Show', [
             'course' => $course,
             'related' => $related,
             'enrollment' => $enrollment,
             'lessonProgress' => $lessonProgress,
+            'nextLessonId' => $nextLessonId,
         ]);
     }
 
-    public function enroll(Request $request, Course $course): RedirectResponse
-    {
-        $this->authorize('enroll', $course);
-
-        $user = $request->user();
-
-        $enrollment = Enrollment::firstOrCreate(
-            [
-                'user_id' => $user->id,
-                'course_id' => $course->id,
-            ],
-            [
-                'status' => 'active',
-                'started_at' => now(),
-            ]
-        );
-
-        if (! $enrollment->started_at) {
-            $enrollment->started_at = now();
-            $enrollment->status = 'active';
-            $enrollment->save();
-        }
-
-        return redirect()
-            ->route('courses.show', $course->slug)
-            ->with('success', 'Anda berhasil mendaftar course ini.');
-    }
-
-    public function completeLesson(Request $request, Course $course, Lesson $lesson): RedirectResponse
+    public function showLesson(Request $request, Course $course, Lesson $lesson): Response
     {
         $user = $request->user();
 
         if ($lesson->course_id !== $course->id) {
             abort(404);
+        }
+
+        if (! $user) {
+            abort(403);
         }
 
         $enrollment = Enrollment::where('user_id', $user->id)
@@ -148,45 +146,98 @@ class CourseController extends Controller
             abort(403);
         }
 
-        $progress = LessonProgress::firstOrCreate(
-            [
-                'user_id' => $user->id,
-                'lesson_id' => $lesson->id,
-            ]
-        );
+        $lesson->load([
+            'quiz.questions',
+        ]);
 
-        if (! $progress->is_completed) {
-            $progress->is_completed = true;
-            $progress->completed_at = now();
-            $progress->save();
+        $progress = LessonProgress::where('user_id', $user->id)
+            ->where('lesson_id', $lesson->id)
+            ->first();
 
-            $lessonIds = $course->lessons()->pluck('id');
+        $quizStats = null;
 
-            if ($lessonIds->isNotEmpty()) {
-                $completedCount = LessonProgress::where('user_id', $user->id)
-                    ->whereIn('lesson_id', $lessonIds)
-                    ->where('is_completed', true)
-                    ->count();
+        if ($lesson->quiz) {
+            $attemptQuery = $lesson->quiz->attempts()
+                ->where('user_id', $user->id);
 
-                $totalLessons = $lessonIds->count();
+            $attemptsCount = $attemptQuery->count();
+            $bestScore = $attemptsCount > 0 ? (int) $attemptQuery->max('score') : null;
 
-                if ($totalLessons > 0) {
-                    $percentage = (int) floor(($completedCount / $totalLessons) * 100);
+            $attempts = $attemptQuery
+                ->latest()
+                ->take(10)
+                ->get(['id', 'score', 'is_passed', 'created_at']);
 
-                    $enrollment->progress_percentage = $percentage;
+            $quizStats = [
+                'attempts_count' => $attemptsCount,
+                'best_score' => $bestScore,
+                'attempts' => $attempts,
+            ];
+        }
 
-                    if ($percentage === 100 && ! $enrollment->completed_at) {
-                        $enrollment->completed_at = now();
-                        $enrollment->status = 'completed';
-                    }
+        $nextLessonId = null;
 
-                    $enrollment->save();
+        $lessonIdsOrdered = $course->lessons()
+            ->orderBy('order')
+            ->pluck('id')
+            ->all();
+
+        if (! empty($lessonIdsOrdered)) {
+            $currentIndex = array_search($lesson->id, $lessonIdsOrdered, true);
+
+            if ($currentIndex !== false) {
+                $nextIndex = $currentIndex + 1;
+
+                if (isset($lessonIdsOrdered[$nextIndex])) {
+                    $nextLessonId = $lessonIdsOrdered[$nextIndex];
                 }
             }
         }
 
+        return Inertia::render('Course/LessonShow', [
+            'course' => $course->only(['id', 'title', 'slug']),
+            'lesson' => $lesson,
+            'quiz' => $lesson->quiz,
+            'lessonCompleted' => $progress ? (bool) $progress->is_completed : false,
+            'quizStats' => $quizStats,
+            'nextLessonId' => $nextLessonId,
+        ]);
+    }
+
+    public function enroll(Request $request, Course $course): RedirectResponse
+    {
+        $user = $request->user();
+        $this->courseLearningService->enroll($user, $course);
+
+        return redirect()
+            ->route('courses.show', $course->slug)
+            ->with('success', 'Anda berhasil mendaftar course ini.');
+    }
+
+    public function completeLesson(Request $request, Course $course, Lesson $lesson): RedirectResponse
+    {
+        $user = $request->user();
+        $this->courseLearningService->completeLesson($user, $course, $lesson);
+
         return redirect()
             ->back()
             ->with('success', 'Progress belajar berhasil diperbarui.');
+    }
+
+    public function attemptQuiz(Request $request, Course $course, Lesson $lesson): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'answers' => ['required', 'array'],
+        ]);
+
+        $result = $this->courseLearningService->attemptQuiz($user, $course, $lesson, $data['answers']);
+
+        return response()->json($result);
     }
 }

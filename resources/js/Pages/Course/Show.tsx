@@ -1,8 +1,17 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import MainLayout from '@/components/MainLayout';
 import { route } from 'ziggy-js';
-import { GraduationCap, CheckCircle2, Circle, Clock, ArrowLeft, PlayCircle } from 'lucide-react';
+import {
+  GraduationCap,
+  CheckCircle2,
+  Circle,
+  Clock,
+  ArrowLeft,
+  PlayCircle,
+  Lock,
+  ShoppingCart,
+} from 'lucide-react';
 
 interface Lesson {
   id: number;
@@ -11,6 +20,12 @@ interface Lesson {
   type: string;
   duration_minutes: number;
   is_preview: boolean;
+}
+
+interface Product {
+  id: number;
+  slug: string;
+  price: string;
 }
 
 interface Module {
@@ -43,6 +58,7 @@ interface Course {
   } | null;
   modules: Module[];
   lessons: Lesson[];
+  product?: Product | null;
 }
 
 interface Enrollment {
@@ -58,33 +74,31 @@ interface Props {
   related: Course[];
   enrollment: Enrollment | null;
   lessonProgress: Record<number, boolean>;
+  nextLessonId: number | null;
 }
 
-export default function Show({ course, related, enrollment, lessonProgress }: Props) {
+export default function Show({
+  course,
+  related,
+  enrollment,
+  lessonProgress,
+  nextLessonId,
+}: Props) {
   const { auth }: any = usePage().props;
 
+  const isLoggedIn = !!auth?.user;
   const isEnrolled = !!enrollment;
   const isSubscriber = !!auth?.user && auth.user.role === 'subscriber';
-  const canEnroll = isSubscriber && !course.is_paid;
+  const isPremiumMember =
+    !!auth?.user && Array.isArray(auth.user.roles) && auth.user.roles.includes('premium_member');
+  const requiresPremium = (course as any).requires_premium === true;
+  const canEnroll = isSubscriber && !course.is_paid && (!requiresPremium || isPremiumMember);
+
+  const syllabusRef = useRef<HTMLDivElement | null>(null);
 
   const handleEnroll = () => {
     router.post(
       route('courses.enroll', course.slug),
-      {},
-      {
-        preserveScroll: true,
-      }
-    );
-  };
-
-  const handleToggleLesson = (lessonId: number) => {
-    if (!isEnrolled) return;
-
-    router.post(
-      route('courses.lessons.complete', {
-        course: course.slug,
-        lesson: lessonId,
-      }),
       {},
       {
         preserveScroll: true,
@@ -181,10 +195,21 @@ export default function Show({ course, related, enrollment, lessonProgress }: Pr
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div
+                ref={syllabusRef}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+              >
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
                   Silabus dan materi pembelajaran
                 </h2>
+
+                {!isEnrolled && (
+                  <p className="mb-4 text-xs text-gray-500">
+                    Beberapa materi ditandai sebagai{' '}
+                    <span className="font-semibold">Preview Gratis</span>. Materi lain akan
+                    terbuka penuh setelah Anda terdaftar di kursus ini.
+                  </p>
+                )}
 
                 {course.modules.length > 0 ? (
                   <div className="space-y-4">
@@ -207,17 +232,36 @@ export default function Show({ course, related, enrollment, lessonProgress }: Pr
                               .sort((a, b) => a.order - b.order)
                               .map((lesson) => {
                                 const completed = !!lessonProgress[lesson.id];
+                                const locked = !isEnrolled && !lesson.is_preview;
+                                const isNext = isEnrolled && nextLessonId === lesson.id;
 
                                 return (
                                   <button
                                     key={lesson.id}
                                     type="button"
-                                    onClick={() => handleToggleLesson(lesson.id)}
-                                    className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
-                                    disabled={!isEnrolled && !lesson.is_preview}
+                                    onClick={() => {
+                                      if (!locked) {
+                                        router.visit(
+                                          route('courses.lessons.show', {
+                                            course: course.slug,
+                                            lesson: lesson.id,
+                                          })
+                                        );
+                                      }
+                                    }}
+                                    className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${
+                                      locked
+                                        ? 'bg-gray-50 cursor-not-allowed'
+                                        : isNext
+                                        ? 'bg-emerald-50 hover:bg-emerald-100'
+                                        : 'hover:bg-gray-50'
+                                    }`}
+                                    disabled={locked}
                                   >
                                     <div className="flex items-center gap-3">
-                                      {completed ? (
+                                      {locked ? (
+                                        <Lock className="w-5 h-5 text-gray-300" />
+                                      ) : completed ? (
                                         <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                                       ) : (
                                         <Circle className="w-5 h-5 text-gray-300" />
@@ -250,11 +294,18 @@ export default function Show({ course, related, enrollment, lessonProgress }: Pr
                                       </div>
                                     </div>
 
-                                    {completed && (
-                                      <span className="text-[10px] font-semibold text-emerald-600">
-                                        Selesai
-                                      </span>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                      {completed && (
+                                        <span className="text-[10px] font-semibold text-emerald-600">
+                                          Selesai
+                                        </span>
+                                      )}
+                                      {isNext && !completed && (
+                                        <span className="text-[10px] font-semibold text-emerald-700">
+                                          Berikutnya
+                                        </span>
+                                      )}
+                                    </div>
                                   </button>
                                 );
                               })}
@@ -322,25 +373,57 @@ export default function Show({ course, related, enrollment, lessonProgress }: Pr
                     {isEnrolled ? (
                       <button
                         type="button"
+                        onClick={() => {
+                          if (nextLessonId) {
+                            router.visit(
+                              route('courses.lessons.show', {
+                                course: course.slug,
+                                lesson: nextLessonId,
+                              })
+                            );
+                          } else if (syllabusRef.current) {
+                            syllabusRef.current.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'start',
+                            });
+                          }
+                        }}
                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-center font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
                       >
                         <PlayCircle className="w-5 h-5" />
                         Lanjutkan Belajar
                       </button>
                     ) : (
-                      <button
-                        type="button"
-                        disabled={!canEnroll}
-                        onClick={handleEnroll}
-                        className={`w-full text-center font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${
-                          canEnroll
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        <GraduationCap className="w-5 h-5" />
-                        {course.is_paid ? 'Enrollment akan dibuka nanti' : 'Ikuti Kelas Ini'}
-                      </button>
+                      <>
+                        {course.is_paid && course.product ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              router.post(route('shop.cart.add', course.product!.slug));
+                            }}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-center font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          >
+                            <ShoppingCart className="w-5 h-5" />
+                            Beli Kelas
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={!canEnroll}
+                            onClick={handleEnroll}
+                            className={`w-full text-center font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                              canEnroll
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                            }`}
+                          >
+                            <GraduationCap className="w-5 h-5" />
+                            {course.is_paid
+                              ? 'Enrollment akan dibuka nanti'
+                              : 'Ikuti Kelas Ini'}
+                          </button>
+                        )}
+                      </>
                     )}
 
                     <p className="text-xs text-gray-500 mt-3">

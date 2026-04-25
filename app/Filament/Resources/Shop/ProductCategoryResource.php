@@ -37,22 +37,56 @@ class ProductCategoryResource extends Resource
             return false;
         }
 
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
         return $user->can('shop.product.view') || $user->can('shop.product.manage');
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->can('shop.product.manage') ?? false;
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return $user->can('shop.product.manage');
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->can('shop.product.manage') ?? false;
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return $user->can('shop.product.manage');
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->can('shop.product.manage') ?? false;
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return $user->can('shop.product.manage');
     }
 
     public static function form(Schema $form): Schema
@@ -140,4 +174,3 @@ class ProductCategoryResource extends Resource
         ];
     }
 }
-

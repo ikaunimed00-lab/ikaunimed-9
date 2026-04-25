@@ -3,18 +3,46 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cart;
+use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\SiteSetting;
+use App\Services\Shop\CouponService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ShopController extends Controller
 {
+    public function __construct(
+        private readonly CouponService $couponService
+    ) {
+    }
+
+    /**
+     * @return array{rate: float, categorySlugs: ?array}
+     */
+    private function premiumDiscountConfig(): array
+    {
+        $discountRateSetting = SiteSetting::getValue('shop_premium_member_discount_rate', 0.1);
+        $discountRate = is_numeric($discountRateSetting) ? (float) $discountRateSetting : 0.1;
+
+        $discountCategorySlugsSetting = SiteSetting::getValue('shop_premium_member_discount_category_slugs', null);
+        $discountCategorySlugs = is_array($discountCategorySlugsSetting)
+            ? array_values(array_filter(array_map('strval', $discountCategorySlugsSetting)))
+            : null;
+
+        return [
+            'rate' => $discountRate,
+            'categorySlugs' => $discountCategorySlugs,
+        ];
+    }
+
     public function index(Request $request): Response
     {
         $products = Product::query()
@@ -80,11 +108,25 @@ class ShopController extends Controller
             ->where('status', 'active')
             ->with([
                 'items.product.images' => fn ($q) => $q->orderBy('sort_order'),
+                'items.product.category',
             ])
             ->first();
 
+        Log::info('SHOP cart(): resolved cart', [
+            'user_id' => $user?->id,
+            'cart_id' => $cart?->id,
+            'cart_status' => $cart?->status,
+            'items_count' => $cart?->items->count() ?? 0,
+        ]);
+
+        $premiumDiscountConfig = $this->premiumDiscountConfig();
+
         return Inertia::render('Shop/Cart', [
             'cart' => $cart,
+            'premiumDiscount' => [
+                'rate' => $premiumDiscountConfig['rate'],
+                'categorySlugs' => $premiumDiscountConfig['categorySlugs'],
+            ],
         ]);
     }
 
@@ -97,10 +139,25 @@ class ShopController extends Controller
             ->where('status', 'active')
             ->with([
                 'items.product.images' => fn ($q) => $q->orderBy('sort_order'),
+                'items.product.category',
             ])
             ->first();
 
+        Log::info('SHOP checkout(): resolved cart before guard', [
+            'user_id' => $user?->id,
+            'cart_id' => $cart?->id,
+            'cart_status' => $cart?->status,
+            'items_count' => $cart?->items->count() ?? 0,
+        ]);
+
         if (! $cart || $cart->items->isEmpty()) {
+            Log::warning('SHOP checkout(): empty cart detected, redirecting', [
+                'user_id' => $user?->id,
+                'cart_id' => $cart?->id,
+                'cart_status' => $cart?->status,
+                'items_count' => $cart?->items->count() ?? 0,
+            ]);
+
             return redirect()
                 ->route('shop.cart.index')
                 ->with('error', 'Keranjang Anda masih kosong.');
@@ -112,9 +169,59 @@ class ShopController extends Controller
             'address' => $user->alamat_lengkap,
         ];
 
+        $premiumDiscountConfig = $this->premiumDiscountConfig();
+
         return Inertia::render('Shop/Checkout', [
             'cart' => $cart,
             'shippingDefaults' => $shippingDefaults,
+            'premiumDiscount' => [
+                'rate' => $premiumDiscountConfig['rate'],
+                'categorySlugs' => $premiumDiscountConfig['categorySlugs'],
+            ],
+        ]);
+    }
+
+    public function checkCoupon(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        $code = trim($request->input('coupon_code', ''));
+
+        $cart = Cart::query()
+            ->where('user_id', $user?->id)
+            ->where('status', 'active')
+            ->with(['items.product.category'])
+            ->first();
+
+        if (! $cart || $cart->items->isEmpty()) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Keranjang belanja kosong.',
+                'discount' => 0,
+            ]);
+        }
+
+        $premiumDiscountConfig = $this->premiumDiscountConfig();
+        $evaluation = $this->couponService->evaluateCouponForCart(
+            $cart,
+            $user,
+            $code,
+            $premiumDiscountConfig['rate'],
+            $premiumDiscountConfig['categorySlugs']
+        );
+
+        if (! $evaluation['valid']) {
+            return response()->json([
+                'valid' => false,
+                'message' => $evaluation['message'],
+                'discount' => 0,
+            ]);
+        }
+
+        return response()->json([
+            'valid' => true,
+            'message' => 'Kupon berhasil digunakan!',
+            'discount' => $evaluation['discount'],
+            'code' => $evaluation['code'],
         ]);
     }
 
@@ -122,13 +229,24 @@ class ShopController extends Controller
     {
         $user = $request->user();
 
+        Log::info('SHOP processCheckout(): start', [
+            'user_id' => $user?->id,
+        ]);
+
         $cart = Cart::query()
             ->where('user_id', $user?->id)
             ->where('status', 'active')
-            ->with(['items.product'])
+            ->with(['items.product.category'])
             ->first();
 
         if (! $cart || $cart->items->isEmpty()) {
+            Log::warning('SHOP processCheckout(): empty cart detected, redirecting', [
+                'user_id' => $user?->id,
+                'cart_id' => $cart?->id,
+                'cart_status' => $cart?->status,
+                'items_count' => $cart?->items->count() ?? 0,
+            ]);
+
             return redirect()
                 ->route('shop.cart.index')
                 ->with('error', 'Keranjang Anda masih kosong.');
@@ -139,14 +257,72 @@ class ShopController extends Controller
             'shipping_phone' => ['required', 'string', 'max:50'],
             'shipping_address' => ['required', 'string'],
             'notes' => ['nullable', 'string'],
+            'coupon_code' => ['nullable', 'string', 'max:50'],
         ]);
 
         $totalAmount = $cart->items->reduce(function ($carry, $item) {
             return $carry + ($item->price_snapshot * $item->quantity);
         }, 0);
 
+        $premiumDiscountConfig = $this->premiumDiscountConfig();
+        $discountRate = $premiumDiscountConfig['rate'];
+        $discountCategorySlugs = $premiumDiscountConfig['categorySlugs'];
+
+        $physicalSubtotal = $cart->items
+            ->filter(function ($item) use ($discountCategorySlugs) {
+                if (! $item->product || $item->product->type !== 'physical') {
+                    return false;
+                }
+
+                if ($discountCategorySlugs === null || $discountCategorySlugs === []) {
+                    return true;
+                }
+
+                $category = $item->product->category;
+
+                if (! $category || ! $category->slug) {
+                    return false;
+                }
+
+                return in_array($category->slug, $discountCategorySlugs, true);
+            })
+            ->reduce(function ($carry, $item) {
+                return $carry + ($item->price_snapshot * $item->quantity);
+            }, 0);
+
         $shippingCost = 0;
-        $grandTotal = $totalAmount + $shippingCost;
+        $discount = 0;
+
+        if ($user && $user->hasRole('premium_member') && $physicalSubtotal > 0) {
+            $discount = (int) floor($physicalSubtotal * $discountRate);
+        }
+
+        $coupon = null;
+        $couponDiscount = 0;
+        $couponCode = isset($data['coupon_code']) ? trim((string) $data['coupon_code']) : '';
+
+        if ($couponCode !== '') {
+            $evaluation = $this->couponService->evaluateCouponForCart(
+                $cart,
+                $user,
+                $couponCode,
+                $discountRate,
+                $discountCategorySlugs
+            );
+
+            if (! $evaluation['valid']) {
+                return back()
+                    ->withErrors(['coupon_code' => $evaluation['message']])
+                    ->withInput();
+            }
+
+            $coupon = $evaluation['coupon'];
+            $couponDiscount = $evaluation['discount'];
+        }
+
+        $grandTotal = $totalAmount + $shippingCost - $discount - $couponDiscount;
+
+        $activeGateway = SiteSetting::getValue('shop_payment_gateway', 'manual') ?? 'manual';
 
         $tripayItems = $cart->items->map(function ($item) {
             $product = $item->product;
@@ -162,7 +338,7 @@ class ShopController extends Controller
 
         $defaultMethod = config('services.tripay.default_method', 'BRIVA');
 
-        $order = DB::transaction(function () use ($cart, $user, $data, $totalAmount, $shippingCost, $grandTotal, $defaultMethod) {
+        $order = DB::transaction(function () use ($cart, $user, $data, $totalAmount, $shippingCost, $discount, $coupon, $couponDiscount, $grandTotal, $defaultMethod, $activeGateway) {
             $order = Order::create([
                 'user_id' => $user->id,
                 'organization_id' => $cart->items->first()?->product?->organization_id,
@@ -194,16 +370,30 @@ class ShopController extends Controller
                 ]);
             }
 
+            $provider = $activeGateway === 'tripay' ? 'tripay' : 'manual';
+            $method = $activeGateway === 'tripay' ? $defaultMethod : 'manual_transfer';
+
             $order->payments()->create([
                 'user_id' => $user->id,
                 'amount' => $grandTotal,
-                'provider' => 'tripay',
+                'provider' => $provider,
                 'provider_reference' => null,
-                'method' => $defaultMethod,
+                'method' => $method,
                 'status' => Payment::STATUS_PENDING,
                 'paid_at' => null,
                 'raw_payload' => null,
             ]);
+
+            if ($coupon && $couponDiscount > 0) {
+                CouponUsage::create([
+                    'coupon_id' => $coupon->id,
+                    'order_id' => $order->id,
+                    'user_id' => $user->id,
+                    'used_at' => now(),
+                ]);
+
+                $coupon->increment('used_count');
+            }
 
             $cart->update(['status' => 'converted']);
 
@@ -211,6 +401,12 @@ class ShopController extends Controller
         });
 
         $payment = $order->payments()->latest('id')->first();
+
+        if ($activeGateway !== 'tripay') {
+            return redirect()
+                ->route('shop.orders.show', $order)
+                ->with('success', 'Order berhasil dibuat. Silakan lakukan pembayaran manual / direct transfer dan konfirmasi ke admin.');
+        }
 
         $config = config('services.tripay');
 
@@ -221,9 +417,14 @@ class ShopController extends Controller
         $method = $payment->method;
 
         if (! $apiKey || ! $privateKey || ! $merchantCode) {
+            Log::info('SHOP processCheckout(): Tripay not configured, using manual/direct transfer flow', [
+                'user_id' => $user?->id,
+                'order_id' => $order->id,
+            ]);
+
             return redirect()
-                ->route('shop.cart.index')
-                ->with('error', 'Konfigurasi pembayaran belum lengkap. Silakan hubungi administrator.');
+                ->route('shop.orders.show', $order)
+                ->with('success', 'Order berhasil dibuat (mode testing). Silakan lakukan pembayaran manual / direct transfer dan konfirmasi ke admin.');
         }
 
         $amountInt = (int) $order->grand_total;
@@ -247,7 +448,7 @@ class ShopController extends Controller
             'customer_phone' => $customerPhone,
             'order_items' => $tripayItems,
             'callback_url' => config('app.url') . '/webhook/tripay/shop',
-            'return_url' => config('app.url') . '/shop/orders',
+            'return_url' => config('app.url') . '/shop/orders/' . $order->id,
             'expired_time' => now()->addDay()->timestamp,
             'signature' => $signature,
         ];
@@ -286,9 +487,12 @@ class ShopController extends Controller
         $orders = Order::query()
             ->where('user_id', $user->id)
             ->withCount('items')
-            ->with(['payments' => function ($q) {
-                $q->latest('id');
-            }])
+            ->with([
+                'payments' => function ($q) {
+                    $q->latest('id');
+                },
+                'shipment',
+            ])
             ->orderByDesc('created_at')
             ->paginate(10)
             ->withQueryString();
@@ -307,18 +511,68 @@ class ShopController extends Controller
         }
 
         $order->load([
-            'items.product',
+            'items.product.course',
             'payments' => function ($q) {
                 $q->latest('id');
             },
+            'shipment',
         ]);
 
         $latestPayment = $order->payments->first();
 
+        $digitalCourses = [];
+
+        if ($latestPayment && $latestPayment->status === Payment::STATUS_PAID) {
+            $digitalCourses = $order->items
+                ->filter(function ($item) {
+                    return ($item->product_type ?? null) === 'digital'
+                        && $item->product
+                        && $item->product->course;
+                })
+                ->map(function ($item) {
+                    return $item->product->course->only(['id', 'title', 'slug']);
+                })
+                ->unique('id')
+                ->values()
+                ->all();
+        }
+
         return Inertia::render('Shop/Orders/Show', [
             'order' => $order,
             'payment' => $latestPayment,
+            'digitalCourses' => $digitalCourses,
         ]);
+    }
+
+    public function uploadPaymentProof(Request $request, Order $order): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($order->user_id !== $user->id) {
+            abort(404);
+        }
+
+        $data = $request->validate([
+            'proof' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+        ]);
+
+        $payment = $order->payments()->latest('id')->first();
+
+        if (! $payment) {
+            return redirect()
+                ->route('shop.orders.show', $order)
+                ->with('error', 'Tidak dapat menemukan data pembayaran untuk pesanan ini.');
+        }
+
+        $path = $data['proof']->store('payment_proofs', 'public');
+
+        $payment->update([
+            'manual_proof_path' => $path,
+        ]);
+
+        return redirect()
+            ->route('shop.orders.show', $order)
+            ->with('success', 'Bukti pembayaran berhasil diupload. Kami akan segera memverifikasi pembayaran Anda.');
     }
 
     public function addToCart(Request $request, Product $product): RedirectResponse
@@ -328,6 +582,12 @@ class ShopController extends Controller
         }
 
         $user = $request->user();
+
+        Log::info('SHOP addToCart(): start', [
+            'user_id' => $user?->id,
+            'product_id' => $product->id,
+            'product_slug' => $product->slug,
+        ]);
 
         $cart = Cart::firstOrCreate(
             [
@@ -339,17 +599,29 @@ class ShopController extends Controller
             ]
         );
 
+        Log::info('SHOP addToCart(): cart resolved', [
+            'cart_id' => $cart->id,
+            'cart_status' => $cart->status,
+        ]);
+
         $item = $cart->items()
             ->where('product_id', $product->id)
             ->first();
 
         if ($item) {
             $item->increment('quantity');
+            Log::info('SHOP addToCart(): increment item', [
+                'cart_item_id' => $item->id,
+                'new_quantity' => $item->quantity,
+            ]);
         } else {
-            $cart->items()->create([
+            $newItem = $cart->items()->create([
                 'product_id' => $product->id,
                 'quantity' => 1,
                 'price_snapshot' => $product->price,
+            ]);
+            Log::info('SHOP addToCart(): create item', [
+                'cart_item_id' => $newItem->id,
             ]);
         }
 

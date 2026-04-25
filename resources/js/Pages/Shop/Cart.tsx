@@ -9,6 +9,12 @@ type ProductImage = {
   sort_order: number;
 };
 
+type ProductCategory = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
 type Product = {
   id: number;
   name: string;
@@ -16,6 +22,21 @@ type Product = {
   price: string;
   type: string;
   images: ProductImage[];
+  category?: ProductCategory | null;
+};
+
+type AuthUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  roles: string[];
+  permissions: string[];
+};
+
+type SharedAuth = {
+  user: AuthUser | null;
+  dashboard_route: string;
 };
 
 type CartItem = {
@@ -30,8 +51,15 @@ type Cart = {
   items: CartItem[];
 };
 
+type PremiumDiscountConfig = {
+  rate: number;
+  categorySlugs: string[] | null;
+};
+
 type PageProps = {
+  auth: SharedAuth;
   cart: Cart | null;
+  premiumDiscount: PremiumDiscountConfig;
 };
 
 const renderTypeBadge = (type: string) => {
@@ -55,13 +83,55 @@ const renderTypeBadge = (type: string) => {
 };
 
 export default function CartPage() {
-  const { cart } = usePage<PageProps>().props;
+  const { cart, auth, premiumDiscount } = usePage<PageProps>().props;
 
   const items = cart?.items ?? [];
 
-  const total = items.reduce((sum, item) => {
+  const subtotal = items.reduce((sum, item) => {
     return sum + Number(item.price_snapshot) * item.quantity;
   }, 0);
+
+  const eligibleCategorySlugs =
+    premiumDiscount?.categorySlugs && premiumDiscount.categorySlugs.length > 0
+      ? premiumDiscount.categorySlugs
+      : null;
+
+  const physicalSubtotal = items
+    .filter((item) => {
+      if (item.product.type !== 'physical') {
+        return false;
+      }
+
+      if (!eligibleCategorySlugs) {
+        return true;
+      }
+
+      const categorySlug = item.product.category?.slug;
+
+      if (!categorySlug) {
+        return false;
+      }
+
+      return eligibleCategorySlugs.includes(categorySlug);
+    })
+    .reduce((sum, item) => {
+      return sum + Number(item.price_snapshot) * item.quantity;
+    }, 0);
+
+  const isPremiumMember =
+    !!auth?.user &&
+    Array.isArray(auth.user.roles) &&
+    auth.user.roles.includes('premium_member');
+
+  const discountRate =
+    typeof premiumDiscount?.rate === 'number' && premiumDiscount.rate > 0
+      ? premiumDiscount.rate
+      : 0.1;
+  const discount =
+    isPremiumMember && physicalSubtotal > 0
+      ? Math.floor(physicalSubtotal * discountRate)
+      : 0;
+  const total = subtotal - discount;
 
   return (
     <MainLayout variant="full">
@@ -137,8 +207,14 @@ export default function CartPage() {
             <h2 className="text-lg font-semibold mb-4">Ringkasan</h2>
             <div className="flex items-center justify-between mb-2 text-sm">
               <span>Subtotal</span>
-              <span>Rp {total.toLocaleString('id-ID')}</span>
+              <span>Rp {subtotal.toLocaleString('id-ID')}</span>
             </div>
+            {discount > 0 && (
+              <div className="flex items-center justify-between mb-2 text-sm text-emerald-700">
+                <span>Diskon Member Premium</span>
+                <span>- Rp {discount.toLocaleString('id-ID')}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between mb-4 text-sm text-gray-500">
               <span>Ongkir</span>
               <span>Belum termasuk</span>

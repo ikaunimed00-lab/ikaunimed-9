@@ -38,6 +38,10 @@ class OrderResource extends Resource
             return false;
         }
 
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
         return $user->can('shop.order.view') || $user->can('shop.order.manage');
     }
 
@@ -48,7 +52,17 @@ class OrderResource extends Resource
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->can('shop.order.manage') ?? false;
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return $user->can('shop.order.manage');
     }
 
     public static function canDelete($record): bool
@@ -138,6 +152,7 @@ class OrderResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('status')
                     ->label('Status')
@@ -166,7 +181,7 @@ class OrderResource extends Resource
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->visible(false),
+                        ->visible(fn (): bool => auth()->user()?->hasRole('super_admin') ?? false),
                 ]),
             ]);
     }
@@ -174,7 +189,7 @@ class OrderResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['user', 'organization'])
+            ->with(['user', 'organization', 'shipment', 'couponUsage.coupon'])
             ->withCount('items');
     }
 
@@ -190,6 +205,15 @@ class OrderResource extends Resource
                             ->label('Pengguna'),
                         TextEntry::make('organization.name')
                             ->label('Organisasi')
+                            ->placeholder('-'),
+                        TextEntry::make('couponUsage.coupon.code')
+                            ->label('Kode Kupon')
+                            ->placeholder('-'),
+                        TextEntry::make('couponUsage.coupon.type')
+                            ->label('Tipe Kupon')
+                            ->placeholder('-'),
+                        TextEntry::make('couponUsage.coupon.value')
+                            ->label('Nilai Kupon')
                             ->placeholder('-'),
                         TextEntry::make('status')
                             ->label('Status')

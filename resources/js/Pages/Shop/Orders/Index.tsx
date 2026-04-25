@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { route } from 'ziggy-js';
+import MainLayout from '@/components/MainLayout';
 
 type Order = {
   id: number;
@@ -85,8 +86,9 @@ export default function OrdersIndex() {
   const items = orders.data ?? [];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="mb-4">
+    <MainLayout>
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="mb-4">
         <Link href={route('shop.index')} className="text-sm text-blue-600">
           &larr; Kembali ke katalog
         </Link>
@@ -158,7 +160,8 @@ export default function OrdersIndex() {
           })}
         </div>
       )}
-    </div>
+      </div>
+    </MainLayout>
   );
 }
 

@@ -33,6 +33,7 @@ interface Props {
         total_courses: number;
         completed_courses: number;
         average_progress: number;
+        total_certificates?: number;
     };
     filters: {
         status?: string;
@@ -127,7 +128,7 @@ export default function LearnerCourses({ enrollments, stats, filters }: Props) {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-white border border-gray-200 rounded-lg p-5 flex items-center gap-4">
                         <div className="h-10 w-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
                             <BookOpen className="w-5 h-5" />
@@ -157,6 +158,16 @@ export default function LearnerCourses({ enrollments, stats, filters }: Props) {
                             <div className="text-2xl font-bold text-gray-900">
                                 {stats.average_progress ? `${stats.average_progress}%` : "0%"}
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white border border-gray-200 rounded-lg p-5 flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600">
+                            <span className="text-xs font-semibold">CERT</span>
+                        </div>
+                        <div>
+                            <div className="text-sm text-gray-600">Sertifikat Diterbitkan</div>
+                            <div className="text-2xl font-bold text-gray-900">{stats.total_certificates || 0}</div>
                         </div>
                     </div>
                 </div>

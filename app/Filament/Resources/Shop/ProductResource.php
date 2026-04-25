@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Shop;
 
 use App\Filament\Resources\Shop\ProductResource\Pages;
+use App\Models\Course;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use BackedEnum;
@@ -41,22 +42,56 @@ class ProductResource extends Resource
             return false;
         }
 
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
         return $user->can('shop.product.view') || $user->can('shop.product.manage');
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->can('shop.product.manage') ?? false;
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return $user->can('shop.product.manage');
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->can('shop.product.manage') ?? false;
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return $user->can('shop.product.manage');
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->can('shop.product.manage') ?? false;
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return $user->can('shop.product.manage');
     }
 
     public static function form(Schema $form): Schema
@@ -89,6 +124,13 @@ class ProductResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
+                        Select::make('course_id')
+                            ->label('Course LMS (Opsional)')
+                            ->relationship('course', 'title')
+                            ->searchable()
+                            ->preload()
+                            ->required(fn (Get $get) => $get('type') === 'digital')
+                            ->visible(fn (Get $get) => $get('type') === 'digital'),
                         Select::make('type')
                             ->label('Tipe Produk')
                             ->options([
@@ -98,6 +140,10 @@ class ProductResource extends Resource
                             ])
                             ->required()
                             ->default('physical'),
+                        TextInput::make('membership_role')
+                            ->label('Membership Role (Opsional)')
+                            ->placeholder('premium_member')
+                            ->visible(fn (Get $get) => $get('type') === 'service'),
                         TextInput::make('price')
                             ->label('Harga')
                             ->numeric()
@@ -148,6 +194,10 @@ class ProductResource extends Resource
                     ->label('Kategori')
                     ->sortable()
                     ->toggleable(),
+                Tables\Columns\TextColumn::make('course.title')
+                    ->label('Course')
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('price')
                     ->label('Harga')
                     ->money('idr')
@@ -169,7 +219,9 @@ class ProductResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\Filter::make('digital_without_course')
+                    ->label('Produk digital tanpa course')
+                    ->query(fn (Builder $query) => $query->where('type', 'digital')->whereNull('course_id')),
             ])
             ->actions([
                 EditAction::make(),

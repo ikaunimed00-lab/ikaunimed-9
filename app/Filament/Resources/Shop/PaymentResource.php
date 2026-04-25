@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Shop;
 
 use App\Filament\Resources\Shop\PaymentResource\Pages;
+use App\Models\Course;
+use App\Models\Enrollment;
 use App\Models\Payment;
 use BackedEnum;
 use Filament\Infolists\Components\RepeatableEntry;
@@ -16,8 +18,11 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class PaymentResource extends Resource
 {
@@ -33,6 +38,10 @@ class PaymentResource extends Resource
 
         if (! $user) {
             return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
         }
 
         return $user->can('shop.payment.view') || $user->can('shop.order.manage');
@@ -69,6 +78,26 @@ class PaymentResource extends Resource
                     ->label('Order')
                     ->sortable()
                     ->toggleable(),
+                Tables\Columns\TextColumn::make('order_summary')
+                    ->label('Produk')
+                    ->getStateUsing(function (Payment $record): string {
+                        $items = $record->order?->items;
+
+                        if (! $items || $items->isEmpty()) {
+                            return '-';
+                        }
+
+                        $first = $items->first();
+                        $count = $items->count();
+
+                        if ($count === 1) {
+                            return $first->product_name;
+                        }
+
+                        return $first->product_name.' (+'.($count - 1).' lainnya)';
+                    })
+                    ->wrap()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Pengguna')
                     ->sortable()
@@ -101,10 +130,24 @@ class PaymentResource extends Resource
                             ->label('Total')
                             ->money('idr')
                     ),
+                Tables\Columns\TextColumn::make('order.couponUsage.coupon.code')
+                    ->label('Kupon')
+                    ->placeholder('-')
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('paid_at')
                     ->label('Dibayar Pada')
                     ->dateTime()
                     ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('manual_proof_path')
+                    ->label('Bukti Manual')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => $state ? 'Ada' : 'Belum')
+                    ->url(fn (Payment $record): ?string => $record->manual_proof_path
+                        ? Storage::disk('public')->url($record->manual_proof_path)
+                        : null)
+                    ->openUrlInNewTab()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
@@ -112,6 +155,7 @@ class PaymentResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('status')
                     ->label('Status')
@@ -126,12 +170,38 @@ class PaymentResource extends Resource
                     ->options([
                         'tripay' => 'Tripay',
                     ]),
+                SelectFilter::make('has_coupon_for_stats')
+                    ->label('Filter Kupon (Statistik LMS)')
+                    ->options([
+                        'with' => 'Hanya payment dengan kupon',
+                        'without' => 'Hanya payment tanpa kupon',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $value = $data['value'] ?? null;
+
+                        if ($value === 'with') {
+                            return $query->whereHas('order.couponUsage');
+                        }
+
+                        if ($value === 'without') {
+                            return $query->whereDoesntHave('order.couponUsage');
+                        }
+
+                        return $query;
+                    }),
                 Filter::make('needs_investigation')
                     ->label('Perlu Investigasi (pending tapi ada log)')
                     ->query(function (Builder $query) {
                         return $query
                             ->where('status', Payment::STATUS_PENDING)
                             ->whereHas('logs');
+                    }),
+                Filter::make('webhook_errors')
+                    ->label('Error Webhook (status code ≥ 400)')
+                    ->query(function (Builder $query) {
+                        return $query->whereHas('logs', function (Builder $sub) {
+                            $sub->where('status_code', '>=', 400);
+                        });
                     }),
                 Filter::make('created_at_range')
                     ->label('Tanggal Dibuat')
@@ -159,16 +229,148 @@ class PaymentResource extends Resource
                             ->when($data['from'] ?? null, fn (Builder $query, $date) => $query->whereDate('paid_at', '>=', $date))
                             ->when($data['until'] ?? null, fn (Builder $query, $date) => $query->whereDate('paid_at', '<=', $date));
                     }),
+                Filter::make('has_coupon')
+                    ->label('Dengan Kupon')
+                    ->query(function (Builder $query) {
+                        return $query->whereHas('order.couponUsage');
+                    }),
             ])
             ->actions([
                 ViewAction::make(),
+                Action::make('confirmPayment')
+                    ->label('Konfirmasi Pembayaran')
+                    ->requiresConfirmation()
+                    ->visible(function (Payment $record): bool {
+                        $user = auth()->user();
+
+                        if (! $user) {
+                            return false;
+                        }
+
+                        if ($user->hasRole('super_admin')) {
+                            return true;
+                        }
+
+                        if (! $user->can('shop.order.manage')) {
+                            return false;
+                        }
+
+                        return $record->status === Payment::STATUS_PENDING
+                            && (bool) $record->manual_proof_path;
+                    })
+                    ->action(function (Payment $record): void {
+                        DB::transaction(function () use ($record) {
+                            $record->update([
+                                'status' => Payment::STATUS_PAID,
+                                'paid_at' => now(),
+                            ]);
+
+                            $order = $record->order?->loadMissing(['items.product']);
+
+                            if ($order) {
+                                $order->update([
+                                    'status' => 'paid',
+                                    'fulfillment_status' => $order->fulfillment_status ?: 'processing',
+                                ]);
+
+                                foreach ($order->items as $item) {
+                                    if (($item->product_type ?? null) !== 'digital') {
+                                        continue;
+                                    }
+
+                                    $product = $item->product;
+
+                                    if (! $product) {
+                                        $record->logs()->create([
+                                            'event' => 'manual_payment_digital_product_missing',
+                                            'payload' => json_encode([
+                                                'payment_id' => $record->id,
+                                                'order_id' => $order->id,
+                                                'order_item_id' => $item->id,
+                                                'product_id' => $item->product_id,
+                                            ]),
+                                            'headers' => [],
+                                            'status_code' => 200,
+                                        ]);
+
+                                        continue;
+                                    }
+
+                                    if (! $product->course_id) {
+                                        $record->logs()->create([
+                                            'event' => 'manual_payment_digital_product_without_course_id',
+                                            'payload' => json_encode([
+                                                'payment_id' => $record->id,
+                                                'order_id' => $order->id,
+                                                'order_item_id' => $item->id,
+                                                'product_id' => $item->product_id,
+                                            ]),
+                                            'headers' => [],
+                                            'status_code' => 200,
+                                        ]);
+
+                                        continue;
+                                    }
+
+                                    $course = Course::query()
+                                        ->where('id', $product->course_id)
+                                        ->where('status', 'published')
+                                        ->first();
+
+                                    if (! $course) {
+                                        $record->logs()->create([
+                                            'event' => 'manual_payment_digital_course_not_found_by_id',
+                                            'payload' => json_encode([
+                                                'payment_id' => $record->id,
+                                                'order_id' => $order->id,
+                                                'order_item_id' => $item->id,
+                                                'product_id' => $item->product_id,
+                                                'course_id' => $product->course_id,
+                                            ]),
+                                            'headers' => [],
+                                            'status_code' => 200,
+                                        ]);
+
+                                        continue;
+                                    }
+
+                                    $enrollment = Enrollment::firstOrCreate(
+                                        [
+                                            'user_id' => $order->user_id,
+                                            'course_id' => $course->id,
+                                        ],
+                                        [
+                                            'status' => 'active',
+                                            'started_at' => now(),
+                                        ]
+                                    );
+
+                                    if (! $enrollment->started_at) {
+                                        $enrollment->started_at = now();
+                                        $enrollment->status = 'active';
+                                        $enrollment->save();
+                                    }
+                                }
+                            }
+
+                            $record->logs()->create([
+                                'event' => 'manual_payment_confirmed',
+                                'payload' => json_encode([
+                                    'payment_id' => $record->id,
+                                    'order_id' => $order?->id,
+                                ]),
+                                'headers' => [],
+                                'status_code' => 200,
+                            ]);
+                        });
+                    }),
             ]);
     }
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['order', 'user', 'logs']);
+            ->with(['order.items', 'order.couponUsage.coupon', 'user', 'logs']);
     }
 
     public static function infolist(\Filament\Schemas\Schema $infolist): \Filament\Schemas\Schema
@@ -181,6 +383,15 @@ class PaymentResource extends Resource
                             ->label('ID'),
                         TextEntry::make('order.id')
                             ->label('Order ID'),
+                        TextEntry::make('order.couponUsage.coupon.code')
+                            ->label('Kode Kupon')
+                            ->placeholder('-'),
+                        TextEntry::make('order.couponUsage.coupon.type')
+                            ->label('Tipe Kupon')
+                            ->placeholder('-'),
+                        TextEntry::make('order.couponUsage.coupon.value')
+                            ->label('Nilai Kupon')
+                            ->placeholder('-'),
                         TextEntry::make('user.name')
                             ->label('Pengguna'),
                         TextEntry::make('provider')
@@ -210,6 +421,14 @@ class PaymentResource extends Resource
                         TextEntry::make('created_at')
                             ->label('Dibuat')
                             ->dateTime(),
+                        TextEntry::make('manual_proof_path')
+                            ->label('Bukti Manual')
+                            ->formatStateUsing(fn (?string $state): string => $state ? 'Sudah diupload' : 'Belum ada')
+                            ->url(fn (Payment $record): ?string => $record->manual_proof_path
+                                ? Storage::disk('public')->url($record->manual_proof_path)
+                                : null)
+                            ->openUrlInNewTab()
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
                 Section::make('Payment Logs')

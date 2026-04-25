@@ -6,11 +6,14 @@ use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use App\Models\User;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         $permissions = [
             'cms.news.view',
             'cms.news.create',
@@ -69,6 +72,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'shop.order.refund',
             'shop.order.export',
             'shop.payment.view',
+            'shop.coupon.view',
+            'shop.coupon.manage',
             'shop.settings.manage',
         ];
 
@@ -116,6 +121,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 'shop.order.refund',
                 'shop.order.export',
                 'shop.payment.view',
+                'shop.coupon.view',
+                'shop.coupon.manage',
                 'shop.settings.manage',
             ],
             'editor' => [
@@ -186,6 +193,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 'elearning.enrollment.manage',
                 'elearning.enrollment.cancel',
             ],
+            'premium_member' => [
+            ],
         ];
 
         foreach ($roles as $roleName => $rolePermissions) {
@@ -215,5 +224,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 $user->assignRole('subscriber');
             }
         }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

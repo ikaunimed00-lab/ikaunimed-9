@@ -10,6 +10,12 @@ type ProductImage = {
   sort_order: number;
 };
 
+type ProductCategory = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
 type Product = {
   id: number;
   name: string;
@@ -17,6 +23,21 @@ type Product = {
   price: string;
   type: string;
   images: ProductImage[];
+  category?: ProductCategory | null;
+};
+
+type AuthUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  roles: string[];
+  permissions: string[];
+};
+
+type SharedAuth = {
+  user: AuthUser | null;
+  dashboard_route: string;
 };
 
 type CartItem = {
@@ -31,6 +52,11 @@ type Cart = {
   items: CartItem[];
 };
 
+type PremiumDiscountConfig = {
+  rate: number;
+  categorySlugs: string[] | null;
+};
+
 type ShippingDefaults = {
   name: string | null;
   phone: string | null;
@@ -38,8 +64,10 @@ type ShippingDefaults = {
 };
 
 type PageProps = {
+  auth: SharedAuth;
   cart: Cart;
   shippingDefaults: ShippingDefaults;
+  premiumDiscount: PremiumDiscountConfig;
 };
 
 const renderTypeBadge = (type: string) => {
@@ -63,13 +91,67 @@ const renderTypeBadge = (type: string) => {
 };
 
 export default function CheckoutPage() {
-  const { cart, shippingDefaults } = usePage<PageProps>().props;
+  const { cart, shippingDefaults, auth, premiumDiscount } =
+    usePage<PageProps>().props;
+
+  const [couponStatus, setCouponStatus] = React.useState<{
+    valid: boolean;
+    message: string;
+    discount: number;
+    code: string;
+  } | null>(null);
+
+  const [checkingCoupon, setCheckingCoupon] = React.useState(false);
 
   const items = cart.items ?? [];
 
-  const total = items.reduce((sum, item) => {
+  const subtotal = items.reduce((sum, item) => {
     return sum + Number(item.price_snapshot) * item.quantity;
   }, 0);
+
+  const eligibleCategorySlugs =
+    premiumDiscount?.categorySlugs && premiumDiscount.categorySlugs.length > 0
+      ? premiumDiscount.categorySlugs
+      : null;
+
+  const physicalSubtotal = items
+    .filter((item) => {
+      if (item.product.type !== 'physical') {
+        return false;
+      }
+
+      if (!eligibleCategorySlugs) {
+        return true;
+      }
+
+      const categorySlug = item.product.category?.slug;
+
+      if (!categorySlug) {
+        return false;
+      }
+
+      return eligibleCategorySlugs.includes(categorySlug);
+    })
+    .reduce((sum, item) => {
+      return sum + Number(item.price_snapshot) * item.quantity;
+    }, 0);
+
+  const isPremiumMember =
+    !!auth?.user &&
+    Array.isArray(auth.user.roles) &&
+    auth.user.roles.includes('premium_member');
+
+  const discountRate =
+    typeof premiumDiscount?.rate === 'number' && premiumDiscount.rate > 0
+      ? premiumDiscount.rate
+      : 0.1;
+  const discount =
+    isPremiumMember && physicalSubtotal > 0
+      ? Math.floor(physicalSubtotal * discountRate)
+      : 0;
+
+  const couponDiscount = couponStatus?.valid ? couponStatus.discount : 0;
+  const total = Math.max(0, subtotal - discount - couponDiscount);
 
   const hasProfileAddress =
     !!shippingDefaults?.name &&
@@ -85,7 +167,50 @@ export default function CheckoutPage() {
     shipping_phone: shippingDefaults?.phone ?? '',
     shipping_address: shippingDefaults?.address ?? '',
     notes: '',
+    coupon_code: '',
   });
+
+  const checkCoupon = async () => {
+    if (!data.coupon_code) return;
+    setCheckingCoupon(true);
+    setCouponStatus(null);
+
+    try {
+      const response = await fetch(route('shop.checkout.check-coupon'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+        },
+        body: JSON.stringify({ coupon_code: data.coupon_code }),
+      });
+      
+      const result = await response.json();
+      
+      // Handle non-200 responses that return JSON
+      if (!response.ok) {
+        setCouponStatus({ 
+            valid: false, 
+            message: result.message || 'Terjadi kesalahan saat mengecek kupon.', 
+            discount: 0, 
+            code: '' 
+        });
+        return;
+      }
+
+      setCouponStatus(result);
+    } catch (error) {
+      console.error(error);
+      setCouponStatus({ 
+        valid: false, 
+        message: 'Terjadi kesalahan saat mengecek kupon.', 
+        discount: 0, 
+        code: '' 
+      });
+    } finally {
+      setCheckingCoupon(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,6 +348,45 @@ export default function CheckoutPage() {
               )}
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Kupon Diskon (opsional)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={data.coupon_code}
+                  onChange={(e) => {
+                    setData('coupon_code', e.target.value.toUpperCase());
+                    if (couponStatus) setCouponStatus(null);
+                  }}
+                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 uppercase"
+                  placeholder="KODE KUPON"
+                />
+                <button
+                  type="button"
+                  onClick={checkCoupon}
+                  disabled={checkingCoupon || !data.coupon_code}
+                  className="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {checkingCoupon ? 'Cek...' : 'Cek'}
+                </button>
+              </div>
+
+              {couponStatus && (
+                <p className={`mt-1 text-xs ${couponStatus.valid ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {couponStatus.message}
+                </p>
+              )}
+
+              {errors.coupon_code && (
+                <p className="mt-1 text-xs text-red-600">{errors.coupon_code}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Jika kupon valid, diskon akan dihitung pada total pembayaran.
+              </p>
+            </div>
+
             <button
               type="submit"
               disabled={processing}
@@ -274,8 +438,20 @@ export default function CheckoutPage() {
           <div className="border-t pt-4 mt-2 space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <span>Subtotal</span>
-              <span>Rp {total.toLocaleString('id-ID')}</span>
+              <span>Rp {subtotal.toLocaleString('id-ID')}</span>
             </div>
+            {discount > 0 && (
+              <div className="flex items-center justify-between text-emerald-700">
+                <span>Diskon Member Premium</span>
+                <span>- Rp {discount.toLocaleString('id-ID')}</span>
+              </div>
+            )}
+            {couponDiscount > 0 && (
+              <div className="flex items-center justify-between text-emerald-700">
+                <span>Diskon Kupon ({couponStatus?.code})</span>
+                <span>- Rp {couponDiscount.toLocaleString('id-ID')}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between text-gray-500">
               <span>Ongkir</span>
               <span>Belum termasuk</span>

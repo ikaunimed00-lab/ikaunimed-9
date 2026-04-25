@@ -4,7 +4,7 @@ import { route } from "ziggy-js";
 import AdminLayout from "@/Layouts/AdminLayout";
 import EditorLayout from "@/Layouts/EditorLayout";
 import SubscriberLayout from "@/Layouts/SubscriberLayout";
-import { BookOpen, Users, Percent, Search } from "lucide-react";
+import { BookOpen, Users, Percent, Search, Coins } from "lucide-react";
 
 interface CourseCategory {
   id: number;
@@ -21,6 +21,7 @@ interface Course {
   category?: CourseCategory | null;
   enrollments_count?: number;
   enrollments_avg_progress?: number | null;
+  revenue_total?: number;
 }
 
 interface CoursesPagination {
@@ -35,12 +36,15 @@ interface Props {
     total_courses: number;
     active_participants: number;
     average_progress: number;
+    total_revenue?: number;
   };
   categories: CourseCategory[];
   filters: {
     status?: string;
     category?: string;
     search?: string;
+    date_from?: string;
+    date_to?: string;
   };
   lmsRoles?: {
     instructor: boolean;
@@ -71,6 +75,13 @@ export default function Index({ courses, stats, categories, filters }: Props) {
   const [search, setSearch] = useState(filters.search || "");
   const [status, setStatus] = useState(filters.status || "");
   const [category, setCategory] = useState(filters.category || "");
+  const [dateFrom, setDateFrom] = useState(filters.date_from || "");
+  const [dateTo, setDateTo] = useState(filters.date_to || "");
+
+  const formatRupiah = (value: number | undefined | null) => {
+    if (!value) return "0";
+    return value.toLocaleString("id-ID");
+  };
 
   const handleFilterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +91,8 @@ export default function Index({ courses, stats, categories, filters }: Props) {
         search,
         status,
         category,
+        date_from: dateFrom,
+        date_to: dateTo,
       },
       {
         preserveState: true,
@@ -92,6 +105,8 @@ export default function Index({ courses, stats, categories, filters }: Props) {
     setSearch("");
     setStatus("");
     setCategory("");
+    setDateFrom("");
+    setDateTo("");
     router.get(route("dashboard.courses.index"), {}, { preserveState: false, preserveScroll: true });
   };
 
@@ -107,7 +122,7 @@ export default function Index({ courses, stats, categories, filters }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white border border-gray-200 rounded-lg p-5 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
               <BookOpen className="w-5 h-5" />
@@ -136,6 +151,18 @@ export default function Index({ courses, stats, categories, filters }: Props) {
               <div className="text-sm text-gray-600">Rata-rata Progres</div>
               <div className="text-2xl font-bold text-gray-900">
                 {stats.average_progress ? `${stats.average_progress}%` : "0%"}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-5 flex items-center gap-4">
+            <div className="h-10 w-10 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600">
+              <Coins className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm text-gray-600">Total Revenue Kursus</div>
+              <div className="text-2xl font-bold text-gray-900">
+                Rp {formatRupiah(stats.total_revenue ?? 0)}
               </div>
             </div>
           </div>
@@ -184,6 +211,18 @@ export default function Index({ courses, stats, categories, filters }: Props) {
                   </option>
                 ))}
               </select>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="border border-gray-300 rounded-md text-sm px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="border border-gray-300 rounded-md text-sm px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -215,6 +254,7 @@ export default function Index({ courses, stats, categories, filters }: Props) {
                     <th className="px-6 py-3 text-left font-semibold">Status</th>
                     <th className="px-6 py-3 text-left font-semibold">Peserta Aktif</th>
                     <th className="px-6 py-3 text-left font-semibold">Rata-rata Progres</th>
+                    <th className="px-6 py-3 text-left font-semibold">Revenue</th>
                     <th className="px-6 py-3 text-right font-semibold">Aksi</th>
                   </tr>
                 </thead>
@@ -222,6 +262,7 @@ export default function Index({ courses, stats, categories, filters }: Props) {
                   {courses.data.map((course) => {
                     const average = course.enrollments_avg_progress ?? 0;
                     const progressValue = typeof average === "number" ? Math.round(average) : 0;
+                    const revenue = course.revenue_total ?? 0;
                     return (
                       <tr key={course.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
@@ -262,6 +303,11 @@ export default function Index({ courses, stats, categories, filters }: Props) {
                                 style={{ width: `${Math.min(Math.max(progressValue, 0), 100)}%` }}
                               />
                             </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-semibold">
+                            Rp {formatRupiah(revenue)}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right space-x-2">

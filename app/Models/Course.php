@@ -40,4 +40,9 @@ class Course extends Model
     {
         return $this->hasMany(CourseReview::class);
     }
+
+    public function product()
+    {
+        return $this->hasOne(Product::class);
+    }
 }
