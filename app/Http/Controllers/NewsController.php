@@ -218,8 +218,15 @@ class NewsController extends Controller
 
     public function show(News $news)
     {
-        // Hanya published news
-        abort_if($news->status !== 'published' || $news->published_at > now(), 404);
+        // Hanya berita yang sudah benar-benar tayang.
+        // Kontrak harus konsisten dengan scope News::published():
+        //   status === 'published' AND published_at IS NOT NULL AND published_at <= now()
+        abort_if(
+            $news->status !== 'published'
+                || $news->published_at === null
+                || $news->published_at->greaterThan(now()),
+            404
+        );
 
         // Increment view count (real-time, tidak di-cache)
         $news->incrementViewCount();

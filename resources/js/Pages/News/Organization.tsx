@@ -169,27 +169,45 @@ const NewsOrganization = ({ news, scope, orgSlug }: NewsOrganizationProps) => {
                   )}
                 </>
               ) : (
-                <div className="py-20 text-center">
-                  <svg
-                    className="w-20 h-20 text-[#E6EAE8] mx-auto mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  <p className="text-[#6B7280] text-lg mb-2">
-                    Belum ada berita organisasi yang dapat ditampilkan.
+                <div className="bg-white border border-dashed border-[#CBD5E1] rounded-xl py-16 px-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-[#F0FDFA] flex items-center justify-center">
+                    <svg
+                      className="w-8 h-8 text-[#0F766E]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.8}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-[#0F172A] mb-2">
+                    Belum ada berita {organizationName ? `dari ${organizationName}` : `untuk ${scopeLabel}`}
+                  </h3>
+                  <p className="text-[#6B7280] max-w-md mx-auto mb-6">
+                    Organisasi ini belum mempublikasikan berita. Silakan kembali beberapa saat
+                    lagi atau telusuri berita dari kanal utama IKA UNIMED.
                   </p>
-                  <p className="text-[#9CA3AF] text-sm">
-                    Silakan kembali beberapa saat lagi ketika organisasi sudah
-                    mulai mempublikasikan berita.
-                  </p>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    <Link
+                      href={route('news.index')}
+                      className="inline-flex items-center gap-2 bg-[#0F766E] text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-[#115E59] transition-colors"
+                    >
+                      <span>←</span>
+                      <span>Ke Semua Berita</span>
+                    </Link>
+                    <Link
+                      href={route('organizations.index')}
+                      className="inline-flex items-center gap-2 bg-white border border-[#E6EAE8] text-[#0F172A] font-semibold px-5 py-2.5 rounded-lg hover:bg-[#F8FAF9] transition-colors"
+                    >
+                      <span>🏛️</span>
+                      <span>Daftar Organisasi</span>
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

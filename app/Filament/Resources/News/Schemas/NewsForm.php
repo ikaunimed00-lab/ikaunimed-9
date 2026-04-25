@@ -76,9 +76,15 @@ class NewsForm
                             ->required(),
                         TagsInput::make('video_urls')
                             ->label('Daftar Video (YouTube/TikTok)')
-                            ->placeholder('Tempel URL video lalu tekan Enter')
-                            ->helperText('Satu tag = satu URL video. Mendukung YouTube (termasuk /shorts) dan TikTok.')
-                            ->separator(','),
+                            ->placeholder('Tempel satu URL video lalu tekan Enter')
+                            ->helperText('Satu tag = satu URL video. Maks. 10 video per berita. Mendukung YouTube (termasuk /shorts), TikTok; URL lain akan ditampilkan sebagai tautan "Tonton Video".')
+                            ->splitKeys(['Enter'])
+                            ->reorderable()
+                            ->rules(['array', 'max:10'])
+                            ->nestedRecursiveRules(['url', 'max:2048'])
+                            ->validationMessages([
+                                'max' => 'Maksimal 10 URL video per berita.',
+                            ]),
                     ]),
             ]);
     }

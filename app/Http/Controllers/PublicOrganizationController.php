@@ -65,11 +65,11 @@ class PublicOrganizationController extends Controller
             'members' => $coreMembers,
             'departments' => $departments,
             'news' => $organization->news()
+                ->published()
                 ->with(['author', 'categories'])
-                ->where('status', 'published')
-                ->latest()
-                ->limit(6) // Limit to 6 as requested
-                ->get(), // Use get() instead of paginate() for specific section
+                ->latest('published_at')
+                ->limit(6)
+                ->get(),
             'agenda' => [], // Placeholder for agenda
         ]);
     }

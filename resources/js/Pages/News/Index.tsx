@@ -115,6 +115,12 @@ const NewsIndex = ({
 }: NewsIndexProps) => {
   const restNews = news.data; // Use all paginated data for "Berita Lainnya"
 
+  const hasAnyNews =
+    (heroNews?.length ?? 0) > 0 ||
+    (alumniNews?.length ?? 0) > 0 ||
+    (opinionNews?.length ?? 0) > 0 ||
+    restNews.length > 0;
+
   return (
     <>
       <Head>
@@ -135,11 +141,33 @@ const NewsIndex = ({
         {/* 3. New Hero Section (1 Main + 2 Sub) */}
         {heroNews && heroNews.length > 0 ? (
            <NewsHeroSection items={heroNews} />
+        ) : hasAnyNews ? (
+            <section className="bg-white border-b border-[#E6EAE8] py-10">
+                <div className="mx-auto px-4 max-w-[1440px] text-center text-[#6B7280]">
+                    Belum ada berita unggulan untuk saat ini. Jelajahi daftar berita lainnya di bawah.
+                </div>
+            </section>
         ) : (
-            // Fallback if no hero news
-            <section className="bg-white border-b border-[#E6EAE8] py-12">
-                <div className="mx-auto px-4 max-w-[1440px] text-center text-gray-500">
-                    Belum ada berita unggulan.
+            <section className="bg-white border-b border-[#E6EAE8] py-16 sm:py-20">
+                <div className="mx-auto px-4 max-w-2xl text-center">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#F0FDFA] flex items-center justify-center text-4xl">
+                        📰
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3">
+                        Portal Berita IKA UNIMED Segera Tayang
+                    </h1>
+                    <p className="text-[#6B7280] leading-relaxed mb-6">
+                        Saat ini belum ada berita yang dipublikasikan. Redaksi sedang menyiapkan
+                        artikel pertama. Silakan kembali beberapa saat lagi untuk membaca kabar
+                        terbaru seputar alumni dan Universitas Negeri Medan.
+                    </p>
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 bg-[#0F766E] text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-[#115E59] transition-colors"
+                    >
+                        <span>←</span>
+                        <span>Kembali ke Beranda</span>
+                    </Link>
                 </div>
             </section>
         )}
@@ -292,46 +320,61 @@ const NewsIndex = ({
                     </div>
 
                     {/* 7. Berita Lainnya + Pagination */}
-                    {restNews.length > 0 && (
-                      <div className="space-y-6">
-                        <div>
-                          <h2 className="text-lg sm:text-xl font-bold text-[#0F172A] mb-1 truncate">Berita Lainnya</h2>
-                          <div className="h-1 w-16 bg-[#0F766E] rounded"></div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {restNews.map((item, idx) => (
-                            <React.Fragment key={item.id}>
-                              <NewsCard {...item} reading_time={item.reading_time} />
-                              {(idx + 1 === 3 || idx + 1 === 7 || idx + 1 === 11 || idx + 1 === 15) && ads?.infeed_slot && (
-                                <div className="col-span-1 md:col-span-2 bg-white rounded-lg border border-[#E6EAE8] p-4">
-                                  <div className="flex justify-center items-center min-h-32 bg-[#F8FAF9] rounded border border-[#E6EAE8]">
-                                    <AdsenseUnit slot={ads.infeed_slot} format="auto" style={{ display: 'block', width: '100%' }} />
-                                  </div>
-                                </div>
-                              )}
-                              {/* Keep existing AdListItem ads (after items 5 and 10) for backward compatibility */}
-                              {(idx + 1 === 5 || idx + 1 === 10) && (
-                                <div className="col-span-1 md:col-span-2 bg-white rounded-lg border border-[#E6EAE8] p-4">
-                                  <AdListItem afterItem={idx + 1} />
-                                </div>
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </div>
-
-                        {/* Pagination */}
-                        {news.last_page > 1 && (
-                          <div className="mt-8 bg-white rounded-lg border border-[#E6EAE8] p-6">
-                            <Pagination
-                              links={news.links}
-                              current_page={news.current_page}
-                              last_page={news.last_page}
-                            />
-                          </div>
-                        )}
+                    <div className="space-y-6">
+                      <div>
+                        <h2 className="text-lg sm:text-xl font-bold text-[#0F172A] mb-1 truncate">Berita Lainnya</h2>
+                        <div className="h-1 w-16 bg-[#0F766E] rounded"></div>
                       </div>
-                    )}
+
+                      {restNews.length > 0 ? (
+                        <>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {restNews.map((item, idx) => (
+                              <React.Fragment key={item.id}>
+                                <NewsCard {...item} reading_time={item.reading_time} />
+                                {(idx + 1 === 3 || idx + 1 === 7 || idx + 1 === 11 || idx + 1 === 15) && ads?.infeed_slot && (
+                                  <div className="col-span-1 md:col-span-2 bg-white rounded-lg border border-[#E6EAE8] p-4">
+                                    <div className="flex justify-center items-center min-h-32 bg-[#F8FAF9] rounded border border-[#E6EAE8]">
+                                      <AdsenseUnit slot={ads.infeed_slot} format="auto" style={{ display: 'block', width: '100%' }} />
+                                    </div>
+                                  </div>
+                                )}
+                                {/* Keep existing AdListItem ads (after items 5 and 10) for backward compatibility */}
+                                {(idx + 1 === 5 || idx + 1 === 10) && (
+                                  <div className="col-span-1 md:col-span-2 bg-white rounded-lg border border-[#E6EAE8] p-4">
+                                    <AdListItem afterItem={idx + 1} />
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </div>
+
+                          {/* Pagination */}
+                          {news.last_page > 1 && (
+                            <div className="mt-8 bg-white rounded-lg border border-[#E6EAE8] p-6">
+                              <Pagination
+                                links={news.links}
+                                current_page={news.current_page}
+                                last_page={news.last_page}
+                              />
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="bg-white rounded-lg border border-dashed border-[#CBD5E1] p-8 sm:p-10 text-center">
+                          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#F0FDFA] flex items-center justify-center text-2xl">
+                            📰
+                          </div>
+                          <p className="text-[#0F172A] font-semibold mb-1">
+                            Belum ada berita untuk ditampilkan
+                          </p>
+                          <p className="text-sm text-[#6B7280] max-w-md mx-auto">
+                            Redaksi sedang menyiapkan artikel terbaru. Silakan kembali beberapa
+                            saat lagi atau telusuri kategori yang tersedia di atas.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

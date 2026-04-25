@@ -279,11 +279,18 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
                 let isTikTok = false;
                 let isShorts = false;
 
-                // Helper to extract YouTube ID
-                const getYoutubeId = (url: string) => {
+                const getYoutubeId = (input: string) => {
                     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
-                    const match = url.match(regExp);
+                    const match = input.match(regExp);
                     return (match && match[2].length === 11) ? match[2] : null;
+                };
+
+                const getSafeHostname = (input: string): string | null => {
+                    try {
+                        return new URL(input).hostname.replace(/^www\./, '');
+                    } catch {
+                        return null;
+                    }
                 };
 
                 const youtubeId = getYoutubeId(url);
@@ -293,10 +300,8 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
                         isShorts = true;
                     }
                 }
-                // TikTok
                 else if (url.includes('tiktok.com')) {
                     isTikTok = true;
-                    // TikTok embed usually requires the video ID
                     const match = url.match(/video\/(\d+)/);
                     if (match && match[1]) {
                         embedUrl = `https://www.tiktok.com/embed/v2/${match[1]}`;
@@ -306,13 +311,33 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
                 const isVertical = isTikTok || isShorts;
 
                 if (!embedUrl) {
-                    // Fallback for unknown video types or parsing failures
+                    const hostname = getSafeHostname(url);
+                    const isAbsoluteHttp = /^https?:\/\//i.test(url);
+                    const safeHref = isAbsoluteHttp ? url : '#';
                     return (
-                         <div key={index} className="aspect-video bg-gray-100 rounded-xl overflow-hidden shadow-lg flex items-center justify-center border border-gray-200">
-                            <a href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-gray-500 hover:text-[#0F766E] transition-colors">
-                                <span className="text-3xl">🔗</span>
-                                <span className="font-medium">Tonton Video</span>
-                            </a>
+                         <div
+                            key={index}
+                            className="aspect-video bg-gray-50 rounded-xl overflow-hidden shadow-lg flex items-center justify-center border border-gray-200 px-4"
+                         >
+                            {isAbsoluteHttp ? (
+                                <a
+                                    href={safeHref}
+                                    target="_blank"
+                                    rel="noopener noreferrer nofollow"
+                                    className="flex flex-col items-center gap-2 text-gray-600 hover:text-[#0F766E] transition-colors text-center"
+                                >
+                                    <span className="text-3xl">🔗</span>
+                                    <span className="font-medium">Tonton Video</span>
+                                    {hostname && (
+                                        <span className="text-xs text-gray-500 break-all">{hostname}</span>
+                                    )}
+                                </a>
+                            ) : (
+                                <div className="flex flex-col items-center gap-2 text-gray-500 text-center">
+                                    <span className="text-3xl">⚠️</span>
+                                    <span className="font-medium">URL video tidak valid</span>
+                                </div>
+                            )}
                          </div>
                     );
                 }

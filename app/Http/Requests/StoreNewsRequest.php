@@ -49,8 +49,8 @@ class StoreNewsRequest extends FormRequest
             ],
             'categories.*' => 'required|integer|exists:categories,id',
             'organization_id' => 'nullable|exists:organizations,id',
-            'video_urls' => 'nullable|array',
-            'video_urls.*' => 'required|url',
+            'video_urls' => 'nullable|array|max:10',
+            'video_urls.*' => 'required|url|max:2048',
             'published_at' => 'nullable|date_format:Y-m-d\TH:i',
             'status' => 'required|in:draft,scheduled,published',
         ];
@@ -69,6 +69,9 @@ class StoreNewsRequest extends FormRequest
             'image.dimensions' => 'Rasio foto harus 3:2 (contoh: 1200x800px)',
             'categories.required' => 'Pilih minimal 1 kategori',
             'categories.max' => 'Maksimal 3 kategori',
+            'video_urls.max' => 'Maksimal 10 URL video per berita',
+            'video_urls.*.url' => 'Format URL video tidak valid',
+            'video_urls.*.max' => 'URL video terlalu panjang (maksimal 2048 karakter)',
         ];
     }
 }

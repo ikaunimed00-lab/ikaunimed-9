@@ -199,7 +199,17 @@ class News extends Model
     }
 
     /**
-     * Scope: hanya berita yang dipublikasikan
+     * Scope: hanya berita yang dipublikasikan.
+     *
+     * KONTRAK PUBLIC FILTER (single source of truth):
+     *   status = 'published'  AND
+     *   published_at IS NOT NULL  AND
+     *   published_at <= now()
+     *
+     * Setiap endpoint publik (NewsController, CategoryController, SitemapController,
+     * PublicOrganizationController, dsb.) WAJIB memakai scope ini — bukan
+     * `where('status', 'published')` polos — agar berita berstatus `scheduled`
+     * (status=published, published_at di masa depan) tidak pernah bocor ke pembaca.
      */
     public function scopePublished($query)
     {
