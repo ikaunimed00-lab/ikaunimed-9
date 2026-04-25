@@ -27,6 +27,38 @@ class NewsController extends Controller
     |------------------------------------------------------------------
     */
 
+    /**
+     * Halaman utama portal berita: `/news`.
+     *
+     * KONTRAK DATA BLOK EDITORIAL (single source of truth — News Fase 1).
+     * Setiap prop di bawah dikonsumsi oleh komponen di
+     * `resources/js/Pages/News/Index.tsx` dan komponen pendukung di
+     * `resources/js/components/`. Bentuk data WAJIB stabil — bila perlu
+     * diubah, lakukan update kontrak di komponen yang menerima sekaligus.
+     *
+     *   prop                | sumber                                    | komponen FE
+     *   --------------------|-------------------------------------------|------------------
+     *   breakingNews        | News::published()->whereHas(cat alumni…)  | <BreakingNews/>
+     *   heroNews            | News::published()->latest()->take(3)      | <NewsHeroSection/>
+     *   alumniNews          | News::published()->whereHas(alumni dll)   | grid Kabar Alumni
+     *   opinionNews         | News::published()->whereHas(opini dll)    | section Opini & Artikel
+     *   news (paginate 12)  | News::published() exclude hero            | grid Berita Lainnya
+     *   latestVideos        | News::published()->whereNotNull(video)    | <FlashContent/>
+     *   popularVideos       | News::published()->orderBy view_count     | <VideoPopular/>
+     *   opinionColumns (8)  | News::published()->cat=opini              | <KolumOpini/>
+     *   popularNews (10)    | News::published()->trending()             | <BeritaPopuler/>
+     *   editorsPicks (8)    | News::published()->withImage exclude top  | <EditorsPicks/>
+     *   popularTags (30)    | Tag::withCount(news.published)            | <TagPopuler/>
+     *   ads                 | SiteSetting (ads_*)                       | slot iklan
+     *
+     * Blok placeholder ramah (data nyata Fase 2):
+     *   - <PollingSection poll={null}/>     → modul polling belum tersedia.
+     *   - <KomentarTerbanyak items={[]}/>   → sistem komentar belum tersedia.
+     *
+     * Catatan kategori (sinkron dengan `database/seeders/CategorySeeder.php`):
+     *   - Slug `opini` & `artikel` & `alumni` WAJIB ada — bila tidak,
+     *     blok KolumOpini & opinionNews akan selalu kosong.
+     */
     public function index(Request $request)
     {
         // Cache key
@@ -148,7 +180,11 @@ class NewsController extends Controller
                 ]);
         });
 
-        // Opinion Columns for KolumOpini (berdasarkan kategori 'opini' jika ada)
+        // Opinion Columns for KolumOpini — sumber: kategori `opini`.
+        // Kontrak prop ke <KolumOpini/>:
+        //   { id, title, slug, author?, category?, published_at? (ISO) }
+        // Field `published_at` dipakai komponen untuk render relative-date
+        // (mis. "2 hari lalu") agar tidak hard-coded.
         $opinionColumns = Cache::remember('news.opinion_columns', 60 * 15, function () {
             return News::published()
                 ->whereHas('categories', fn($q) => $q->where('slug', 'opini'))
@@ -162,6 +198,7 @@ class NewsController extends Controller
                     'slug' => $item->slug,
                     'author' => $item->author?->name,
                     'category' => $item->categories->first()?->name,
+                    'published_at' => $item->published_at?->toISOString(),
                 ]);
         });
 

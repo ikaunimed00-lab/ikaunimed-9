@@ -51,6 +51,7 @@ interface OpinionItem {
   slug: string;
   author?: string | null;
   category?: string | null;
+  published_at?: string | null;
 }
 
 interface PopularNewsItem {
@@ -59,7 +60,7 @@ interface PopularNewsItem {
   slug: string;
   image?: string | null;
   view_count?: number;
-  published_at?: string;
+  published_at?: string | null;
 }
 
 interface EditorsPickItem {

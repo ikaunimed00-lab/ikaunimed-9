@@ -67,6 +67,32 @@ class CategorySeeder extends Seeder
                 'icon' => '✈️',
                 'order' => 8,
             ],
+            // Kontrak data blok editorial (lihat dokumentasi News Item 4):
+            //   - Kategori `opini`  → menjadi sumber utama blok KolumOpini di /news.
+            //   - Kategori `artikel`→ pelengkap section "Opini & Artikel" di main feed.
+            // Wajib tetap ada agar query `whereHas('categories', slug='opini')`
+            // tidak menghasilkan blok kosong di portal berita.
+            [
+                'name' => 'Opini',
+                'slug' => 'opini',
+                'description' => 'Kolom opini dan gagasan alumni IKA UNIMED',
+                'icon' => '📝',
+                'order' => 9,
+            ],
+            [
+                'name' => 'Artikel',
+                'slug' => 'artikel',
+                'description' => 'Artikel panjang, esai, dan liputan khusus alumni',
+                'icon' => '📰',
+                'order' => 10,
+            ],
+            [
+                'name' => 'Alumni',
+                'slug' => 'alumni',
+                'description' => 'Berita & kabar dari para alumni UNIMED',
+                'icon' => '🎓',
+                'order' => 11,
+            ],
         ];
 
         foreach ($categories as $category) {

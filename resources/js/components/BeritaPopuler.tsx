@@ -5,7 +5,9 @@ interface PopularNewsItem {
   id: number;
   title: string;
   slug: string;
+  image?: string | null;
   view_count?: number;
+  published_at?: string | null;
 }
 
 interface BeritaPopulerProps {
@@ -14,6 +16,20 @@ interface BeritaPopulerProps {
   items?: PopularNewsItem[];
 }
 
+const formatViewCount = (n: number): string => {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return n.toString();
+};
+
+/**
+ * BeritaPopuler - daftar berita terpopuler berdasarkan view_count.
+ *
+ * Kontrak data (lihat NewsController::index → $popularNews):
+ *   items = News[] hasil scope `published()->trending()` (top 10 by view_count).
+ *   Bentuk per item: { id, title, slug, image?, view_count?, published_at? }.
+ *   - Thumbnail dirender dari `image` (URL absolut hasil News::buildImageUrl).
+ *     Jika null, fallback ke ikon placeholder — BUKAN kotak abu-abu kosong.
+ */
 export const BeritaPopuler: React.FC<BeritaPopulerProps> = ({
   variant = 'list',
   maxItems = 5,
@@ -35,7 +51,6 @@ export const BeritaPopuler: React.FC<BeritaPopulerProps> = ({
         </span>
       </div>
 
-      {/* Content */}
       {variant === 'list' ? (
         <div className="space-y-3">
           {list.map((item, index) => (
@@ -44,20 +59,29 @@ export const BeritaPopuler: React.FC<BeritaPopulerProps> = ({
               href={route('news.show', item.slug)}
               className="flex gap-3 p-3 bg-white border border-[#E6EAE8] rounded-lg hover:border-[#0F766E] transition-colors cursor-pointer group"
             >
-              {/* Thumbnail placeholder */}
-              <div className="flex-shrink-0 w-20 h-20 bg-[#E6EAE8] rounded" />
+              <div className="flex-shrink-0 w-20 h-20 rounded overflow-hidden bg-[#F0FDFA] flex items-center justify-center">
+                {item.image ? (
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-2xl opacity-30" aria-hidden="true">📰</span>
+                )}
+              </div>
 
-              {/* Content */}
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-[#0F172A] line-clamp-2 text-sm group-hover:text-[#0F766E] transition-colors">
                   {item.title}
                 </h4>
                 <p className="text-xs text-[#6B7280] mt-2">
-                  👁️ {(((item.view_count ?? 0) / 1000) || 0).toFixed(1)}K views
+                  👁️ {formatViewCount(item.view_count ?? 0)} views
                 </p>
               </div>
 
-              {/* Ranking */}
               <div className="flex-shrink-0 w-8 h-8 bg-[#0F766E] text-white rounded-full flex items-center justify-center font-bold text-sm">
                 {index + 1}
               </div>
@@ -72,16 +96,26 @@ export const BeritaPopuler: React.FC<BeritaPopulerProps> = ({
               href={route('news.show', item.slug)}
               className="bg-white border border-[#E6EAE8] rounded-lg overflow-hidden hover:border-[#0F766E] transition-colors cursor-pointer group"
             >
-              {/* Thumbnail placeholder */}
-              <div className="w-full aspect-square bg-[#E6EAE8]" />
+              <div className="w-full aspect-square bg-[#F0FDFA] flex items-center justify-center overflow-hidden">
+                {item.image ? (
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <span className="text-3xl opacity-30" aria-hidden="true">📰</span>
+                )}
+              </div>
 
-              {/* Content */}
               <div className="p-3">
                 <h4 className="font-semibold text-[#0F172A] line-clamp-2 text-sm group-hover:text-[#0F766E] transition-colors">
                   {item.title}
                 </h4>
                 <p className="text-xs text-[#6B7280] mt-1">
-                  👁️ {(((item.view_count ?? 0) / 1000) || 0).toFixed(1)}K
+                  👁️ {formatViewCount(item.view_count ?? 0)}
                 </p>
                 <span className="inline-flex mt-2 w-8 h-8 bg-[#0F766E] text-white rounded-full items-center justify-center font-bold text-xs">
                   {index + 1}
