@@ -19,6 +19,8 @@
 .env
 .env.backup
 .env.production
+*.backup
+old_env_backup*
 
 .phpactor.json
 .phpunit.result.cache
@@ -37,3 +39,24 @@ yarn-error.log
 /.vscode
 /.zed
 /public/*.zip
+
+# === Build artefacts (managed by Vite, regenerated via `npm run build`) ===
+/public/build
+/bootstrap/cache/packages.php
+/bootstrap/cache/services.php
+
+# === Deploy / staging area (lokal, tidak boleh masuk repo) ===
+/deploy
+/deploy_stage
+*.zip
+*.tar.gz
+
+# === File debug & verifikasi lokal (tidak relevan untuk repo) ===
+debug_local_home.html
+verify_server_state.php
+public/index_production.php
+
+# === Dokumentasi yang berisi kredensial / data hosting ===
+# Folder ini hanya boleh ada di laptop developer, BUKAN di repo.
+documentations/16._google_authentication/
+documentations/17._data_cpanel_hosting/
