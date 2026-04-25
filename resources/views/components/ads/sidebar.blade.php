@@ -6,7 +6,14 @@
         <div class="ad-slot bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden"
              style="width: 300px; min-height: 250px;">
             <div class="ad-placeholder text-center text-gray-400 p-4 w-full">
-                @if(config('app.debug') || !config('ads.enabled', false))
+                @php
+                    $adsEnabled = \App\Models\SiteSetting::getValue('ads_enabled', false);
+                    $adsProvider = \App\Models\SiteSetting::getValue('ads_provider_primary', 'adsense');
+                    $clientId = \App\Models\SiteSetting::getValue('adsense_client_id', 'ca-pub-xxxxxxxxxxxxxxxx');
+                    $slotSidebar1 = \App\Models\SiteSetting::getValue('adsense_slot_sidebar_1', 'sidebar-ad-1');
+                    $slotSidebar2 = \App\Models\SiteSetting::getValue('adsense_slot_sidebar_2', 'sidebar-ad-2');
+                @endphp
+                @if(config('app.debug') || !$adsEnabled || $adsProvider !== 'adsense')
                     <div class="text-sm font-medium">
                         📢 Sidebar Ad 1
                     </div>
@@ -16,8 +23,8 @@
                 @else
                     <ins class="adsbygoogle"
                          style="display:inline-block;width:300px;height:250px"
-                         data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
-                         data-ad-slot="sidebar-ad-1"></ins>
+                         data-ad-client="{{ $clientId }}"
+                         data-ad-slot="{{ $slotSidebar1 }}"></ins>
                     <script>
                         (adsbygoogle = window.adsbygoogle || []).push({});
                     </script>
@@ -30,7 +37,7 @@
         <div class="ad-slot bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden"
              style="width: 300px; min-height: 600px;">
             <div class="ad-placeholder text-center text-gray-400 p-4 w-full">
-                @if(config('app.debug') || !config('ads.enabled', false))
+                @if(config('app.debug') || !$adsEnabled || $adsProvider !== 'adsense')
                     <div class="text-sm font-medium">
                         📢 Sidebar Ad 2
                     </div>
@@ -40,8 +47,8 @@
                 @else
                     <ins class="adsbygoogle"
                          style="display:inline-block;width:300px;height:600px"
-                         data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
-                         data-ad-slot="sidebar-ad-2"></ins>
+                         data-ad-client="{{ $clientId }}"
+                         data-ad-slot="{{ $slotSidebar2 }}"></ins>
                     <script>
                         (adsbygoogle = window.adsbygoogle || []).push({});
                     </script>

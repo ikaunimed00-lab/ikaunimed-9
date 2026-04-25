@@ -1,7 +1,13 @@
 {{-- Ad List Component - Iklan di antara list berita --}}
 <div class="ad-list-item bg-white rounded-lg border border-gray-200 p-4 my-4 flex items-center justify-center">
     <div class="ad-placeholder text-center text-gray-400 w-full py-8">
-        @if(config('app.debug') || !config('ads.enabled', false))
+        @php
+            $adsEnabled = \App\Models\SiteSetting::getValue('ads_enabled', false);
+            $adsProvider = \App\Models\SiteSetting::getValue('ads_provider_primary', 'adsense');
+            $clientId = \App\Models\SiteSetting::getValue('adsense_client_id', 'ca-pub-xxxxxxxxxxxxxxxx');
+            $slotList = \App\Models\SiteSetting::getValue('adsense_slot_list_item', 'list-ad-item');
+        @endphp
+        @if(config('app.debug') || !$adsEnabled || $adsProvider !== 'adsense')
             <div class="text-sm font-medium">
                 📢 List Ad Item
             </div>
@@ -17,8 +23,8 @@
         @else
             <ins class="adsbygoogle"
                  style="display:block"
-                 data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
-                 data-ad-slot="list-ad-item"
+                 data-ad-client="{{ $clientId }}"
+                 data-ad-slot="{{ $slotList }}"
                  data-ad-format="auto"
                  data-full-width-responsive="true"></ins>
             <script>

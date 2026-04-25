@@ -5,7 +5,13 @@
         
         <!-- Placeholder untuk production AdSense script -->
         <div class="ad-placeholder text-center text-gray-400 py-8 px-4 w-full">
-            @if(config('app.debug') || !config('ads.enabled', false))
+            @php
+                $adsEnabled = \App\Models\SiteSetting::getValue('ads_enabled', false);
+                $adsProvider = \App\Models\SiteSetting::getValue('ads_provider_primary', 'adsense');
+                $clientId = \App\Models\SiteSetting::getValue('adsense_client_id', 'ca-pub-xxxxxxxxxxxxxxxx');
+                $slotBanner = $adSlot ?? \App\Models\SiteSetting::getValue('adsense_slot_banner', 'ad-banner-default');
+            @endphp
+            @if(config('app.debug') || !$adsEnabled || $adsProvider !== 'adsense')
                 <div class="text-sm font-medium">
                     📢 Ad Slot: {{ $adSlot ?? 'banner' }}
                 </div>
@@ -16,8 +22,8 @@
                 <!-- Google AdSense Script akan di-inject di sini -->
                 <ins class="adsbygoogle"
                      style="display:block; min-height: {{ $minHeight ?? '250px' }}"
-                     data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
-                     data-ad-slot="{{ $adSlot }}"
+                     data-ad-client="{{ $clientId }}"
+                     data-ad-slot="{{ $slotBanner }}"
                      data-ad-format="auto"
                      data-full-width-responsive="true"></ins>
                 <script>

@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     {{-- Ziggy routes (WAJIB untuk route() di React) --}}
     @routes
@@ -72,6 +73,20 @@
         rel="stylesheet"
     >
 
+    {{-- Google AdSense Global Script (dikontrol dari Site Settings) --}}
+    @php
+        $adsEnabled = \App\Models\SiteSetting::getValue('ads_enabled', false);
+        $adsProvider = \App\Models\SiteSetting::getValue('ads_provider_primary', 'adsense');
+        $adsenseClientId = \App\Models\SiteSetting::getValue('adsense_client_id', 'ca-pub-xxxxxxxxxxxxxxxx');
+    @endphp
+    @if($adsEnabled && $adsProvider === 'adsense')
+        <script
+            async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsenseClientId }}"
+            crossorigin="anonymous">
+        </script>
+    @endif
+
     {{-- Vite + Inertia --}}
     @viteReactRefresh
     @vite('resources/js/app.tsx')
@@ -80,5 +95,14 @@
 
 <body class="font-sans antialiased">
     @inertia
+
+    {{-- Adsterra Global Snippet (opsional, dikontrol dari Site Settings) --}}
+    @php
+        $adsterraEnabled = \App\Models\SiteSetting::getValue('adsterra_enabled', false);
+        $adsterraBodySnippet = \App\Models\SiteSetting::getValue('adsterra_script_body', '');
+    @endphp
+    @if($adsterraEnabled && !empty($adsterraBodySnippet))
+        {!! $adsterraBodySnippet !!}
+    @endif
 </body>
 </html>

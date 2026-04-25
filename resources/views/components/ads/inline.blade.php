@@ -4,7 +4,13 @@
          style="min-height: 300px;">
         
         <div class="ad-placeholder text-center text-gray-400 w-full">
-            @if(config('app.debug') || !config('ads.enabled', false))
+            @php
+                $adsEnabled = \App\Models\SiteSetting::getValue('ads_enabled', false);
+                $adsProvider = \App\Models\SiteSetting::getValue('ads_provider_primary', 'adsense');
+                $clientId = \App\Models\SiteSetting::getValue('adsense_client_id', 'ca-pub-xxxxxxxxxxxxxxxx');
+                $slotInline = \App\Models\SiteSetting::getValue('adsense_slot_inline_article', 'in-article-ad');
+            @endphp
+            @if(config('app.debug') || !$adsEnabled || $adsProvider !== 'adsense')
                 <div class="text-sm font-medium">
                     📢 In-Article Ad
                 </div>
@@ -19,8 +25,8 @@
                      style="display:block; text-align:center;"
                      data-ad-layout="in-article"
                      data-ad-format="fluid"
-                     data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
-                     data-ad-slot="in-article-ad"></ins>
+                     data-ad-client="{{ $clientId }}"
+                     data-ad-slot="{{ $slotInline }}"></ins>
                 <script>
                     (adsbygoogle = window.adsbygoogle || []).push({});
                 </script>
