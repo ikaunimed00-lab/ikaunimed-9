@@ -1,11 +1,20 @@
 <?php
 
+use App\Models\Course;
+use App\Events\Payments\TripayPaymentSettled;
+use App\Models\Enrollment;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\PaymentLog;
+use App\Models\Product;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Support\Facades\Event;
 
 it('processes valid tripay callback and updates payment order and logs', function () {
+    Event::fake();
+
     $user = User::factory()->create();
 
     $order = Order::create([
@@ -78,6 +87,7 @@ it('processes valid tripay callback and updates payment order and logs', functio
     expect($log->event)->toBe('tripay_callback');
     expect($log->status_code)->toBe(200);
     expect($log->payload)->toContain($reference);
+    Event::assertDispatched(TripayPaymentSettled::class);
 });
 
 it('rejects invalid signature and does not change payment or order', function () {
@@ -520,4 +530,217 @@ it('handles refund status by canceling order and marking payment failed', functi
     expect($log)->not()->toBeNull();
     expect($log->event)->toBe('tripay_callback');
     expect($log->status_code)->toBe(200);
+});
+
+it('grants lms enrollment for digital products when payment is paid', function () {
+    $user = User::factory()->create();
+
+    $course = Course::create([
+        'title' => 'Premium Course',
+        'slug' => 'premium-course',
+        'status' => 'published',
+        'is_paid' => true,
+    ]);
+
+    $product = Product::create([
+        'organization_id' => null,
+        'product_category_id' => null,
+        'course_id' => $course->id,
+        'name' => 'Premium Course Product',
+        'slug' => 'premium-course',
+        'sku' => 'COURSE-001',
+        'description' => 'Access to Premium Course',
+        'price' => 150000,
+        'stock' => 10,
+        'type' => 'digital',
+        'is_published' => true,
+        'published_at' => now(),
+    ]);
+
+    $order = Order::create([
+        'user_id' => $user->id,
+        'organization_id' => null,
+        'status' => 'awaiting_payment',
+        'fulfillment_status' => 'unfulfilled',
+        'total_amount' => 150000,
+        'shipping_cost' => 0,
+        'grand_total' => 150000,
+        'shipping_address' => [
+            'name' => 'User Digital',
+            'phone' => '08123456789',
+            'address' => 'Alamat Digital',
+        ],
+        'notes' => null,
+        'created_by' => $user->id,
+        'updated_by' => $user->id,
+    ]);
+
+    OrderItem::create([
+        'order_id' => $order->id,
+        'product_id' => $product->id,
+        'product_name' => $product->name,
+        'product_type' => 'digital',
+        'quantity' => 1,
+        'price' => 150000,
+        'total' => 150000,
+    ]);
+
+    $payment = Payment::create([
+        'order_id' => $order->id,
+        'user_id' => $user->id,
+        'amount' => 150000,
+        'provider' => 'tripay',
+        'provider_reference' => 'TRX-REF-DIGITAL',
+        'method' => 'BRIVA',
+        'status' => Payment::STATUS_PENDING,
+        'paid_at' => null,
+        'raw_payload' => null,
+    ]);
+
+    config([
+        'services.tripay.merchant_code' => 'TESTCODE',
+        'services.tripay.private_key' => 'TESTPRIVATE',
+    ]);
+
+    $amount = 150000;
+    $reference = 'TRX-REF-DIGITAL';
+    $status = 'PAID';
+
+    $signature = hash_hmac(
+        'sha256',
+        'TESTCODE' . $reference . $status . $amount,
+        'TESTPRIVATE'
+    );
+
+    $payload = [
+        'reference' => $reference,
+        'merchant_ref' => 'ORD-' . $order->id,
+        'amount' => $amount,
+        'status' => $status,
+        'signature' => $signature,
+    ];
+
+    $response = $this->postJson('/webhook/tripay/shop', $payload);
+
+    $response->assertOk();
+
+    $payment->refresh();
+    $order->refresh();
+
+    expect($payment->status)->toBe(Payment::STATUS_PAID);
+    expect($order->status)->toBe('paid');
+
+    $enrollments = Enrollment::where('user_id', $user->id)
+        ->where('course_id', $course->id)
+        ->get();
+
+    expect($enrollments->count())->toBe(1);
+    expect($enrollments->first()->status)->toBe('active');
+    expect($enrollments->first()->started_at)->not()->toBeNull();
+
+    $secondResponse = $this->postJson('/webhook/tripay/shop', $payload);
+    $secondResponse->assertOk();
+
+    $enrollmentsAfter = Enrollment::where('user_id', $user->id)
+        ->where('course_id', $course->id)
+        ->get();
+
+    expect($enrollmentsAfter->count())->toBe(1);
+});
+
+it('grants membership role for service products when payment is paid', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+
+    $user = User::factory()->create();
+
+    $product = Product::create([
+        'organization_id' => null,
+        'product_category_id' => null,
+        'course_id' => null,
+        'name' => 'Premium Membership',
+        'slug' => 'premium-membership',
+        'sku' => 'MEMBERSHIP-001',
+        'description' => 'Keanggotaan premium alumni',
+        'price' => 100000,
+        'stock' => 100,
+        'type' => 'service',
+        'membership_role' => 'premium_member',
+        'is_published' => true,
+        'published_at' => now(),
+    ]);
+
+    $order = Order::create([
+        'user_id' => $user->id,
+        'organization_id' => null,
+        'status' => 'awaiting_payment',
+        'fulfillment_status' => 'unfulfilled',
+        'total_amount' => 100000,
+        'shipping_cost' => 0,
+        'grand_total' => 100000,
+        'shipping_address' => [
+            'name' => 'User Membership',
+            'phone' => '08123456786',
+            'address' => 'Alamat Membership',
+        ],
+        'notes' => null,
+        'created_by' => $user->id,
+        'updated_by' => $user->id,
+    ]);
+
+    OrderItem::create([
+        'order_id' => $order->id,
+        'product_id' => $product->id,
+        'product_name' => $product->name,
+        'product_type' => 'service',
+        'quantity' => 1,
+        'price' => 100000,
+        'total' => 100000,
+    ]);
+
+    $payment = Payment::create([
+        'order_id' => $order->id,
+        'user_id' => $user->id,
+        'amount' => 100000,
+        'provider' => 'tripay',
+        'provider_reference' => 'TRX-REF-MEMBERSHIP',
+        'method' => 'BRIVA',
+        'status' => Payment::STATUS_PENDING,
+        'paid_at' => null,
+        'raw_payload' => null,
+    ]);
+
+    config([
+        'services.tripay.merchant_code' => 'TESTCODE',
+        'services.tripay.private_key' => 'TESTPRIVATE',
+    ]);
+
+    $amount = 100000;
+    $reference = 'TRX-REF-MEMBERSHIP';
+    $status = 'PAID';
+
+    $signature = hash_hmac(
+        'sha256',
+        'TESTCODE' . $reference . $status . $amount,
+        'TESTPRIVATE'
+    );
+
+    $payload = [
+        'reference' => $reference,
+        'merchant_ref' => 'ORD-' . $order->id,
+        'amount' => $amount,
+        'status' => $status,
+        'signature' => $signature,
+    ];
+
+    $response = $this->postJson('/webhook/tripay/shop', $payload);
+
+    $response->assertOk();
+
+    $payment->refresh();
+    $order->refresh();
+    $user->refresh();
+
+    expect($payment->status)->toBe(Payment::STATUS_PAID);
+    expect($order->status)->toBe('paid');
+    expect($user->hasRole('premium_member'))->toBeTrue();
 });
