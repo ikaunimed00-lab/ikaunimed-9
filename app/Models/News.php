@@ -129,9 +129,9 @@ class News extends Model
             return $appendVersion('local', $newsPath, $url);
         }
 
-        $fallbackPath = 'news/' . $basename;
-        $url = Storage::disk('public_images')->url($fallbackPath);
-        return $appendVersion('public_images', $fallbackPath, $url);
+        // Fallback terakhir: gunakan placeholder publik agar tidak menghasilkan
+        // URL gambar rusak (404) di halaman listing/detail.
+        return url('/images/card_berita.png');
     }
 
     /**

@@ -77,9 +77,12 @@
     @php
         $adsEnabled = \App\Models\SiteSetting::getValue('ads_enabled', false);
         $adsProvider = \App\Models\SiteSetting::getValue('ads_provider_primary', 'adsense');
-        $adsenseClientId = \App\Models\SiteSetting::getValue('adsense_client_id', 'ca-pub-xxxxxxxxxxxxxxxx');
+        $adsenseClientId = \App\Models\SiteSetting::getValue('adsense_client_id', null);
+        $isValidAdsenseClient = is_string($adsenseClientId)
+            && str_starts_with($adsenseClientId, 'ca-pub-')
+            && !str_contains($adsenseClientId, 'xxxxxxxx');
     @endphp
-    @if($adsEnabled && $adsProvider === 'adsense')
+    @if($adsEnabled && $adsProvider === 'adsense' && $isValidAdsenseClient)
         <script
             async
             src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsenseClientId }}"
