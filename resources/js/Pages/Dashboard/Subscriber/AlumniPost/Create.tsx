@@ -25,12 +25,12 @@ export default function Create({ categories }: Props) {
 
   return (
     <SubscriberLayout>
-      <Head title="Submit Kabar Alumni" />
+      <Head title="Kirim Kabar Alumni" />
 
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl shadow-lg p-8 text-white">
-          <h1 className="text-3xl font-bold mb-2">Submit Kabar Alumni</h1>
+          <h1 className="text-3xl font-bold mb-2">Kirim Kabar Alumni</h1>
           <p className="text-emerald-100">
             Bagikan cerita, prestasi, atau kabar penting lainnya kepada komunitas alumni
           </p>
@@ -173,7 +173,7 @@ export default function Create({ categories }: Props) {
               disabled={processing}
               className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium disabled:bg-emerald-400"
             >
-              {processing ? "Mengirim..." : "Submit Kabar Alumni"}
+              {processing ? "Mengirim..." : "Kirim Kabar Alumni"}
             </button>
           </div>
         </form>

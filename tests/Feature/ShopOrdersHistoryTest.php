@@ -2,6 +2,7 @@
 
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Shipment;
 use Inertia\Testing\AssertableInertia as Assert;
 
 it('prevents user from viewing another users order detail', function () {
@@ -62,6 +63,14 @@ it('shows order detail with payment information for owner', function () {
         'raw_payload' => null,
     ]);
 
+    $shipment = Shipment::create([
+        'order_id' => $order->id,
+        'courier_name' => 'JNE',
+        'tracking_number' => 'RESI-123456',
+        'status' => 'shipped',
+        'shipped_at' => now(),
+    ]);
+
     $this->actingAs($user);
 
     $response = $this->get(route('shop.orders.show', $order));
@@ -74,5 +83,6 @@ it('shows order detail with payment information for owner', function () {
             ->where('order.id', $order->id)
             ->where('payment.id', $payment->id)
             ->where('payment.status', Payment::STATUS_PAID)
+            ->where('order.shipment.tracking_number', $shipment->tracking_number)
     );
 });

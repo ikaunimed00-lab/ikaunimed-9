@@ -26,7 +26,7 @@ export default function Photos({ photos }: Props) {
             <MainLayout>
                 <Head title="Galeri Foto" />
                 <div className="container mx-auto px-4 py-12 text-center text-gray-500">
-                    <p>Data foto tidak tersedia saat ini.</p>
+                    <p>Cek kembali dalam beberapa saat.</p>
                 </div>
             </MainLayout>
         );
@@ -38,7 +38,7 @@ export default function Photos({ photos }: Props) {
             <div className="container mx-auto px-4 py-12">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">Galeri Foto</h1>
-                    <p className="text-gray-600 mt-2">Kumpulan berita yang memiliki dokumentasi foto.</p>
+                    <p className="text-gray-600 mt-2">Telusuri dokumentasi foto dari berita terbit.</p>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -70,7 +70,7 @@ export default function Photos({ photos }: Props) {
                                         href={route('news.show', item.slug)}
                                         className="text-xs font-medium text-green-600 hover:text-green-700"
                                     >
-                                        Lihat Berita →
+                                        Buka Berita →
                                     </Link>
                                 </div>
                             </div>

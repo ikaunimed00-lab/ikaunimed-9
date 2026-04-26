@@ -12,6 +12,7 @@ import {
   Lock,
   ShoppingCart,
 } from 'lucide-react';
+import { resolveLearnerCoursePrimaryAction, resolveLearnerCoursePrimaryActionUi } from '@/lib/learner-course-cta';
 
 interface Lesson {
   id: number;
@@ -26,6 +27,7 @@ interface Product {
   id: number;
   slug: string;
   price: string;
+  name?: string;
 }
 
 interface Module {
@@ -59,6 +61,15 @@ interface Course {
   modules: Module[];
   lessons: Lesson[];
   product?: Product | null;
+  requires_premium?: boolean;
+  enrollment_eligibility?: {
+    is_enrolled: boolean;
+    can_enroll: boolean;
+    requires_premium: boolean;
+    is_premium_member: boolean;
+    is_locked: boolean;
+    reason: string | null;
+  };
 }
 
 interface Enrollment {
@@ -75,6 +86,13 @@ interface Props {
   enrollment: Enrollment | null;
   lessonProgress: Record<number, boolean>;
   nextLessonId: number | null;
+  enrollmentEligibility?: {
+    can_enroll: boolean;
+    reason: string | null;
+    requires_premium: boolean;
+    is_premium_member: boolean;
+  };
+  premiumMembershipProduct?: Product | null;
 }
 
 export default function Show({
@@ -83,16 +101,32 @@ export default function Show({
   enrollment,
   lessonProgress,
   nextLessonId,
+  enrollmentEligibility,
+  premiumMembershipProduct,
 }: Props) {
   const { auth }: any = usePage().props;
 
   const isLoggedIn = !!auth?.user;
   const isEnrolled = !!enrollment;
-  const isSubscriber = !!auth?.user && auth.user.role === 'subscriber';
   const isPremiumMember =
     !!auth?.user && Array.isArray(auth.user.roles) && auth.user.roles.includes('premium_member');
   const requiresPremium = (course as any).requires_premium === true;
-  const canEnroll = isSubscriber && !course.is_paid && (!requiresPremium || isPremiumMember);
+  const canEnroll = enrollmentEligibility?.can_enroll ?? (isLoggedIn && !course.is_paid && (!requiresPremium || isPremiumMember));
+  const needsPremiumUpgrade = !isEnrolled && requiresPremium && !isPremiumMember;
+  const coursePrimaryAction = resolveLearnerCoursePrimaryAction(
+    {
+      is_enrolled: isEnrolled,
+      can_enroll: canEnroll,
+      requires_premium: requiresPremium,
+      is_premium_member: isPremiumMember,
+      is_locked: needsPremiumUpgrade,
+      reason: enrollmentEligibility?.reason ?? null,
+    },
+    { fallback: 'view_course' }
+  );
+  const coursePrimaryActionUi = resolveLearnerCoursePrimaryActionUi(coursePrimaryAction, {
+    size: 'card',
+  });
 
   const syllabusRef = useRef<HTMLDivElement | null>(null);
 
@@ -200,14 +234,14 @@ export default function Show({
                 className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
               >
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Silabus dan materi pembelajaran
+                  Tinjau Silabus dan Materi
                 </h2>
 
                 {!isEnrolled && (
                   <p className="mb-4 text-xs text-gray-500">
-                    Beberapa materi ditandai sebagai{' '}
+                    Akses beberapa materi bertanda{' '}
                     <span className="font-semibold">Preview Gratis</span>. Materi lain akan
-                    terbuka penuh setelah Anda terdaftar di kursus ini.
+                    terbuka setelah Anda terdaftar pada kelas ini.
                   </p>
                 )}
 
@@ -315,7 +349,7 @@ export default function Show({
                   </div>
                 ) : (
                   <div className="text-sm text-gray-500">
-                    Struktur modul akan segera tersedia.
+                    Tunggu pembaruan struktur modul.
                   </div>
                 )}
 
@@ -350,7 +384,7 @@ export default function Show({
                 <div className="mb-6">
                   {course.is_paid ? (
                     <div>
-                      <div className="text-sm text-gray-500 mb-1">Harga Kelas</div>
+                      <div className="text-sm text-gray-500 mb-1">Lihat Biaya Kelas</div>
                       <div className="text-2xl font-bold text-gray-900">
                         Rp {Number(course.price).toLocaleString('id-ID')}
                       </div>
@@ -360,13 +394,24 @@ export default function Show({
                     </div>
                   ) : (
                     <div>
-                      <div className="text-sm text-gray-500 mb-1">Status</div>
+                      <div className="text-sm text-gray-500 mb-1">Lihat Status</div>
                       <div className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
                         Kelas Gratis untuk Alumni
                       </div>
                     </div>
                   )}
                 </div>
+
+                {needsPremiumUpgrade && (
+                  <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-sm font-semibold text-amber-900">
+                      Kelas ini khusus member premium.
+                    </p>
+                    <p className="mt-1 text-xs text-amber-800">
+                      Upgrade ke Premium Member untuk membuka akses enrollment dan materi penuh.
+                    </p>
+                  </div>
+                )}
 
                 {auth?.user ? (
                   <>
@@ -393,37 +438,49 @@ export default function Show({
                         <PlayCircle className="w-5 h-5" />
                         Lanjutkan Belajar
                       </button>
+                    ) : course.is_paid && course.product ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          router.post(route('shop.cart.add', course.product!.slug));
+                        }}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-center font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <ShoppingCart className="w-5 h-5" />
+                        Beli Kelas
+                      </button>
+                    ) : coursePrimaryAction === 'upgrade_premium' ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (premiumMembershipProduct?.slug) {
+                            router.post(route('shop.cart.add', premiumMembershipProduct.slug));
+                            return;
+                          }
+
+                          router.visit(route('shop.index'));
+                        }}
+                        className="w-full bg-amber-600 hover:bg-amber-700 text-white text-center font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <ShoppingCart className="w-5 h-5" />
+                        {coursePrimaryActionUi.label}
+                      </button>
+                    ) : coursePrimaryAction === 'join_course' ? (
+                      <button
+                        type="button"
+                        onClick={handleEnroll}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-center font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <GraduationCap className="w-5 h-5" />
+                        Ikuti Kelas Ini
+                      </button>
                     ) : (
-                      <>
-                        {course.is_paid && course.product ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              router.post(route('shop.cart.add', course.product!.slug));
-                            }}
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-center font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-                          >
-                            <ShoppingCart className="w-5 h-5" />
-                            Beli Kelas
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={!canEnroll}
-                            onClick={handleEnroll}
-                            className={`w-full text-center font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${
-                              canEnroll
-                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                            }`}
-                          >
-                            <GraduationCap className="w-5 h-5" />
-                            {course.is_paid
-                              ? 'Enrollment akan dibuka nanti'
-                              : 'Ikuti Kelas Ini'}
-                          </button>
-                        )}
-                      </>
+                      <Link
+                        href={coursePrimaryAction === 'login' ? route('login') : route('courses.show', course.slug)}
+                        className={coursePrimaryActionUi.className.replace('text-xs', 'text-sm').replace('py-2', 'py-3')}
+                      >
+                        {coursePrimaryActionUi.label}
+                      </Link>
                     )}
 
                     <p className="text-xs text-gray-500 mt-3">
@@ -433,14 +490,14 @@ export default function Show({
                 ) : (
                   <div className="space-y-3">
                     <p className="text-sm text-gray-700">
-                      Login sebagai alumni untuk mengikuti kelas dan menyimpan progress belajar.
+                      Masuk sebagai alumni untuk mengikuti kelas dan menyimpan progres belajar.
                     </p>
                     <div className="flex gap-2">
                       <Link
                         href={route('login')}
                         className="flex-1 text-center px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
                       >
-                        Login
+                        Masuk
                       </Link>
                       <Link
                         href={route('register')}
@@ -455,37 +512,98 @@ export default function Show({
 
               {related.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                  <h3 className="font-bold text-gray-900 mb-4">Kelas lain yang mungkin cocok</h3>
+                  <h3 className="font-bold text-gray-900 mb-4">Eksplorasi Kelas Terkait</h3>
                   <div className="space-y-4">
-                    {related.map((item) => (
-                      <Link
-                        key={item.id}
-                        href={route('courses.show', item.slug)}
-                        className="block group"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 bg-gray-50 rounded flex items-center justify-center flex-shrink-0 border border-gray-100">
-                            {item.thumbnail ? (
-                              <img
-                                src={`/storage/${item.thumbnail}`}
-                                alt={item.title}
-                                className="w-10 h-10 object-cover rounded"
-                              />
+                    {related.map((item) => {
+                      const relatedEligibility = item.enrollment_eligibility;
+                      const isRelatedLocked = !!relatedEligibility?.is_locked;
+                      const relatedPrimaryAction = resolveLearnerCoursePrimaryAction(relatedEligibility, {
+                        fallback: 'view_course',
+                      });
+                      const relatedPrimaryActionUi = resolveLearnerCoursePrimaryActionUi(
+                        relatedPrimaryAction,
+                        { size: 'card' }
+                      );
+
+                      return (
+                        <div key={item.id} className="rounded-lg border border-gray-100 p-3">
+                          <Link href={route('courses.show', item.slug)} className="block group">
+                            <div className="flex items-start gap-3">
+                              <div className="w-12 h-12 bg-gray-50 rounded flex items-center justify-center flex-shrink-0 border border-gray-100">
+                                {item.thumbnail ? (
+                                  <img
+                                    src={`/storage/${item.thumbnail}`}
+                                    alt={item.title}
+                                    className="w-10 h-10 object-cover rounded"
+                                  />
+                                ) : (
+                                  <GraduationCap className="w-6 h-6 text-gray-400" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-sm font-semibold text-gray-900 group-hover:text-emerald-600 line-clamp-2 transition-colors">
+                                  {item.title}
+                                </h4>
+                                {item.category && (
+                                  <p className="text-xs text-gray-500">{item.category.name}</p>
+                                )}
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                    {item.level}
+                                  </span>
+                                  {item.is_paid ? (
+                                    <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                                      Berbayar
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                      Gratis
+                                    </span>
+                                  )}
+                                  {!item.is_paid && item.requires_premium && (
+                                    <span
+                                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                        isRelatedLocked ? 'bg-amber-100 text-amber-800' : 'bg-amber-50 text-amber-700'
+                                      }`}
+                                    >
+                                      {isRelatedLocked && <Lock className="h-3 w-3" />}
+                                      {isRelatedLocked ? 'Akses Terkunci' : 'Premium'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+
+                          <div className="mt-3">
+                            {relatedPrimaryAction === 'upgrade_premium' ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (premiumMembershipProduct?.slug) {
+                                    router.post(route('shop.cart.add', premiumMembershipProduct.slug));
+                                    return;
+                                  }
+
+                                  router.visit(route('shop.index'));
+                                }}
+                                className="w-full inline-flex items-center justify-center gap-1 rounded-md bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"
+                              >
+                                <ShoppingCart className="h-3.5 w-3.5" />
+                                {relatedPrimaryActionUi.label}
+                              </button>
                             ) : (
-                              <GraduationCap className="w-6 h-6 text-gray-400" />
-                            )}
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-semibold text-gray-900 group-hover:text-emerald-600 line-clamp-2 transition-colors">
-                              {item.title}
-                            </h4>
-                            {item.category && (
-                              <p className="text-xs text-gray-500">{item.category.name}</p>
+                              <Link
+                                href={relatedPrimaryAction === 'login' || !auth?.user ? route('login') : route('courses.show', item.slug)}
+                                className={relatedPrimaryActionUi.className}
+                              >
+                                {relatedPrimaryActionUi.label}
+                              </Link>
                             )}
                           </div>
                         </div>
-                      </Link>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

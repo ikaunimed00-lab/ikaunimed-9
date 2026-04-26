@@ -6,6 +6,8 @@ interface AdInlineProps {
   className?: string;
   children?: ReactNode;
   slot?: string | null;
+  /** AdSense Publisher ID (`ca-pub-XXXXXXXXXXXXXXXX`) untuk `data-ad-client`. */
+  client?: string | null;
   /** Master switch dari `ads.enabled`. False → komponen mengembalikan null. */
   enabled?: boolean;
   provider?: string;
@@ -17,12 +19,16 @@ interface AdInlineProps {
  * KEBIJAKAN: hanya render <ins.adsbygoogle> jika
  *   enabled === true && provider === 'adsense' && slot truthy.
  * Tidak ada placeholder bila tidak aktif — artikel tetap mulus tanpa "kotak iklan kosong".
+ *
+ * `client` (Publisher ID) dikirim ke `<ins>` sebagai `data-ad-client` saat
+ * truthy — best practice Google AdSense Phase B.
  */
 export default function AdInline({
   position = 'middle',
   className = '',
   children = null,
   slot,
+  client = null,
   enabled = false,
   provider = 'adsense',
 }: AdInlineProps) {
@@ -39,7 +45,7 @@ export default function AdInline({
           Advertisement
         </div>
         <div className="ad-placeholder text-center text-gray-400 w-full">
-          {children ? children : <AdsenseUnit slot={slot as string} />}
+          {children ? children : <AdsenseUnit slot={slot as string} client={client} />}
         </div>
       </div>
     </div>

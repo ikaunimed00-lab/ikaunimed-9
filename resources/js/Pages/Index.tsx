@@ -32,9 +32,9 @@ const Index = ({ settings, sections }: { settings: any, sections: any }) => {
     <>
       <Head>
         <title>{`${settings?.general?.site_name || 'IKA UNIMED'} - ${settings?.general?.site_tagline || 'Connect, Collaborate, Contribute'}`}</title>
-        <meta name="description" content={settings?.general?.site_description || "Official Website Ikatan Alumni Universitas Negeri Medan (IKA UNIMED)"} />
+        <meta name="description" content={settings?.general?.site_description || "Situs Resmi Ikatan Alumni Universitas Negeri Medan (IKA UNIMED)"} />
         <meta property="og:title" content={settings?.general?.site_name || "IKA UNIMED"} />
-        <meta property="og:description" content={settings?.general?.site_description || "Official Website Ikatan Alumni Universitas Negeri Medan"} />
+        <meta property="og:description" content={settings?.general?.site_description || "Situs Resmi Ikatan Alumni Universitas Negeri Medan"} />
       </Head>
       
       <MainLayout 

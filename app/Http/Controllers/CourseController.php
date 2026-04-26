@@ -7,6 +7,7 @@ use App\Models\CourseCategory;
 use App\Models\Enrollment;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
+use App\Models\Product;
 use App\Services\Courses\CourseLearningService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -19,8 +20,7 @@ class CourseController extends Controller
 {
     public function __construct(
         private readonly CourseLearningService $courseLearningService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -28,7 +28,7 @@ class CourseController extends Controller
             ->with('category')
             ->where('status', 'published')
             ->when($request->search, function ($q, $search) {
-                $q->where('title', 'like', '%' . $search . '%');
+                $q->where('title', 'like', '%'.$search.'%');
             })
             ->when($request->category, function ($q, $category) {
                 $q->whereHas('category', function ($sub) use ($category) {
@@ -51,10 +51,66 @@ class CourseController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug']);
 
+        $user = Auth::user();
+        $isPremiumMember = (bool) ($user?->hasRole('premium_member'));
+        $premiumMembershipProduct = Product::query()
+            ->where('is_published', true)
+            ->where('membership_role', 'premium_member')
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->first(['id', 'slug', 'name', 'price']);
+
+        $courses = $query->paginate(9)->withQueryString();
+        $courseIds = $courses->getCollection()->pluck('id');
+        $enrolledCourseIds = collect();
+
+        if ($user && $courseIds->isNotEmpty() && $user->can('portal.enrollment.view_own')) {
+            $enrolledCourseIds = Enrollment::query()
+                ->where('user_id', $user->id)
+                ->whereIn('course_id', $courseIds)
+                ->pluck('course_id');
+        }
+
+        $courses->getCollection()->transform(function (Course $course) use ($user, $isPremiumMember, $enrolledCourseIds) {
+            $requiresPremium = (bool) ($course->requires_premium ?? false);
+            $isEnrolled = $enrolledCourseIds->contains($course->id);
+            $canEnroll = (bool) ($user && $user->can('enroll', $course));
+            $isLocked = $requiresPremium && ! $isPremiumMember;
+
+            $reason = null;
+            if (! $canEnroll) {
+                if ($course->status !== 'published') {
+                    $reason = 'course_unpublished';
+                } elseif ($course->is_paid) {
+                    $reason = 'course_paid';
+                } elseif ($requiresPremium && ! $isPremiumMember) {
+                    $reason = 'premium_required';
+                } elseif (! $user) {
+                    $reason = 'login_required';
+                } elseif ($isEnrolled) {
+                    $reason = 'already_enrolled';
+                } else {
+                    $reason = 'not_eligible';
+                }
+            }
+
+            $course->setAttribute('enrollment_eligibility', [
+                'is_enrolled' => $isEnrolled,
+                'can_enroll' => $canEnroll,
+                'requires_premium' => $requiresPremium,
+                'is_premium_member' => $isPremiumMember,
+                'is_locked' => $isLocked,
+                'reason' => $reason,
+            ]);
+
+            return $course;
+        });
+
         return Inertia::render('Course/Index', [
-            'courses' => $query->paginate(9)->withQueryString(),
+            'courses' => $courses,
             'categories' => $categories,
             'filters' => $request->only(['search', 'category', 'level', 'price_type']),
+            'premiumMembershipProduct' => $premiumMembershipProduct,
         ]);
     }
 
@@ -77,6 +133,7 @@ class CourseController extends Controller
         ]);
 
         $related = Course::query()
+            ->with('category')
             ->where('status', 'published')
             ->where('id', '!=', $course->id)
             ->when($course->category_id, function ($q) use ($course) {
@@ -117,12 +174,90 @@ class CourseController extends Controller
             }
         }
 
+        $requiresPremium = (bool) ($course->requires_premium ?? false);
+        $isPremiumMember = (bool) ($user?->hasRole('premium_member'));
+        $canEnroll = (bool) ($user && $user->can('enroll', $course));
+        $relatedCourseIds = $related->pluck('id');
+        $enrolledRelatedCourseIds = collect();
+
+        if ($user && $relatedCourseIds->isNotEmpty() && $user->can('portal.enrollment.view_own')) {
+            $enrolledRelatedCourseIds = Enrollment::query()
+                ->where('user_id', $user->id)
+                ->whereIn('course_id', $relatedCourseIds)
+                ->pluck('course_id');
+        }
+
+        $related = $related->map(function (Course $relatedCourse) use ($user, $isPremiumMember, $enrolledRelatedCourseIds) {
+            $relatedRequiresPremium = (bool) ($relatedCourse->requires_premium ?? false);
+            $isRelatedEnrolled = $enrolledRelatedCourseIds->contains($relatedCourse->id);
+            $canRelatedEnroll = (bool) ($user && $user->can('enroll', $relatedCourse));
+            $isRelatedLocked = $relatedRequiresPremium && ! $isPremiumMember;
+
+            $relatedReason = null;
+            if (! $canRelatedEnroll) {
+                if ($relatedCourse->status !== 'published') {
+                    $relatedReason = 'course_unpublished';
+                } elseif ($relatedCourse->is_paid) {
+                    $relatedReason = 'course_paid';
+                } elseif ($relatedRequiresPremium && ! $isPremiumMember) {
+                    $relatedReason = 'premium_required';
+                } elseif (! $user) {
+                    $relatedReason = 'login_required';
+                } elseif ($isRelatedEnrolled) {
+                    $relatedReason = 'already_enrolled';
+                } else {
+                    $relatedReason = 'not_eligible';
+                }
+            }
+
+            $relatedCourse->setAttribute('enrollment_eligibility', [
+                'is_enrolled' => $isRelatedEnrolled,
+                'can_enroll' => $canRelatedEnroll,
+                'requires_premium' => $relatedRequiresPremium,
+                'is_premium_member' => $isPremiumMember,
+                'is_locked' => $isRelatedLocked,
+                'reason' => $relatedReason,
+            ]);
+
+            return $relatedCourse;
+        })->values();
+
+        $premiumMembershipProduct = Product::query()
+            ->where('is_published', true)
+            ->where('membership_role', 'premium_member')
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->first(['id', 'slug', 'name', 'price']);
+
+        $enrollmentEligibilityReason = null;
+
+        if (! $canEnroll) {
+            if ($course->status !== 'published') {
+                $enrollmentEligibilityReason = 'course_unpublished';
+            } elseif ($course->is_paid) {
+                $enrollmentEligibilityReason = 'course_paid';
+            } elseif ($requiresPremium && ! $isPremiumMember) {
+                $enrollmentEligibilityReason = 'premium_required';
+            } elseif (! $user) {
+                $enrollmentEligibilityReason = 'login_required';
+            } else {
+                $enrollmentEligibilityReason = 'not_eligible';
+            }
+        }
+
         return Inertia::render('Course/Show', [
             'course' => $course,
             'related' => $related,
             'enrollment' => $enrollment,
             'lessonProgress' => $lessonProgress,
             'nextLessonId' => $nextLessonId,
+            'enrollmentEligibility' => [
+                'can_enroll' => $canEnroll,
+                'reason' => $enrollmentEligibilityReason,
+                'requires_premium' => $requiresPremium,
+                'is_premium_member' => $isPremiumMember,
+            ],
+            'premiumMembershipProduct' => $premiumMembershipProduct,
         ]);
     }
 

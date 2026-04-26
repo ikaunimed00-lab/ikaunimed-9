@@ -36,7 +36,7 @@ export default function Show({ partnership, related }: Props) {
       }
     } else {
         navigator.clipboard.writeText(window.location.href);
-        alert('Link telah disalin ke clipboard!');
+        alert('Tautan telah disalin ke clipboard!');
     }
   };
 
@@ -79,7 +79,7 @@ export default function Show({ partnership, related }: Props) {
                             className="inline-flex items-center text-emerald-600 hover:text-emerald-700 font-medium"
                         >
                             <Globe className="w-4 h-4 mr-2" />
-                            Kunjungi Website
+                            Kunjungi Situs
                             <ExternalLink className="w-3 h-3 ml-1" />
                         </a>
                     )}
@@ -88,7 +88,7 @@ export default function Show({ partnership, related }: Props) {
                 <div className="flex flex-col gap-3 w-full md:w-auto">
                     <Button variant="outline" onClick={handleShare} className="w-full">
                         <Share2 className="w-4 h-4 mr-2" />
-                        Bagikan
+                        Bagikan halaman ini
                     </Button>
                 </div>
             </div>

@@ -6,13 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseCategory;
 use App\Models\Enrollment;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Product;
 use App\Models\PaymentLog;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class CourseDashboardController extends Controller
@@ -62,7 +59,7 @@ class CourseDashboardController extends Controller
                 });
             })
             ->when($search, function ($q) use ($search) {
-                $q->where('title', 'like', '%' . $search . '%');
+                $q->where('title', 'like', '%'.$search.'%');
             })
             ->orderByDesc('published_at')
             ->orderByDesc('id');
@@ -76,6 +73,7 @@ class CourseDashboardController extends Controller
         $totalActiveParticipants = 0;
         $averageProgress = 0;
         $totalRevenue = 0;
+        $healthStats = null;
 
         if ($courseIds->isNotEmpty()) {
             $totalActiveParticipants = Enrollment::whereIn('course_id', $courseIds)
@@ -116,6 +114,53 @@ class CourseDashboardController extends Controller
             });
         }
 
+        $canSeeAdminMetrics = $user->hasAnyRole(['super_admin', 'admin']) || $user->can('elearning.course.view_any');
+
+        if ($canSeeAdminMetrics) {
+            $sevenDaysAgo = now()->subDays(7);
+
+            $publishedCourses = (clone $baseQuery)
+                ->where('status', 'published')
+                ->count();
+            $premiumCourses = (clone $baseQuery)
+                ->where('requires_premium', true)
+                ->count();
+            $newEnrollmentsLast7Days = Enrollment::query()
+                ->whereIn('course_id', $courseIds)
+                ->where('created_at', '>=', $sevenDaysAgo)
+                ->count();
+            $completedEnrollmentsLast7Days = Enrollment::query()
+                ->whereIn('course_id', $courseIds)
+                ->whereNotNull('completed_at')
+                ->where('completed_at', '>=', $sevenDaysAgo)
+                ->count();
+            $completionRateLast7Days = $newEnrollmentsLast7Days > 0
+                ? (int) floor(($completedEnrollmentsLast7Days / $newEnrollmentsLast7Days) * 100)
+                : 0;
+
+            $webhookTotalLast7Days = PaymentLog::query()
+                ->where('created_at', '>=', $sevenDaysAgo)
+                ->count();
+            $webhookErrorLast7Days = PaymentLog::query()
+                ->where('created_at', '>=', $sevenDaysAgo)
+                ->where('status_code', '>=', 400)
+                ->count();
+            $webhookErrorRateLast7Days = $webhookTotalLast7Days > 0
+                ? (int) floor(($webhookErrorLast7Days / $webhookTotalLast7Days) * 100)
+                : 0;
+
+            $healthStats = [
+                'published_courses' => $publishedCourses,
+                'premium_courses' => $premiumCourses,
+                'enrollment_new_last_7_days' => $newEnrollmentsLast7Days,
+                'enrollment_completed_last_7_days' => $completedEnrollmentsLast7Days,
+                'enrollment_completion_rate_last_7_days' => $completionRateLast7Days,
+                'webhook_total_last_7_days' => $webhookTotalLast7Days,
+                'webhook_error_last_7_days' => $webhookErrorLast7Days,
+                'webhook_error_rate_last_7_days' => $webhookErrorRateLast7Days,
+            ];
+        }
+
         $categories = CourseCategory::query()
             ->orderBy('name')
             ->get(['id', 'name', 'slug']);
@@ -128,6 +173,7 @@ class CourseDashboardController extends Controller
                 'average_progress' => $averageProgress,
                 'total_revenue' => $totalRevenue,
             ],
+            'healthStats' => $healthStats,
             'categories' => $categories,
             'filters' => [
                 'status' => $status,
@@ -181,7 +227,7 @@ class CourseDashboardController extends Controller
                 });
             })
             ->when($search, function ($q) use ($search) {
-                $q->where('title', 'like', '%' . $search . '%');
+                $q->where('title', 'like', '%'.$search.'%');
             })
             ->orderByDesc('published_at')
             ->orderByDesc('id');

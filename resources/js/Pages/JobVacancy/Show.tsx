@@ -130,7 +130,7 @@ export default function Show({ vacancy, related, interest }: Props) {
             <div className="lg:col-span-1 space-y-6">
               {/* Action Card */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-24">
-                <h3 className="font-bold text-gray-900 mb-4">Detail Lowongan</h3>
+                  <h3 className="font-bold text-gray-900 mb-4">Lihat Detail Lowongan</h3>
                 
                 <div className="space-y-4 mb-6">
                   <div className="flex items-start">
@@ -163,7 +163,7 @@ export default function Show({ vacancy, related, interest }: Props) {
                         rel="noopener noreferrer"
                         className="block w-full bg-emerald-600 hover:bg-emerald-700 text-white text-center font-semibold py-3 rounded-lg transition-colors"
                       >
-                        Lamar Sekarang
+                        Kirim Lamaran
                       </a>
                     )}
                     {vacancy.apply_email && (
@@ -171,18 +171,18 @@ export default function Show({ vacancy, related, interest }: Props) {
                         href={`mailto:${vacancy.apply_email}?subject=Lamaran: ${vacancy.title}`}
                         className="block w-full bg-white border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 text-center font-semibold py-3 rounded-lg transition-colors"
                       >
-                        Kirim Email
+                        Kirim Lamaran via Email
                       </a>
                     )}
                     {!vacancy.apply_link && !vacancy.apply_email && (
                       <div className="bg-gray-100 text-gray-500 text-center py-3 rounded-lg text-sm">
-                        Info lamaran tidak tersedia
+                        Informasi lamaran belum tersedia
                       </div>
                     )}
                   </div>
                 ) : (
                   <div className="bg-red-50 text-red-600 text-center py-3 rounded-lg font-medium border border-red-100">
-                    Lowongan Sudah Ditutup
+                    Lowongan sudah ditutup
                   </div>
                 )}
 
@@ -197,12 +197,12 @@ export default function Show({ vacancy, related, interest }: Props) {
                           : 'bg-emerald-600 text-white hover:bg-emerald-700'
                       }`}
                     >
-                      {interest.is_interested ? 'Batalkan ketertarikan' : 'Saya tertarik dengan lowongan ini'}
+                      {interest.is_interested ? 'Batalkan minat' : 'Tandai Saya Tertarik'}
                     </button>
                     <p className="text-xs text-gray-500 text-center">
                       {interest.total > 0
-                        ? `${interest.total} alumni telah menyatakan tertarik pada lowongan ini.`
-                        : 'Belum ada alumni yang menyatakan tertarik.'}
+                        ? `${interest.total} alumni telah menandai minat pada lowongan ini.`
+                        : 'Belum ada alumni yang menandai minat.'}
                     </p>
                   </div>
                 )}
@@ -213,7 +213,7 @@ export default function Show({ vacancy, related, interest }: Props) {
                     <button 
                       onClick={() => {
                         navigator.clipboard.writeText(window.location.href);
-                        alert('Link berhasil disalin!');
+                        alert('Tautan berhasil disalin!');
                       }}
                       className="p-2 text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors"
                     >

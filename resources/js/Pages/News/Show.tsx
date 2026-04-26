@@ -9,6 +9,12 @@ import { useEffect, useState } from 'react';
 interface AdsConfig {
   enabled?: boolean;
   provider?: string;
+  /**
+   * AdSense Publisher ID (`ca-pub-XXXXXXXXXXXXXXXX`) — diteruskan ke setiap
+   * `<ins.adsbygoogle>` lewat prop `client`. Kosong = mode auto-infer dari
+   * URL script (`adsbygoogle.js?client=...`) yang dimuat di `app.blade.php`.
+   */
+  client_id?: string | null;
   leaderboard_slot?: string | null;
   sidebar_1_slot?: string | null;
   sidebar_2_slot?: string | null;
@@ -260,6 +266,7 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
                           <AdInline
                             position={`middle-after-paragraph-${currentParagraph}`}
                             slot={ads?.inline_article_slot}
+                            client={ads?.client_id}
                             enabled={ads?.enabled}
                             provider={ads?.provider}
                           />
@@ -384,7 +391,7 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
             {/* Share Section */}
             <div className="bg-[#F8FAF9] border border-[#E6EAE8] rounded-lg p-5 mb-8">
               <h3 className="font-bold text-[#0F172A] mb-4 text-sm flex items-center gap-2">
-                <span className="text-xl">📢</span> Bagikan Berita Ini:
+                <span className="text-xl">📢</span> Bagikan berita ini
               </h3>
 
               <div className="flex flex-wrap gap-2">
@@ -421,10 +428,10 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
                              bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
                 >
                   <span className="text-base">𝕏</span>
-                  <span>Twitter</span>
+                  <span>X</span>
                 </a>
 
-                {/* Copy Link */}
+                {/* Salin Tautan */}
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(shareUrl);
@@ -435,7 +442,7 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
                              bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
                 >
                   <span className="text-base">🔗</span>
-                  <span>Salin Link</span>
+                  <span>Salin tautan</span>
                 </button>
               </div>
             </div>
@@ -444,7 +451,7 @@ export default function NewsShow({ news, relatedNews = [], ads }: NewsShowProps)
             {showToast && (
               <div className="fixed bottom-4 right-4 bg-[#0F172A] text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3 animate-bounce">
                 <span className="text-green-400 font-bold">✓</span>
-                <span className="font-medium text-sm">Link berhasil disalin!</span>
+                <span className="font-medium text-sm">Tautan berhasil disalin!</span>
               </div>
             )}
 

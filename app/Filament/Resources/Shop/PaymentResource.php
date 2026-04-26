@@ -4,9 +4,11 @@ namespace App\Filament\Resources\Shop;
 
 use App\Filament\Resources\Shop\PaymentResource\Pages;
 use App\Models\Course;
-use App\Models\Enrollment;
 use App\Models\Payment;
+use App\Services\Courses\CourseLearningService;
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -14,12 +16,10 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Actions\Action;
-use Filament\Actions\ViewAction;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -334,22 +334,38 @@ class PaymentResource extends Resource
                                         continue;
                                     }
 
-                                    $enrollment = Enrollment::firstOrCreate(
-                                        [
-                                            'user_id' => $order->user_id,
-                                            'course_id' => $course->id,
-                                        ],
-                                        [
-                                            'status' => 'active',
-                                            'started_at' => now(),
-                                        ]
-                                    );
+                                    if (! $record->user) {
+                                        $record->logs()->create([
+                                            'event' => 'manual_payment_user_not_found',
+                                            'payload' => json_encode([
+                                                'payment_id' => $record->id,
+                                                'order_id' => $order->id,
+                                                'order_item_id' => $item->id,
+                                                'course_id' => $course->id,
+                                            ]),
+                                            'headers' => [],
+                                            'status_code' => 200,
+                                        ]);
 
-                                    if (! $enrollment->started_at) {
-                                        $enrollment->started_at = now();
-                                        $enrollment->status = 'active';
-                                        $enrollment->save();
+                                        continue;
                                     }
+
+                                    app(CourseLearningService::class)
+                                        ->activateEnrollment($record->user, $course);
+                                }
+
+                                foreach ($order->items as $item) {
+                                    if (($item->product_type ?? null) !== 'service') {
+                                        continue;
+                                    }
+
+                                    $membershipRole = $item->product?->membership_role;
+
+                                    if (! $membershipRole || ! $record->user) {
+                                        continue;
+                                    }
+
+                                    $record->user->assignRole($membershipRole);
                                 }
                             }
 

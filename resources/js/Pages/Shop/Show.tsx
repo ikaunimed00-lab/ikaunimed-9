@@ -1,6 +1,7 @@
 import { Link, usePage, router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import MainLayout from '@/components/MainLayout';
+import { SHOP_COPY } from './copy';
 
 type ProductImage = {
   id: number;
@@ -25,12 +26,18 @@ type Product = {
 };
 
 type PageProps = {
+  auth: {
+    user: {
+      id: number;
+      roles: string[];
+    } | null;
+  };
   product: Product;
   related: Product[];
 };
 
 export default function ShopShow() {
-  const { product, related } = usePage<PageProps>().props;
+  const { auth, product, related } = usePage<PageProps>().props;
 
   const primaryImage =
     product.images.find((img) => img.is_primary) ?? product.images[0];
@@ -39,12 +46,17 @@ export default function ShopShow() {
     router.post(route('shop.cart.add', product.slug));
   };
 
+  const canAddToCart =
+    !!auth?.user &&
+    Array.isArray(auth.user.roles) &&
+    auth.user.roles.includes('subscriber');
+
   return (
     <MainLayout variant="full">
       <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="mb-4">
         <Link href={route('shop.index')} className="text-sm text-blue-600">
-          &larr; Kembali ke katalog
+          &larr; {SHOP_COPY.navigation.backToShop}
         </Link>
       </div>
 
@@ -79,13 +91,22 @@ export default function ShopShow() {
           <div className="text-xl font-bold text-primary-600 mb-4">
             Rp {Number(product.price).toLocaleString('id-ID')}
           </div>
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            className="inline-flex items-center px-4 py-2 mb-4 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
-          >
-            Tambah ke Keranjang
-          </button>
+          {canAddToCart ? (
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              className="inline-flex items-center px-4 py-2 mb-4 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
+            >
+              {SHOP_COPY.cta.addToCart}
+            </button>
+          ) : (
+            <Link
+              href={route('login')}
+              className="inline-flex items-center px-4 py-2 mb-4 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
+            >
+              {SHOP_COPY.cta.loginToShop}
+            </Link>
+          )}
           {product.description && (
             <div
               className="prose max-w-none"

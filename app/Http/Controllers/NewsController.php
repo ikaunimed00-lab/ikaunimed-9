@@ -2,22 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\News;
-use App\Models\User;
-use App\Models\Organization;
-use App\Models\Category;
-use App\Models\Tag;
-use App\Models\Legalization;
-use App\Models\SiteSetting;
 use App\Http\Requests\StoreNewsRequest;
 use App\Http\Requests\UpdateNewsRequest;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Cache;
-use Inertia\Inertia;
+use App\Models\Category;
+use App\Models\Legalization;
+use App\Models\News;
+use App\Models\Organization;
+use App\Models\SiteSetting;
+use App\Models\Tag;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class NewsController extends Controller
 {
@@ -74,7 +74,7 @@ class NewsController extends Controller
             'image' => News::buildImageUrl($item->image),
             'view_count' => $item->view_count,
             'author' => ['name' => $item->author?->name],
-            'categories' => $item->categories->map(fn($c) => [
+            'categories' => $item->categories->map(fn ($c) => [
                 'name' => $c->name,
                 'slug' => $c->slug,
             ])->toArray(),
@@ -85,11 +85,11 @@ class NewsController extends Controller
         // 1. Breaking News (Running Text - Khusus Berita Alumni)
         $breakingNews = Cache::remember('news.breaking', 60 * 5, function () {
             return News::published()
-                ->whereHas('categories', fn($q) => $q->whereIn('slug', ['alumni', 'kabar-alumni', 'pendidikan', 'sosial']))
+                ->whereHas('categories', fn ($q) => $q->whereIn('slug', ['alumni', 'kabar-alumni', 'pendidikan', 'sosial']))
                 ->latest()
                 ->take(5)
                 ->get()
-                ->map(fn($item) => [
+                ->map(fn ($item) => [
                     'id' => $item->id,
                     'title' => $item->title,
                     'slug' => $item->slug,
@@ -113,7 +113,7 @@ class NewsController extends Controller
         $alumniNews = Cache::remember('news.section.alumni', 60 * 5, function () use ($excludeIds, $transformNews) {
             return News::published()
                 ->whereNotIn('id', $excludeIds)
-                ->whereHas('categories', fn($q) => $q->whereIn('slug', ['alumni', 'kabar-alumni', 'pendidikan', 'sosial']))
+                ->whereHas('categories', fn ($q) => $q->whereIn('slug', ['alumni', 'kabar-alumni', 'pendidikan', 'sosial']))
                 ->with('author:id,name', 'categories:id,slug,name')
                 ->latest()
                 ->take(6)
@@ -125,7 +125,7 @@ class NewsController extends Controller
         $opinionNews = Cache::remember('news.section.opinion', 60 * 5, function () use ($excludeIds, $transformNews) {
             return News::published()
                 ->whereNotIn('id', $excludeIds)
-                ->whereHas('categories', fn($q) => $q->whereIn('slug', ['opini', 'artikel', 'ekonomi', 'teknologi', 'gaya-hidup']))
+                ->whereHas('categories', fn ($q) => $q->whereIn('slug', ['opini', 'artikel', 'ekonomi', 'teknologi', 'gaya-hidup']))
                 ->with('author:id,name', 'categories:id,slug,name')
                 ->latest()
                 ->take(5)
@@ -187,7 +187,7 @@ class NewsController extends Controller
         // (mis. "2 hari lalu") agar tidak hard-coded.
         $opinionColumns = Cache::remember('news.opinion_columns', 60 * 15, function () {
             return News::published()
-                ->whereHas('categories', fn($q) => $q->where('slug', 'opini'))
+                ->whereHas('categories', fn ($q) => $q->where('slug', 'opini'))
                 ->with(['author:id,name', 'categories:id,name,slug'])
                 ->latest('published_at')
                 ->take(8)
@@ -251,7 +251,7 @@ class NewsController extends Controller
 
         // Popular Tags untuk TagPopuler (berdasarkan jumlah berita terbit)
         $popularTags = Cache::remember('news.popular_tags', 60 * 60, function () {
-            return Tag::withCount(['news' => fn($q) => $q->published()])
+            return Tag::withCount(['news' => fn ($q) => $q->published()])
                 ->orderBy('news_count', 'desc')
                 ->take(30)
                 ->get()
@@ -335,7 +335,7 @@ class NewsController extends Controller
                     'id' => $news->author?->id,
                     'name' => $news->author?->name,
                 ],
-                'categories' => $news->categories->map(fn($c) => [
+                'categories' => $news->categories->map(fn ($c) => [
                     'name' => $c->name,
                     'slug' => $c->slug,
                 ])->toArray(),
@@ -362,7 +362,7 @@ class NewsController extends Controller
 
         if ($slug) {
             // Jika ada slug, filter by organization slug
-            $query->whereHas('organization', fn($q) => $q->where('slug', $slug));
+            $query->whereHas('organization', fn ($q) => $q->where('slug', $slug));
         }
 
         $news = $query->with('author:id,name', 'categories:id,slug,name', 'organization:id,name,slug')
@@ -380,7 +380,7 @@ class NewsController extends Controller
                     'name' => $item->organization->name,
                     'slug' => $item->organization->slug,
                 ] : null,
-                'categories' => $item->categories->map(fn($c) => [
+                'categories' => $item->categories->map(fn ($c) => [
                     'name' => $c->name,
                     'slug' => $c->slug,
                 ])->toArray(),
@@ -453,7 +453,7 @@ class NewsController extends Controller
                 ->take(5)
                 ->select('id', 'title', 'slug', 'image', 'view_count')
                 ->get()
-                ->map(fn($news) => [
+                ->map(fn ($news) => [
                     'id' => $news->id,
                     'title' => $news->title,
                     'slug' => $news->slug,
@@ -484,6 +484,13 @@ class NewsController extends Controller
      *   - `provider`  : `adsense` | `adsterra` | `none`. Saat ini hanya
      *                   `adsense` yang punya komponen aktif; `adsterra`
      *                   ditangani lewat snippet HTML di `app.blade.php`.
+     *   - `client_id` : Publisher ID AdSense (`ca-pub-XXXXXXXXXXXXXXXX`) untuk
+     *                   atribut `data-ad-client` di setiap `<ins.adsbygoogle>`.
+     *                   Best practice Google: setiap `<ins>` punya
+     *                   `data-ad-client` eksplisit (jangan andalkan inferensi
+     *                   dari URL script saja). Saat string kosong, komponen
+     *                   tetap render `<ins>` tanpa atribut tersebut — fallback
+     *                   ke mode auto-infer dari `<script ?client=...>`.
      *   - Slot id     : satu sumber tunggal di SiteSetting agar satu titik
      *                   ubah → semua halaman ikut. Slot kosong = tidak render.
      */
@@ -492,6 +499,7 @@ class NewsController extends Controller
         return [
             'enabled' => (bool) SiteSetting::getValue('ads_enabled', false),
             'provider' => SiteSetting::getValue('ads_provider_primary', 'adsense'),
+            'client_id' => SiteSetting::getValue('adsense_client_id'),
             'leaderboard_slot' => SiteSetting::getValue('adsense_slot_banner'),
             'sidebar_1_slot' => SiteSetting::getValue('adsense_slot_sidebar_1'),
             'sidebar_2_slot' => SiteSetting::getValue('adsense_slot_sidebar_2'),
@@ -595,7 +603,7 @@ class NewsController extends Controller
         }
 
         // Set type and scope_level based on organization_id
-        if (!empty($validated['organization_id'])) {
+        if (! empty($validated['organization_id'])) {
             $validated['type'] = 'organization';
             $org = Organization::find($validated['organization_id']);
             $validated['scope_level'] = $org ? $org->type : null;
@@ -605,7 +613,7 @@ class NewsController extends Controller
         }
 
         // Auto-publish logic
-        if ($request->status === 'published' && !$validated['published_at']) {
+        if ($request->status === 'published' && ! $validated['published_at']) {
             $validated['published_at'] = now();
         }
 
@@ -672,7 +680,7 @@ class NewsController extends Controller
         // Or if we need to enforce consistency.
         // For admin update, organization_id might be set or null.
         if (array_key_exists('organization_id', $validated)) {
-             if (!empty($validated['organization_id'])) {
+            if (! empty($validated['organization_id'])) {
                 $validated['type'] = 'organization';
                 $org = Organization::find($validated['organization_id']);
                 $validated['scope_level'] = $org ? $org->type : null;
@@ -683,14 +691,14 @@ class NewsController extends Controller
         }
 
         // Handle published_at
-        if ($validated['status'] === 'published' && !$validated['published_at']) {
+        if ($validated['status'] === 'published' && ! $validated['published_at']) {
             $validated['published_at'] = $news->published_at ?? now();
         }
 
         // Handle image upload
         if ($request->hasFile('image')) {
             if ($news->image) {
-                Storage::disk('public')->delete('news/' . $news->image);
+                Storage::disk('public')->delete('news/'.$news->image);
             }
             $path = $request->file('image')->store('news', 'public');
             $validated['image'] = basename($path);
@@ -778,7 +786,7 @@ class NewsController extends Controller
                 $exists->where('id', '!=', $excludeId);
             }
 
-            if (!$exists->exists()) {
+            if (! $exists->exists()) {
                 break;
             }
 

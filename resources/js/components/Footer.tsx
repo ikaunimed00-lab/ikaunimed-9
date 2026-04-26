@@ -14,7 +14,7 @@ const Footer = ({ settings, content }: { settings?: any, content?: any }) => {
       { label: "Direktori Alumni", href: "/alumni" },
       { label: "Karir & Profesional", href: "/karir" },
       { label: "Beasiswa", href: "/beasiswa" },
-      { label: "Skill Upgrading", href: "/skill-upgrading" },
+      { label: "Pengembangan Keahlian", href: "/skill-upgrading" },
       { label: "Kemitraan", href: "/kemitraan" },
       { label: "Kartu Alumni", href: "/kartu-alumni" },
       { label: "E-Voting", href: "/voting" },
@@ -22,7 +22,7 @@ const Footer = ({ settings, content }: { settings?: any, content?: any }) => {
     ],
     informasi: [
       { label: "Kabar Alumni", href: "/kabar-alumni" },
-      { label: "Berita", href: "/berita" },
+      { label: "Berita", href: "/news" },
       { label: "Agenda", href: "/agenda" },
       { label: "Ruang Pengabdian", href: "/pengabdian" },
       { label: "Galeri Foto", href: "/media/foto" },
@@ -35,7 +35,7 @@ const Footer = ({ settings, content }: { settings?: any, content?: any }) => {
       { label: "Direktori Organisasi", href: "/organisasi" },
       { label: "Hubungi Kami & Sekretariat", href: "/hubungi-kami" },
       { label: "Donasi", href: "/donasi" },
-      { label: "Syarat & Ketentuan", href: "/syarat-ketentuan" },
+      { label: "Syarat dan Ketentuan", href: "/syarat-ketentuan" },
       { label: "Kebijakan Privasi", href: "/kebijakan-privasi" },
     ],
   };
@@ -108,7 +108,7 @@ const Footer = ({ settings, content }: { settings?: any, content?: any }) => {
                   <span style={{ color: '#FFD700' }}>MED</span>
                 </div>
                 <span className="text-[8px] text-gray-400 mt-1 uppercase tracking-widest font-medium">
-                  {settings?.general?.site_tagline || "Connect, Collaborate, Contribute"}
+                  {settings?.general?.site_tagline || "Terhubung, Berkolaborasi, Berkontribusi"}
                 </span>
               </div>
             </div>

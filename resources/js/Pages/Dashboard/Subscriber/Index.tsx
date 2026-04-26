@@ -74,7 +74,7 @@ const SubscriberDashboard: React.FC<SubscriberDashboardProps> = ({
           <h2 className="text-3xl font-bold mb-2">Legalisir Dokumen Online</h2>
           <p className="text-emerald-100 mb-6">
             Selamat datang, {user.name}! Kelola pengajuan legalisir dokumen Anda dengan mudah. 
-            Submit pengajuan baru, track status, dan download dokumen yang sudah disetujui.
+            Ajukan legalisir baru, pantau status, dan unduh dokumen yang sudah disetujui.
           </p>
           <div className="flex gap-4">
             <Link
@@ -262,7 +262,7 @@ const SubscriberDashboard: React.FC<SubscriberDashboardProps> = ({
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Tanggal Submit
+                      Tanggal Pengajuan
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                       Aksi
@@ -297,7 +297,7 @@ const SubscriberDashboard: React.FC<SubscriberDashboardProps> = ({
                           onClick={() => handleViewDetail(legalization)}
                           className="text-blue-600 hover:text-blue-900 font-medium"
                         >
-                          Lihat Detail
+                          Lihat detail
                         </button>
                       </td>
                     </tr>

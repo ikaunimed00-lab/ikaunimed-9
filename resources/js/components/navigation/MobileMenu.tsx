@@ -61,7 +61,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                 <span style={{ color: '#FFD700' }}>MED</span>
               </div>
               <span className="text-[8px] text-gray-500 mt-1 font-bold uppercase tracking-widest">
-                Connect, Collaborate, Contribute
+                Terhubung, Berkolaborasi, Berkontribusi
               </span>
             </div>
           </div>
@@ -249,7 +249,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                   >
                     <button className="w-full flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white py-2.5 text-xs font-semibold rounded-lg shadow-sm transition-all duration-200 hover:brightness-105">
                       <LayoutDashboard className="w-4 h-4" />
-                      DASHBOARD ADMIN
+                      Dashboard Admin
                     </button>
                   </a>
                 ) : (
@@ -260,7 +260,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                   >
                     <button className="w-full flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white py-2.5 text-xs font-semibold rounded-lg shadow-sm transition-all duration-200 hover:brightness-105">
                       <LayoutDashboard className="w-4 h-4" />
-                      DASHBOARD
+                      Dashboard
                     </button>
                   </Link>
                 )}
@@ -272,19 +272,19 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                   className="w-full flex items-center justify-center gap-1.5 bg-red-500/90 text-white py-2.5 text-xs font-semibold rounded-lg hover:bg-red-500 transition-all duration-200"
                 >
                   <LogOut className="w-4 h-4" />
-                  LOGOUT
+                  Keluar
                 </button>
               </>
             ) : (
               <div className="grid grid-cols-2 gap-2.5">
                 <Link href="/login" onClick={onClose}>
                   <button className="w-full border border-emerald-600/80 text-emerald-800 bg-white py-2.5 text-xs font-semibold rounded-lg">
-                    LOGIN
+                    Masuk
                   </button>
                 </Link>
                 <Link href="/register" onClick={onClose}>
                   <button className="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 text-white py-2.5 text-xs font-semibold rounded-lg shadow-sm">
-                    DAFTAR
+                    Daftar
                   </button>
                 </Link>
               </div>

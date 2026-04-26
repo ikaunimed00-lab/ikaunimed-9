@@ -1,6 +1,7 @@
 import { Link, usePage, router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import MainLayout from '@/components/MainLayout';
+import { SHOP_COPY } from './copy';
 
 type ProductImage = {
   id: number;
@@ -138,20 +139,20 @@ export default function CartPage() {
       <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="mb-4">
         <Link href={route('shop.index')} className="text-sm text-blue-600">
-          &larr; Kembali ke katalog
+          &larr; {SHOP_COPY.navigation.backToShop}
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-6">Keranjang Belanja</h1>
+      <h1 className="text-2xl font-semibold mb-6">{SHOP_COPY.heading.cart}</h1>
 
       {items.length === 0 ? (
         <div className="bg-white border rounded-lg p-6 text-center">
-          <p className="text-gray-600 mb-4">Keranjang Anda masih kosong.</p>
+          <p className="text-gray-600 mb-4">{SHOP_COPY.message.emptyCart}</p>
           <Link
             href={route('shop.index')}
             className="inline-flex items-center px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
           >
-            Mulai Belanja
+            {SHOP_COPY.cta.browse}
           </Link>
         </div>
       ) : (
@@ -204,7 +205,7 @@ export default function CartPage() {
           </div>
 
           <div className="bg-white border rounded-lg p-6 h-fit">
-            <h2 className="text-lg font-semibold mb-4">Ringkasan</h2>
+            <h2 className="text-lg font-semibold mb-4">{SHOP_COPY.heading.orderSummary}</h2>
             <div className="flex items-center justify-between mb-2 text-sm">
               <span>Subtotal</span>
               <span>Rp {subtotal.toLocaleString('id-ID')}</span>
@@ -231,7 +232,7 @@ export default function CartPage() {
               }}
               className="w-full inline-flex items-center justify-center px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
             >
-              Lanjut ke Checkout (segera)
+              {SHOP_COPY.cta.continueToOrderSummary}
             </button>
           </div>
         </div>

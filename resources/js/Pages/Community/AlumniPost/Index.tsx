@@ -88,7 +88,7 @@ export default function Index({ posts, categories, filters }: Props) {
           <div className="container mx-auto px-4 py-16">
             <h1 className="text-4xl font-bold mb-4">Kabar Alumni</h1>
             <p className="text-emerald-100 text-lg max-w-2xl">
-              Bagikan cerita, prestasi, dan kabar terbaru dari komunitas alumni IKA UNIMED
+              Bagikan cerita, prestasi, dan informasi terbaru komunitas alumni IKA UNIMED.
             </p>
           </div>
         </div>
@@ -102,14 +102,14 @@ export default function Index({ posts, categories, filters }: Props) {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Cari kabar alumni..."
+                  placeholder="Masukkan kata kunci kabar alumni"
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
                 <button
                   type="submit"
                   className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
                 >
-                  Cari
+                  Terapkan Pencarian
                 </button>
               </div>
             </form>
@@ -124,7 +124,7 @@ export default function Index({ posts, categories, filters }: Props) {
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
-                Semua
+                Tampilkan Semua
               </button>
               {Object.entries(categories).map(([key, label]) => (
                 <button
@@ -165,8 +165,8 @@ export default function Index({ posts, categories, filters }: Props) {
               </h3>
               <p className="mt-2 text-gray-500">
                 {filters.search || filters.category
-                  ? "Tidak ada hasil untuk filter yang dipilih"
-                  : "Jadilah yang pertama berbagi kabar!"}
+                  ? "Sesuaikan filter untuk menampilkan hasil."
+                  : "Bagikan kabar pertama untuk komunitas alumni."}
               </p>
             </div>
           ) : (

@@ -65,7 +65,12 @@ class UpdateNewsRequest extends FormRequest
             'video_urls' => 'nullable|array|max:10',
             'video_urls.*' => 'required|url|max:2048',
             'published_at' => 'nullable|date_format:Y-m-d\TH:i',
-            'status' => 'required|in:draft,scheduled,published',
+            // Kontrak status `news` (sinkron dengan Filament NewsForm dan
+            // News::scopePublished). Hanya 2 nilai literal: draft & published.
+            // "Terjadwal" = status=published + published_at di masa depan
+            // (turunan, BUKAN nilai status terpisah). Lihat
+            // documentations/18._opus_4.7/04._news_item_2.md.
+            'status' => 'required|in:draft,published',
         ];
     }
 
@@ -84,6 +89,7 @@ class UpdateNewsRequest extends FormRequest
             'video_urls.max' => 'Maksimal 10 URL video per berita',
             'video_urls.*.url' => 'Format URL video tidak valid',
             'video_urls.*.max' => 'URL video terlalu panjang (maksimal 2048 karakter)',
+            'status.in' => 'Status berita hanya boleh draft atau published',
         ];
     }
 }

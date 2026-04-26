@@ -40,7 +40,7 @@ export default function About({ page, vision }: PageProps) {
 
                     {!page && !vision && (
                         <div className="text-center py-12 text-gray-500">
-                            Konten belum tersedia.
+                            Cek kembali dalam beberapa saat.
                         </div>
                     )}
                 </div>

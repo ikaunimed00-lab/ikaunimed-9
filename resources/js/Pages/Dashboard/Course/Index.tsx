@@ -4,7 +4,7 @@ import { route } from "ziggy-js";
 import AdminLayout from "@/Layouts/AdminLayout";
 import EditorLayout from "@/Layouts/EditorLayout";
 import SubscriberLayout from "@/Layouts/SubscriberLayout";
-import { BookOpen, Users, Percent, Search, Coins } from "lucide-react";
+import { BookOpen, Users, Percent, Search, Coins, Activity, AlertTriangle } from "lucide-react";
 
 interface CourseCategory {
   id: number;
@@ -38,6 +38,16 @@ interface Props {
     average_progress: number;
     total_revenue?: number;
   };
+  healthStats?: {
+    published_courses: number;
+    premium_courses: number;
+    enrollment_new_last_7_days: number;
+    enrollment_completed_last_7_days: number;
+    enrollment_completion_rate_last_7_days: number;
+    webhook_total_last_7_days: number;
+    webhook_error_last_7_days: number;
+    webhook_error_rate_last_7_days: number;
+  } | null;
   categories: CourseCategory[];
   filters: {
     status?: string;
@@ -67,7 +77,7 @@ const statusBadgeClass = (status: string) => {
   return "bg-gray-100 text-gray-800 border-gray-200";
 };
 
-export default function Index({ courses, stats, categories, filters }: Props) {
+export default function Index({ courses, stats, healthStats, categories, filters }: Props) {
   const { auth }: any = usePage().props;
   const role = auth?.user?.role || "subscriber";
   const Layout = role === "admin" ? AdminLayout : role === "editor" ? EditorLayout : SubscriberLayout;
@@ -167,6 +177,55 @@ export default function Index({ courses, stats, categories, filters }: Props) {
             </div>
           </div>
         </div>
+
+        {healthStats && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-5 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Publikasi LMS</div>
+                <div className="text-sm text-gray-800">
+                  Published: <span className="font-semibold">{healthStats.published_courses || 0}</span>, Premium:{" "}
+                  <span className="font-semibold">{healthStats.premium_courses || 0}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-lg p-5 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <Percent className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Enrollment 7 Hari Terakhir</div>
+                <div className="text-sm text-gray-800">
+                  Baru: <span className="font-semibold">{healthStats.enrollment_new_last_7_days || 0}</span>, Selesai:{" "}
+                  <span className="font-semibold">{healthStats.enrollment_completed_last_7_days || 0}</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Completion rate: {healthStats.enrollment_completion_rate_last_7_days || 0}%
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-lg p-5 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Webhook Tripay 7 Hari Terakhir</div>
+                <div className="text-sm text-gray-800">
+                  Total: <span className="font-semibold">{healthStats.webhook_total_last_7_days || 0}</span>, Error:{" "}
+                  <span className="font-semibold">{healthStats.webhook_error_last_7_days || 0}</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Error rate: {healthStats.webhook_error_rate_last_7_days || 0}%
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
           <div className="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">

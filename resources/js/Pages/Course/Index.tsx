@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import MainLayout from '@/components/MainLayout';
-import { Search, GraduationCap, Filter, X, BadgeDollarSign } from 'lucide-react';
+import { Search, GraduationCap, Filter, X, BadgeDollarSign, Lock, ShoppingCart } from 'lucide-react';
 import { route } from 'ziggy-js';
+import { resolveLearnerCoursePrimaryAction, resolveLearnerCoursePrimaryActionUi } from '@/lib/learner-course-cta';
 
 interface CourseCategory {
   id: number;
@@ -18,12 +19,28 @@ interface Course {
   level: string;
   thumbnail?: string;
   is_paid: boolean;
+  requires_premium?: boolean;
   price: string;
   category?: {
     id: number;
     name: string;
     slug: string;
   } | null;
+  enrollment_eligibility?: {
+    is_enrolled: boolean;
+    can_enroll: boolean;
+    requires_premium: boolean;
+    is_premium_member: boolean;
+    is_locked: boolean;
+    reason: string | null;
+  };
+}
+
+interface Product {
+  id: number;
+  slug: string;
+  name: string;
+  price: number | string;
 }
 
 interface Props {
@@ -38,9 +55,11 @@ interface Props {
     level?: string;
     price_type?: string;
   };
+  premiumMembershipProduct?: Product | null;
 }
 
-export default function Index({ courses, categories, filters }: Props) {
+export default function Index({ courses, categories, filters, premiumMembershipProduct }: Props) {
+  const { auth }: any = usePage().props;
   const [search, setSearch] = useState(filters.search || '');
   const [category, setCategory] = useState(filters.category || '');
   const [level, setLevel] = useState(filters.level || '');
@@ -93,10 +112,10 @@ export default function Index({ courses, categories, filters }: Props) {
       <div className="bg-emerald-600 py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Belajar dan Bertumbuh Bersama Alumni
+            Ikuti Kelas Bersama Alumni
           </h1>
           <p className="text-emerald-100 max-w-2xl mx-auto mb-8">
-            Jelajahi kelas online dari alumni dan praktisi untuk mengembangkan karier dan kemampuanmu.
+            Pilih kelas online dari alumni dan praktisi untuk mengembangkan kompetensi profesional.
           </p>
 
           <form
@@ -109,7 +128,7 @@ export default function Index({ courses, categories, filters }: Props) {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari kelas, topik, atau instruktur..."
+                placeholder="Masukkan kelas, topik, atau instruktur"
                 className="w-full border-none focus:ring-0 text-gray-700 placeholder-gray-400"
               />
             </div>
@@ -128,7 +147,7 @@ export default function Index({ courses, categories, filters }: Props) {
               type="submit"
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-md transition-colors"
             >
-              Cari
+              Terapkan Pencarian
             </button>
           </form>
         </div>
@@ -149,7 +168,7 @@ export default function Index({ courses, categories, filters }: Props) {
                     onClick={resetFilters}
                     className="text-xs text-red-500 hover:underline flex items-center"
                   >
-                    <X className="w-3 h-3 mr-1" /> Reset
+                    <X className="w-3 h-3 mr-1" /> Atur Ulang
                   </button>
                 )}
               </div>
@@ -217,13 +236,22 @@ export default function Index({ courses, categories, filters }: Props) {
           <div className="flex-1">
             {courses.data.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {courses.data.map((course) => (
-                  <Link
-                    key={course.id}
-                    href={route('courses.show', course.slug)}
-                    className="group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all flex flex-col h-full"
-                  >
-                    <div className="relative h-44 bg-gray-100 overflow-hidden">
+                {courses.data.map((course) => {
+                  const eligibility = course.enrollment_eligibility;
+                  const isLocked = !!eligibility?.is_locked;
+                  const primaryAction = resolveLearnerCoursePrimaryAction(eligibility, {
+                    fallback: 'view_course',
+                  });
+                  const primaryActionUi = resolveLearnerCoursePrimaryActionUi(primaryAction, {
+                    size: 'card',
+                  });
+
+                  return (
+                    <div
+                      key={course.id}
+                      className="group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all flex flex-col h-full"
+                    >
+                    <Link href={route('courses.show', course.slug)} className="relative block h-44 bg-gray-100 overflow-hidden">
                       {course.thumbnail ? (
                         <img
                           src={`/storage/${course.thumbnail}`}
@@ -249,13 +277,25 @@ export default function Index({ courses, categories, filters }: Props) {
                             Gratis
                           </span>
                         )}
+                        {!course.is_paid && course.requires_premium && (
+                          <span
+                            className={`text-xs font-semibold px-3 py-1 rounded-full inline-flex items-center gap-1 ${
+                              isLocked ? 'bg-amber-100 text-amber-800' : 'bg-amber-50 text-amber-700'
+                            }`}
+                          >
+                            {isLocked && <Lock className="w-3 h-3" />}
+                            {isLocked ? 'Akses Terkunci' : 'Premium'}
+                          </span>
+                        )}
                       </div>
-                    </div>
+                    </Link>
 
                     <div className="p-5 flex-1 flex flex-col">
-                      <h3 className="text-base font-bold text-gray-900 group-hover:text-emerald-600 transition-colors line-clamp-2 mb-2">
-                        {course.title}
-                      </h3>
+                      <Link href={route('courses.show', course.slug)} className="mb-2">
+                        <h3 className="text-base font-bold text-gray-900 group-hover:text-emerald-600 transition-colors line-clamp-2">
+                          {course.title}
+                        </h3>
+                      </Link>
                       {course.category && (
                         <p className="text-xs font-medium text-emerald-700 mb-2">
                           {course.category.name}
@@ -266,22 +306,60 @@ export default function Index({ courses, categories, filters }: Props) {
                       )}
                       <div className="mt-auto flex items-center justify-between text-xs text-gray-500 pt-2">
                         <span>
-                          {course.is_paid ? `Mulai dari Rp ${Number(course.price).toLocaleString('id-ID')}` : 'Kelas gratis untuk alumni'}
+                          {course.is_paid
+                            ? `Mulai dari Rp ${Number(course.price).toLocaleString('id-ID')}`
+                            : course.requires_premium
+                            ? 'Gratis, khusus Premium Member'
+                            : 'Kelas gratis untuk alumni'}
                         </span>
                         <span className="text-emerald-600 font-semibold text-xs group-hover:underline">
                           Lihat detail
                         </span>
                       </div>
+
+                      {isLocked && (
+                        <p className="mt-3 text-xs text-amber-700">
+                          Akses materi dikunci. Upgrade ke Premium Member untuk lanjut belajar.
+                        </p>
+                      )}
+
+                      <div className="mt-4">
+                        {primaryAction === 'upgrade_premium' ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (premiumMembershipProduct?.slug) {
+                                router.post(route('shop.cart.add', premiumMembershipProduct.slug));
+                                return;
+                              }
+
+                              router.visit(route('shop.index'));
+                            }}
+                            className={primaryActionUi.className}
+                          >
+                            {primaryActionUi.showCartIcon && <ShoppingCart className="h-3 w-3" />}
+                            {primaryActionUi.label}
+                          </button>
+                        ) : (
+                          <Link
+                            href={primaryAction === 'login' || !auth?.user ? route('login') : route('courses.show', course.slug)}
+                            className={primaryActionUi.className}
+                          >
+                            {primaryActionUi.label}
+                          </Link>
+                        )}
+                      </div>
                     </div>
-                  </Link>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
                 <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Belum ada kelas tersedia</h3>
                 <p className="text-gray-500">
-                  Kelas pertama sedang disiapkan. Silakan kembali beberapa saat lagi.
+                  Cek kembali dalam beberapa saat.
                 </p>
               </div>
             )}

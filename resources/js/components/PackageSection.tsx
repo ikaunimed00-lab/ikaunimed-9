@@ -86,7 +86,7 @@ const PackageSection = ({ content }: { content?: any }) => {
                         lg:px-8 lg:py-3
                       `}
                     >
-                      lihat detail
+                      Lihat detail
                     </a>
                   </div>
                 </div>

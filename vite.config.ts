@@ -23,6 +23,15 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
+    server: {
+        watch: {
+            ignored: [
+                '**/resources/js/actions/**',
+                '**/resources/js/routes/**',
+                '**/resources/js/wayfinder/**',
+            ],
+        },
+    },
     esbuild: {
         jsx: 'automatic',
     },

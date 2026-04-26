@@ -226,7 +226,7 @@ export default function CheckoutPage() {
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-6">Checkout</h1>
+      <h1 className="text-2xl font-semibold mb-6">Ringkasan Pesanan</h1>
 
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-4">
@@ -392,7 +392,7 @@ export default function CheckoutPage() {
               disabled={processing}
               className="inline-flex items-center px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50"
             >
-              Buat Order
+              Konfirmasi Pesanan
             </button>
           </form>
         </div>

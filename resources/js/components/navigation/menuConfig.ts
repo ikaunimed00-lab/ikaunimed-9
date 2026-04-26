@@ -57,7 +57,7 @@ export interface MainMenuItem {
 export const menuConfig: MainMenuItem[] = [
   {
     id: 'home',
-    label: 'Home',
+    label: 'Beranda',
     href: '/',
     color: {
       main: '#0F766E',
@@ -109,7 +109,7 @@ export const menuConfig: MainMenuItem[] = [
           },
           {
             title: 'Organisasi (PP / DPW / DPC)',
-            description: 'Jaringan organisasi di seluruh Indonesia',
+            description: 'Jaringan organisasi IKA di seluruh Indonesia',
             href: '/organisasi',
             icon: Building2,
           },
@@ -171,7 +171,7 @@ export const menuConfig: MainMenuItem[] = [
   {
     id: 'karir-pengembangan',
     label: 'Karir & Pengembangan',
-    description: 'Peluang karir dan pengembangan kompetensi',
+    description: 'Peluang karier dan pengembangan kompetensi',
     icon: Briefcase,
     color: {
       main: '#E9CF35',
@@ -187,7 +187,7 @@ export const menuConfig: MainMenuItem[] = [
         items: [
           {
             title: 'Lowongan Kerja',
-            description: 'Temukan peluang karir terbaru',
+            description: 'Temukan peluang karier terbaru',
             href: '/lowongan-kerja',
             icon: Search,
           },
@@ -212,13 +212,13 @@ export const menuConfig: MainMenuItem[] = [
           },
           {
             title: 'Kelas & Kursus',
-            description: 'Katalog kelas online dan micro learning',
+            description: 'Katalog kelas daring dan pembelajaran ringkas',
             href: '/courses',
             icon: BookOpen,
           },
           {
             title: 'Micro Learning',
-            description: 'Platform pembelajaran singkat',
+            description: 'Konten pembelajaran singkat untuk pengembangan diri',
             href: '/learning',
             icon: Lightbulb,
           },
@@ -289,7 +289,7 @@ export const menuConfig: MainMenuItem[] = [
         items: [
           {
             title: 'Berita Terkini',
-            description: 'Update terbaru seputar UNIMED',
+            description: 'Informasi terbaru seputar IKA UNIMED dan almamater',
             href: '/news',
             icon: Newspaper,
           },

@@ -6,6 +6,11 @@ use App\Filament\Resources\Shop\OrderResource\Pages;
 use App\Filament\Resources\Shop\OrderResource\RelationManagers\ItemsRelationManager;
 use App\Models\Order;
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
@@ -14,12 +19,8 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 class OrderResource extends Resource
@@ -146,6 +147,15 @@ class OrderResource extends Resource
                     ->label('Total')
                     ->money('idr')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('shipment.courier_name')
+                    ->label('Kurir')
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('shipment.tracking_number')
+                    ->label('No. Resi')
+                    ->placeholder('-')
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime()
@@ -177,6 +187,75 @@ class OrderResource extends Resource
             ->actions([
                 ViewAction::make(),
                 EditAction::make(),
+                Action::make('upsertShipment')
+                    ->label('Input/Update Resi')
+                    ->icon(Heroicon::OutlinedTruck)
+                    ->fillForm(function (Order $record): array {
+                        $shipment = $record->shipment;
+
+                        return [
+                            'courier_name' => $shipment?->courier_name,
+                            'tracking_number' => $shipment?->tracking_number,
+                            'status' => $shipment?->status ?? 'pending',
+                            'shipped_at' => $shipment?->shipped_at,
+                            'delivered_at' => $shipment?->delivered_at,
+                            'shipment_notes' => $shipment?->notes,
+                        ];
+                    })
+                    ->form([
+                        Select::make('status')
+                            ->label('Status Pengiriman')
+                            ->options([
+                                'pending' => 'Pending',
+                                'processing' => 'Diproses',
+                                'shipped' => 'Dikirim',
+                                'delivered' => 'Diterima',
+                                'failed' => 'Gagal',
+                            ])
+                            ->default('pending')
+                            ->required(),
+                        \Filament\Forms\Components\TextInput::make('courier_name')
+                            ->label('Nama Kurir')
+                            ->maxLength(100),
+                        \Filament\Forms\Components\TextInput::make('tracking_number')
+                            ->label('Nomor Resi')
+                            ->maxLength(100),
+                        \Filament\Forms\Components\DateTimePicker::make('shipped_at')
+                            ->label('Waktu Dikirim')
+                            ->seconds(false),
+                        \Filament\Forms\Components\DateTimePicker::make('delivered_at')
+                            ->label('Waktu Diterima')
+                            ->seconds(false),
+                        Textarea::make('shipment_notes')
+                            ->label('Catatan Pengiriman')
+                            ->rows(3)
+                            ->maxLength(1000),
+                    ])
+                    ->action(function (Order $record, array $data): void {
+                        $record->shipment()->updateOrCreate(
+                            [],
+                            [
+                                'courier_name' => $data['courier_name'] ?: null,
+                                'tracking_number' => $data['tracking_number'] ?: null,
+                                'status' => $data['status'],
+                                'shipped_at' => $data['shipped_at'] ?? null,
+                                'delivered_at' => $data['delivered_at'] ?? null,
+                                'notes' => $data['shipment_notes'] ?: null,
+                            ]
+                        );
+
+                        $fulfillmentStatus = match ($data['status']) {
+                            'processing' => 'processing',
+                            'shipped' => 'shipped',
+                            'delivered' => 'completed',
+                            default => 'unfulfilled',
+                        };
+
+                        $record->update([
+                            'fulfillment_status' => $fulfillmentStatus,
+                        ]);
+                    })
+                    ->successNotificationTitle('Data pengiriman berhasil disimpan'),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
@@ -262,6 +341,39 @@ class OrderResource extends Resource
                             ->columnSpanFull()
                             ->placeholder('-'),
                     ]),
+                Section::make('Data Pengiriman')
+                    ->schema([
+                        TextEntry::make('shipment.courier_name')
+                            ->label('Kurir')
+                            ->placeholder('-'),
+                        TextEntry::make('shipment.tracking_number')
+                            ->label('Nomor Resi')
+                            ->placeholder('-'),
+                        TextEntry::make('shipment.status')
+                            ->label('Status Shipment')
+                            ->badge()
+                            ->color(fn (?string $state): string => match ($state) {
+                                'processing' => 'warning',
+                                'shipped' => 'info',
+                                'delivered' => 'success',
+                                'failed' => 'danger',
+                                default => 'gray',
+                            })
+                            ->placeholder('-'),
+                        TextEntry::make('shipment.shipped_at')
+                            ->label('Waktu Dikirim')
+                            ->dateTime()
+                            ->placeholder('-'),
+                        TextEntry::make('shipment.delivered_at')
+                            ->label('Waktu Diterima')
+                            ->dateTime()
+                            ->placeholder('-'),
+                        TextEntry::make('shipment.notes')
+                            ->label('Catatan Pengiriman')
+                            ->columnSpanFull()
+                            ->placeholder('-'),
+                    ])
+                    ->columns(2),
             ]);
     }
 

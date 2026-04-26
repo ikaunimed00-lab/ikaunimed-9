@@ -31,7 +31,7 @@ export default function Show({ scholarship, related }: Props) {
   const flashSuccess = props?.flash?.success as string | undefined;
   const [showForm, setShowForm] = React.useState(false);
   const [showShareOptions, setShowShareOptions] = React.useState(false);
-  const shareText = `Cek beasiswa ini: ${scholarship.title} dari ${scholarship.provider}`;
+  const shareText = `Lihat informasi beasiswa: ${scholarship.title} dari ${scholarship.provider}`;
 
   const { data, setData, post, processing, errors, reset } = useForm<{
     essay: string;
@@ -74,9 +74,9 @@ export default function Show({ scholarship, related }: Props) {
     }
     try {
       await navigator.clipboard.writeText(url);
-      alert('Link telah disalin ke clipboard!');
+      alert('Tautan telah disalin ke clipboard!');
     } catch {
-      const manual = prompt('Salin link ini secara manual:', url);
+      const manual = prompt('Salin tautan ini secara manual:', url);
       if (!manual) {
         // noop
       }
@@ -154,7 +154,7 @@ export default function Show({ scholarship, related }: Props) {
                           if (el) el.scrollIntoView({ behavior: 'smooth' });
                         }}
                       >
-                        Daftar Sekarang
+                        Ajukan Beasiswa
                       </Button>
                     ) : (
                       <Button className="w-full" disabled>
@@ -164,14 +164,14 @@ export default function Show({ scholarship, related }: Props) {
                     {scholarship.link && (
                       <a href={scholarship.link} target="_blank" rel="noopener noreferrer">
                         <Button variant="outline" className="w-full">
-                          Kunjungi Link Resmi
+                          Buka Situs Resmi
                           <ExternalLink className="w-4 h-4 ml-2" />
                         </Button>
                       </a>
                     )}
                     <Button variant="outline" onClick={handleShare} className="w-full">
                         <Share2 className="w-4 h-4 mr-2" />
-                        Bagikan
+                        Bagikan halaman ini
                     </Button>
                     {showShareOptions && (
                       <div className="mt-2 grid grid-cols-2 gap-2">
@@ -224,16 +224,16 @@ export default function Show({ scholarship, related }: Props) {
             <div className="lg:col-span-2 space-y-8">
                 {showForm && authUser && scholarship.status === 'active' && (
                   <section id="form-pendaftaran" className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 border-b pb-2">Form Pendaftaran</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-6 border-b pb-2">Lengkapi Formulir Pendaftaran</h2>
                     <form onSubmit={onSubmit} className="space-y-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Essay</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Esai</label>
                         <textarea
                           className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           rows={6}
                           value={data.essay}
                           onChange={(e) => setData('essay', e.target.value)}
-                          placeholder="Tuliskan motivasi dan rencana studi Anda..."
+                          placeholder="Tuliskan motivasi dan rencana studi secara ringkas"
                         />
                         {errors.essay && <p className="text-sm text-red-600 mt-1">{errors.essay}</p>}
                       </div>
@@ -249,7 +249,7 @@ export default function Show({ scholarship, related }: Props) {
                       </div>
                       <div className="flex items-center gap-3">
                         <Button type="submit" disabled={processing} className="bg-emerald-600 hover:bg-emerald-700">
-                          {processing ? 'Mengirim...' : 'Kirim Lamaran'}
+                          {processing ? 'Memproses...' : 'Kirim Pengajuan'}
                         </Button>
                         <Button
                           type="button"
@@ -263,7 +263,7 @@ export default function Show({ scholarship, related }: Props) {
                   </section>
                 )}
                 <section className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 border-b pb-2">Deskripsi Beasiswa</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-6 border-b pb-2">Pelajari Detail Beasiswa</h2>
                     <div 
                         className="prose prose-blue max-w-none text-gray-600"
                         dangerouslySetInnerHTML={{ __html: scholarship.description }}
@@ -275,7 +275,7 @@ export default function Show({ scholarship, related }: Props) {
             <div className="space-y-8">
                 {related.length > 0 && (
                     <section>
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">Beasiswa Sejenis</h3>
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">Lihat Beasiswa Serupa</h3>
                         <div className="space-y-4">
                             {related.map((item) => (
                                 <Link 

@@ -87,7 +87,7 @@ export default function Contact({ page }: PageProps) {
                         <form className="space-y-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Nama Lengkap</Label>
-                                <Input id="name" placeholder="Nama Anda" />
+                                <Input id="name" placeholder="Masukkan nama lengkap" />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Email</Label>
@@ -95,11 +95,11 @@ export default function Contact({ page }: PageProps) {
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="subject">Subjek</Label>
-                                <Input id="subject" placeholder="Perihal pesan" />
+                                <Input id="subject" placeholder="Masukkan subjek pesan" />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="message">Pesan</Label>
-                                <Textarea id="message" placeholder="Tulis pesan Anda di sini..." className="min-h-[120px]" />
+                                <Textarea id="message" placeholder="Tuliskan pesan secara ringkas" className="min-h-[120px]" />
                             </div>
                             <Button className="w-full bg-[#00A69D] hover:bg-[#00897B]">Kirim Pesan</Button>
                         </form>

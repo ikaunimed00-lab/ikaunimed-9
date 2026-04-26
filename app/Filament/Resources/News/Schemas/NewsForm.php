@@ -7,11 +7,11 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
 
@@ -39,18 +39,25 @@ class NewsForm
                             ->relationship('organization', 'name')
                             ->searchable()
                             ->preload(false)
-                            ->hidden(fn () => !auth()->user()->isCentralAdmin() && !auth()->user()->isPpAdmin())
+                            ->hidden(fn () => ! auth()->user()->isCentralAdmin() && ! auth()->user()->isPpAdmin())
                             ->default(fn () => auth()->user()->organization_id),
+                        // Kontrak status `news` (sinkron dengan News::scopePublished di Model
+                        // dan StoreNewsRequest/UpdateNewsRequest). Hanya 2 nilai literal:
+                        //   - draft     → tidak tayang
+                        //   - published → tayang bila published_at <= now(); bila
+                        //                 published_at > now() = "Terjadwal" (turunan,
+                        //                 bukan nilai status terpisah). Lihat
+                        //                 documentations/18._opus_4.7/04._news_item_2.md.
                         Select::make('status')
                             ->options([
                                 'draft' => 'Draft',
-                                'review' => 'Review',
                                 'published' => 'Published',
                             ])
                             ->required()
                             ->default('draft'),
                         DateTimePicker::make('published_at')
                             ->label('Tanggal Publikasi')
+                            ->helperText('Isi waktu tayang. Jika diisi waktu di masa depan, berita berstatus "Terjadwal" dan otomatis tayang saat waktunya tiba.')
                             ->visible(fn (Get $get) => $get('status') === 'published'),
                     ])->columns(2),
 

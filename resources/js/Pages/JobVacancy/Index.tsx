@@ -63,10 +63,10 @@ export default function Index({ vacancies, filters, alumniStats }: Props) {
       <div className="bg-emerald-600 py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Temukan Karir Impianmu
+            Telusuri Lowongan Karier
           </h1>
           <p className="text-emerald-100 max-w-2xl mx-auto mb-8">
-            Jelajahi peluang karir terbaru dari jaringan alumni dan mitra IKA UNIMED.
+            Pilih lowongan terbaru dari jaringan alumni dan mitra IKA UNIMED.
           </p>
 
           <form onSubmit={handleSearch} className="max-w-3xl mx-auto bg-white p-2 rounded-lg shadow-lg flex flex-col md:flex-row gap-2">
@@ -76,7 +76,7 @@ export default function Index({ vacancies, filters, alumniStats }: Props) {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari posisi, perusahaan, atau lokasi..."
+                placeholder="Masukkan posisi, perusahaan, atau lokasi"
                 className="w-full border-none focus:ring-0 text-gray-700 placeholder-gray-400"
               />
             </div>
@@ -96,7 +96,7 @@ export default function Index({ vacancies, filters, alumniStats }: Props) {
               type="submit"
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-md transition-colors"
             >
-              Cari
+              Terapkan Pencarian
             </button>
           </form>
         </div>
@@ -121,7 +121,7 @@ export default function Index({ vacancies, filters, alumniStats }: Props) {
               href={route('alumni.directory', { status_pekerjaan: 'mencari_kerja' })}
               className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors text-xs md:text-sm"
             >
-              Lihat Alumni Open to Work
+              Tinjau Alumni Open to Work
             </Link>
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function Index({ vacancies, filters, alumniStats }: Props) {
                     href={route('jobs.index')}
                     className="text-xs text-red-500 hover:underline flex items-center"
                   >
-                    <X className="w-3 h-3 mr-1" /> Reset
+                    <X className="w-3 h-3 mr-1" /> Atur Ulang
                   </Link>
                 )}
               </div>
@@ -232,7 +232,7 @@ export default function Index({ vacancies, filters, alumniStats }: Props) {
                 <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Tidak ada lowongan ditemukan</h3>
                 <p className="text-gray-500 mb-6">
-                  Coba ubah kata kunci pencarian atau filter Anda.
+                  Sesuaikan kata kunci pencarian atau filter.
                 </p>
                 <button
                   onClick={() => {
@@ -242,7 +242,7 @@ export default function Index({ vacancies, filters, alumniStats }: Props) {
                   }}
                   className="text-emerald-600 font-medium hover:underline"
                 >
-                  Reset Pencarian
+                  Atur Ulang Pencarian
                 </button>
               </div>
             )}

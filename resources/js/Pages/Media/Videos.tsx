@@ -41,7 +41,7 @@ export default function Videos({ videos }: Props) {
             <MainLayout>
                  <Head title="Video Berita" />
                 <div className="container mx-auto px-4 py-12 text-center text-gray-500">
-                    <p>Data video tidak tersedia saat ini.</p>
+                    <p>Cek kembali dalam beberapa saat.</p>
                 </div>
             </MainLayout>
         );
@@ -53,7 +53,7 @@ export default function Videos({ videos }: Props) {
             <div className="container mx-auto px-4 py-12">
                  <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">Galeri Video</h1>
-                    <p className="text-gray-600 mt-2">Kumpulan berita yang memiliki konten video.</p>
+                    <p className="text-gray-600 mt-2">Tonton dokumentasi video dari berita terbit.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -92,7 +92,7 @@ export default function Videos({ videos }: Props) {
 
                                     {item.video_urls.length > 1 && (
                                         <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                                            +{item.video_urls.length - 1} Video Lainnya
+                                            +{item.video_urls.length - 1} Video Tambahan
                                         </div>
                                     )}
                                 </Link>
@@ -114,7 +114,7 @@ export default function Videos({ videos }: Props) {
                                             href={route('news.show', item.slug)}
                                             className="text-xs font-medium text-green-600 hover:text-green-700"
                                         >
-                                            Tonton Video →
+                                            Buka Video →
                                         </Link>
                                     </div>
                                 </div>

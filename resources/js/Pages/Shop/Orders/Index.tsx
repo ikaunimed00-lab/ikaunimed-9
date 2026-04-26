@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import MainLayout from '@/components/MainLayout';
+import { SHOP_COPY } from '../copy';
 
 type Order = {
   id: number;
@@ -90,22 +91,22 @@ export default function OrdersIndex() {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-4">
         <Link href={route('shop.index')} className="text-sm text-blue-600">
-          &larr; Kembali ke katalog
+          &larr; {SHOP_COPY.navigation.backToShop}
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-6">Riwayat Pesanan</h1>
+      <h1 className="text-2xl font-semibold mb-6">{SHOP_COPY.heading.orderHistory}</h1>
 
       {items.length === 0 ? (
         <div className="bg-white border rounded-lg p-6 text-center">
           <p className="text-gray-600 mb-4">
-            Anda belum memiliki pesanan.
+            {SHOP_COPY.message.noOrders}
           </p>
           <Link
             href={route('shop.index')}
             className="inline-flex items-center px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
           >
-            Mulai Belanja
+            {SHOP_COPY.cta.browse}
           </Link>
         </div>
       ) : (
@@ -154,6 +155,11 @@ export default function OrdersIndex() {
                   <div className="font-semibold text-primary-600">
                     Total Rp {formatRupiah(order.grand_total)}
                   </div>
+                </div>
+                <div className="mt-3 text-right">
+                  <span className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+                    {SHOP_COPY.cta.viewOrderDetail}
+                  </span>
                 </div>
               </Link>
             );

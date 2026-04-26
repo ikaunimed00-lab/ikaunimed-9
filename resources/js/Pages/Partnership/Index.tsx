@@ -123,7 +123,7 @@ export default function Index({ partnerships, filters }: Props) {
                   <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
                      <div className="text-sm text-gray-500 flex items-center">
                         <Globe className="w-4 h-4 mr-1" />
-                        Website
+                        Situs
                      </div>
                      <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-emerald-600" />
                   </div>

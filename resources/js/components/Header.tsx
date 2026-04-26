@@ -197,7 +197,7 @@ const Header = () => {
               href="/"
               className="px-4 py-2 text-sm font-semibold text-gray-700 hover:text-primary transition-colors rounded-lg hover:bg-gray-50"
             >
-              Home
+              Beranda
             </Link>
 
             {/* Kelas & Kursus Link */}
@@ -355,7 +355,7 @@ const Header = () => {
                       className="flex items-center gap-2 bg-gradient-to-r from-oxygen-teal to-[#00C2B6] hover:to-oxygen-teal text-white text-sm px-6 py-2.5 font-extrabold rounded-full shadow-[0_4px_14px_0_rgba(0,166,157,0.39)] transition-all duration-300 transform hover:scale-105"
                     >
                       <LayoutDashboard className="w-4 h-4" />
-                      DASHBOARD
+                      Dashboard
                     </Button>
                   </a>
                 ) : (
@@ -364,7 +364,7 @@ const Header = () => {
                       className="flex items-center gap-2 bg-gradient-to-r from-oxygen-teal to-[#00C2B6] hover:to-oxygen-teal text-white text-sm px-6 py-2.5 font-extrabold rounded-full shadow-[0_4px_14px_0_rgba(0,166,157,0.39)] transition-all duration-300 transform hover:scale-105"
                     >
                       <LayoutDashboard className="w-4 h-4" />
-                      DASHBOARD
+                      Dashboard
                     </Button>
                   </Link>
                 )}
@@ -383,7 +383,7 @@ const Header = () => {
                   <Button 
                     className="bg-gradient-to-r from-oxygen-teal to-[#00C2B6] hover:to-oxygen-teal text-white text-sm px-6 py-2.5 font-extrabold rounded-full shadow-[0_4px_14px_0_rgba(0,166,157,0.39)] transition-all duration-300 transform hover:scale-105"
                   >
-                    DAFTAR
+                    Daftar
                   </Button>
                 </Link>
                 
@@ -392,7 +392,7 @@ const Header = () => {
                     variant="outline" 
                     className="bg-white border-2 border-primary text-primary hover:bg-primary hover:text-white text-sm px-6 py-2.5 font-extrabold rounded-full transition-all duration-300 shadow-sm"
                   >
-                    LOGIN
+                    Masuk
                   </Button>
                 </Link>
               </>
@@ -417,7 +417,7 @@ const Header = () => {
           <nav className="container py-6 space-y-2">
             <Link href="/" className="flex items-center px-4 py-3 text-gray-800 bg-slate-50 rounded-xl font-bold">
               <Home className="w-5 h-5 mr-3 text-primary" />
-              Home
+              Beranda
             </Link>
             
             {megaMenuData.map((menu) => {
@@ -475,14 +475,14 @@ const Header = () => {
                     <a href="/admin">
                       <Button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-oxygen-teal to-[#00C2B6] text-white py-4 font-extrabold rounded-xl">
                         <LayoutDashboard className="w-5 h-5" />
-                        DASHBOARD
+                        Dashboard
                       </Button>
                     </a>
                   ) : (
                     <Link href={user.role === 'subscriber' ? '/dashboard/subscriber' : '/dashboard'}>
                       <Button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-oxygen-teal to-[#00C2B6] text-white py-4 font-extrabold rounded-xl">
                         <LayoutDashboard className="w-5 h-5" />
-                        DASHBOARD
+                        Dashboard
                       </Button>
                     </Link>
                   )}
@@ -491,16 +491,16 @@ const Header = () => {
                     className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-4 font-extrabold rounded-xl hover:bg-red-600 cursor-pointer"
                   >
                     <LogOut className="w-5 h-5" />
-                    LOGOUT
+                    Keluar
                   </Button>
                 </>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   <Link href="/login">
-                    <Button variant="outline" className="w-full border-2 border-primary text-primary py-4 font-extrabold rounded-xl bg-white">LOGIN</Button>
+                    <Button variant="outline" className="w-full border-2 border-primary text-primary py-4 font-extrabold rounded-xl bg-white">Masuk</Button>
                   </Link>
                   <Link href="/register">
-                    <Button className="w-full bg-gradient-to-r from-oxygen-teal to-[#00C2B6] text-white py-4 font-extrabold rounded-xl">DAFTAR</Button>
+                    <Button className="w-full bg-gradient-to-r from-oxygen-teal to-[#00C2B6] text-white py-4 font-extrabold rounded-xl">Daftar</Button>
                   </Link>
                 </div>
               )}

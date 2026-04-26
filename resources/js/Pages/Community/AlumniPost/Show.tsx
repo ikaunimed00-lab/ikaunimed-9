@@ -67,11 +67,11 @@ export default function Show({ post, relatedPosts }: Props) {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(window.location.href);
-    alert('Link berhasil disalin!');
+    alert('Tautan berhasil disalin!');
   };
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const shareText = `Baca kabar alumni ini: ${post.title}`;
+  const shareText = `Baca informasi alumni berikut: ${post.title}`;
 
   return (
     <MainLayout variant="full">
@@ -154,14 +154,14 @@ export default function Show({ post, relatedPosts }: Props) {
                       />
                       {/* Helper text if map is not showing correctly */}
                       <p className="text-xs text-gray-400 mt-2 italic">
-                        * Jika peta tidak muncul, pastikan Anda menggunakan kode embed iframe dari Google Maps.
+                        * Gunakan kode embed iframe dari Google Maps jika peta tidak tampil.
                       </p>
                     </div>
                   )}
 
                   <div className="mt-8 pt-8 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <p className="text-sm text-gray-500">
-                      Bagikan kabar ini:
+                      Bagikan halaman ini
                     </p>
                     <div className="flex gap-2 flex-wrap justify-center">
                       <a
@@ -169,7 +169,7 @@ export default function Show({ post, relatedPosts }: Props) {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors"
-                        title="Share to Facebook"
+                        title="Bagikan ke Facebook"
                       >
                         <Facebook className="w-5 h-5" />
                       </a>
@@ -178,7 +178,7 @@ export default function Show({ post, relatedPosts }: Props) {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 text-sky-500 bg-sky-50 hover:bg-sky-100 rounded-full transition-colors"
-                        title="Share to Twitter"
+                        title="Bagikan ke X"
                       >
                         <Twitter className="w-5 h-5" />
                       </a>
@@ -187,7 +187,7 @@ export default function Show({ post, relatedPosts }: Props) {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors"
-                        title="Share to LinkedIn"
+                        title="Bagikan ke LinkedIn"
                       >
                         <Linkedin className="w-5 h-5" />
                       </a>
@@ -196,7 +196,7 @@ export default function Show({ post, relatedPosts }: Props) {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-full transition-colors"
-                        title="Share to WhatsApp"
+                        title="Bagikan ke WhatsApp"
                       >
                         <Share2 className="w-5 h-5" />
                       </a>
@@ -205,20 +205,20 @@ export default function Show({ post, relatedPosts }: Props) {
                       <button 
                         onClick={() => {
                              navigator.clipboard.writeText(shareUrl);
-                             alert('Link berhasil disalin! Anda bisa menempelkannya di Instagram/TikTok.');
+                             alert('Tautan berhasil disalin! Anda bisa menempelkannya di Instagram/TikTok.');
                         }}
                         className="p-2 text-pink-600 bg-pink-50 hover:bg-pink-100 rounded-full transition-colors"
-                        title="Copy Link for Instagram"
+                        title="Salin tautan untuk Instagram"
                       >
                         <Instagram className="w-5 h-5" />
                       </button>
                       <button 
                         onClick={() => {
                             navigator.clipboard.writeText(shareUrl);
-                            alert('Link berhasil disalin! Anda bisa menempelkannya di TikTok.');
+                            alert('Tautan berhasil disalin! Anda bisa menempelkannya di TikTok.');
                         }}
                         className="p-2 text-black bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
-                        title="Copy Link for TikTok"
+                        title="Salin tautan untuk TikTok"
                       >
                         <TiktokIcon className="w-5 h-5" />
                       </button>
@@ -226,7 +226,7 @@ export default function Show({ post, relatedPosts }: Props) {
                       <button 
                         onClick={copyToClipboard}
                         className="p-2 text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors"
-                        title="Copy Link"
+                        title="Salin tautan"
                       >
                         <Copy className="w-5 h-5" />
                       </button>
@@ -275,7 +275,7 @@ export default function Show({ post, relatedPosts }: Props) {
                     href={route('alumni-posts.index')}
                     className="block w-full text-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                   >
-                    Lihat Semua Kabar
+                    Lihat Seluruh Kabar
                   </Link>
                 </div>
               </div>

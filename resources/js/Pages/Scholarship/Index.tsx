@@ -61,10 +61,10 @@ export default function Index({ scholarships, filters }: Props) {
       <div className="bg-blue-600 py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Raih Pendidikan Lebih Tinggi
+            Telusuri Informasi Beasiswa
           </h1>
           <p className="text-blue-100 max-w-2xl mx-auto mb-8">
-            Temukan berbagai peluang beasiswa untuk melanjutkan studi S1, S2, S3, maupun program non-degree.
+            Pilih peluang beasiswa untuk studi S1, S2, S3, maupun program non-degree.
           </p>
 
           <form onSubmit={handleSearch} className="max-w-3xl mx-auto bg-white p-2 rounded-lg shadow-lg flex flex-col md:flex-row gap-2">
@@ -74,7 +74,7 @@ export default function Index({ scholarships, filters }: Props) {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari beasiswa atau pemberi..."
+                placeholder="Masukkan beasiswa atau pemberi"
                 className="w-full border-none focus:ring-0 text-gray-700 placeholder-gray-400"
               />
             </div>
@@ -94,7 +94,7 @@ export default function Index({ scholarships, filters }: Props) {
               type="submit"
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-md transition-colors"
             >
-              Cari
+              Terapkan Pencarian
             </button>
           </form>
         </div>
@@ -141,7 +141,7 @@ export default function Index({ scholarships, filters }: Props) {
                     </span>
                     <div className="flex items-center">
                         <Calendar className="w-3 h-3 mr-1" />
-                        Deadline: {formatDate(item.deadline)}
+                        Batas: {formatDate(item.deadline)}
                     </div>
                   </div>
                 </div>
@@ -153,7 +153,7 @@ export default function Index({ scholarships, filters }: Props) {
             <GraduationCap className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Belum ada informasi beasiswa</h3>
             <p className="text-gray-500">
-              Silakan periksa kembali nanti atau coba kata kunci lain.
+              Cek kembali nanti atau sesuaikan kata kunci.
             </p>
           </div>
         )}

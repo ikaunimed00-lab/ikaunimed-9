@@ -16,7 +16,7 @@ export const HeaderEnterprise: React.FC<HeaderProps> = ({
   currentPath = '/',
   logoUrl = '/images/favicon_ikaunimed.png',
   siteName = 'IKA UNIMED',
-  tagline = 'Connect, Collaborate, Contribute',
+  tagline = 'Terhubung, Berkolaborasi, Berkontribusi',
 }) => {
   const [openMegaMenu, setOpenMegaMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -197,7 +197,7 @@ export const HeaderEnterprise: React.FC<HeaderProps> = ({
                     >
                       <button className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm px-5 py-2.5 font-extrabold rounded-full shadow-[0_4px_14px_rgba(5,150,105,0.35)] transition-all duration-300 hover:scale-105">
                         <LayoutDashboard className="w-4 h-4" />
-                        DASHBOARD
+                        Dashboard
                       </button>
                     </Link>
                     <button
@@ -211,12 +211,12 @@ export const HeaderEnterprise: React.FC<HeaderProps> = ({
                   <>
                     <Link href="/register">
                       <button className="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm px-5 py-2.5 font-extrabold rounded-full shadow-[0_4px_14px_rgba(5,150,105,0.35)] transition-all duration-300 hover:scale-105">
-                        DAFTAR
+                        Daftar
                       </button>
                     </Link>
                     <Link href="/login">
                       <button className="bg-white border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-600 hover:text-white text-sm px-5 py-2.5 font-extrabold rounded-full transition-all duration-300 shadow-sm">
-                        LOGIN
+                        Masuk
                       </button>
                     </Link>
                   </>

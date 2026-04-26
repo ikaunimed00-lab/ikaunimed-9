@@ -3,11 +3,9 @@
 namespace App\Filament\Resources\Users\Schemas;
 
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -38,7 +36,8 @@ class UserForm
                             ->required(fn (string $operation): bool => $operation === 'create')
                             ->maxLength(255),
                         Select::make('role')
-                            ->label('Role Akses')
+                            ->label('Role Utama (Legacy)')
+                            ->helperText('Peran tunggal yang dipakai sistem lama (kolom users.role). Akan otomatis disinkronkan ke "Role Sistem" jika user belum punya role multi.')
                             ->options([
                                 'admin' => 'Admin',
                                 'editor' => 'Editor',
@@ -48,7 +47,8 @@ class UserForm
                             ->required()
                             ->default('subscriber'),
                         Select::make('roles')
-                            ->label('Role Spatie')
+                            ->label('Role Sistem (Multi-Role)')
+                            ->helperText('Daftar peran aktif user untuk authorization (Spatie). Sumber kebenaran utama untuk hak akses & permission. Bisa lebih dari satu role.')
                             ->multiple()
                             ->relationship('roles', 'name')
                             ->preload()
@@ -57,6 +57,7 @@ class UserForm
                         Select::make('organization_id')
                             ->relationship('organization', 'name')
                             ->label('Organisasi / Daerah')
+                            ->helperText('Scope wilayah user. Kosongkan untuk Admin Pusat (akses nasional). Pilih organisasi untuk Admin/Editor/Writer cabang atau wilayah.')
                             ->searchable()
                             ->preload(false)
                             ->visible(fn () => auth()->user()?->isCentralAdmin()),

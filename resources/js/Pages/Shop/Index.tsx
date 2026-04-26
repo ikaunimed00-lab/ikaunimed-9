@@ -2,6 +2,7 @@ import { Link, usePage, router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { useState } from 'react';
 import MainLayout from '@/components/MainLayout';
+import { SHOP_COPY } from './copy';
 
 type ProductImage = {
   id: number;
@@ -29,6 +30,12 @@ type PaginatedProducts = {
 };
 
 type PageProps = {
+  auth: {
+    user: {
+      id: number;
+      roles: string[];
+    } | null;
+  };
   products: PaginatedProducts;
   filters: {
     search?: string;
@@ -42,12 +49,16 @@ type PageProps = {
 };
 
 export default function ShopIndex() {
-  const { products, filters, categories } = usePage<PageProps>().props;
+  const { auth, products, filters, categories } = usePage<PageProps>().props;
 
   const [search, setSearch] = useState(filters.search || '');
   const [category, setCategory] = useState(filters.category || '');
 
   const items = products.data ?? [];
+  const canAddToCart =
+    !!auth?.user &&
+    Array.isArray(auth.user.roles) &&
+    auth.user.roles.includes('subscriber');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +104,7 @@ export default function ShopIndex() {
   return (
     <MainLayout variant="full">
       <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-semibold mb-6">Toko IKA UNIMED</h1>
+      <h1 className="text-2xl font-semibold mb-6">{SHOP_COPY.heading.shop}</h1>
 
       <form
         onSubmit={handleSubmit}
@@ -170,16 +181,25 @@ export default function ShopIndex() {
                 <div className="font-bold text-primary-600 mt-1 mb-3">
                   Rp {Number(product.price).toLocaleString('id-ID')}
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    router.post(route('shop.cart.add', product.slug));
-                  }}
-                  className="mt-auto inline-flex items-center justify-center px-3 py-2 rounded-md bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
-                >
-                  Tambah ke Keranjang
-                </button>
+                {canAddToCart ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      router.post(route('shop.cart.add', product.slug));
+                    }}
+                    className="mt-auto inline-flex items-center justify-center px-3 py-2 rounded-md bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
+                  >
+                    {SHOP_COPY.cta.addToCart}
+                  </button>
+                ) : (
+                  <Link
+                    href={route('login')}
+                    className="mt-auto inline-flex items-center justify-center px-3 py-2 rounded-md bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
+                  >
+                    {SHOP_COPY.cta.loginToShop}
+                  </Link>
+                )}
               </div>
             </Link>
           );

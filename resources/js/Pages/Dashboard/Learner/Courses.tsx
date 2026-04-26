@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import SubscriberLayout from "@/Layouts/SubscriberLayout";
-import { BookOpen, Percent } from "lucide-react";
+import { BookOpen, Lock, Percent, ShoppingCart } from "lucide-react";
+import { resolveLearnerCoursePrimaryAction, resolveLearnerCoursePrimaryActionUi } from "@/lib/learner-course-cta";
 
 interface Course {
     id: number;
@@ -10,6 +11,16 @@ interface Course {
     slug: string;
     level?: string;
     status: string;
+    requires_premium?: boolean;
+}
+
+interface EnrollmentEligibility {
+    requires_premium: boolean;
+    is_premium_member: boolean;
+    is_locked: boolean;
+    is_enrolled?: boolean;
+    can_enroll?: boolean;
+    reason: string | null;
 }
 
 interface Enrollment {
@@ -19,6 +30,14 @@ interface Enrollment {
     completed_at?: string | null;
     progress_percentage?: number | null;
     course: Course;
+    enrollment_eligibility?: EnrollmentEligibility;
+}
+
+interface Product {
+    id: number;
+    slug: string;
+    name: string;
+    price: number | string;
 }
 
 interface EnrollmentPagination {
@@ -38,6 +57,7 @@ interface Props {
     filters: {
         status?: string;
     };
+    premiumMembershipProduct?: Product | null;
     lmsRoles: {
         instructor: boolean;
         learner: boolean;
@@ -57,7 +77,7 @@ const statusBadgeClass = (status: string) => {
     return "bg-gray-100 text-gray-800 border-gray-200";
 };
 
-export default function LearnerCourses({ enrollments, stats, filters }: Props) {
+export default function LearnerCourses({ enrollments, stats, filters, premiumMembershipProduct }: Props) {
     const { flash }: any = usePage().props;
     const [cancellingId, setCancellingId] = useState<number | null>(null);
     const [status, setStatus] = useState(filters.status || "");
@@ -233,7 +253,7 @@ export default function LearnerCourses({ enrollments, stats, filters }: Props) {
                             )}
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
+                        <div className="hidden md:block overflow-x-auto">
                             <table className="min-w-full text-sm text-gray-700">
                                 <thead className="bg-gray-50 border-b border-gray-200">
                                     <tr>
@@ -247,15 +267,41 @@ export default function LearnerCourses({ enrollments, stats, filters }: Props) {
                                     {enrollments.data.map((enrollment) => {
                                         const progress = enrollment.progress_percentage ?? 0;
                                         const course = enrollment.course;
+                                        const isLocked = !!enrollment.enrollment_eligibility?.is_locked;
+                                        const primaryAction = resolveLearnerCoursePrimaryAction(
+                                            enrollment.enrollment_eligibility,
+                                            { fallback: "continue_learning" },
+                                        );
+                                        const primaryActionUi = resolveLearnerCoursePrimaryActionUi(primaryAction, {
+                                            size: "table",
+                                        });
                                         return (
                                             <tr key={enrollment.id} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4">
                                                     <div className="font-semibold text-gray-900">
                                                         {course?.title || "Kursus"}
                                                     </div>
-                                                    {course?.level && (
-                                                        <div className="mt-1 text-xs inline-flex px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
-                                                            {course.level}
+                                                    <div className="mt-1 flex items-center gap-2">
+                                                        {course?.level && (
+                                                            <div className="text-xs inline-flex px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                                                                {course.level}
+                                                            </div>
+                                                        )}
+                                                        {isLocked && (
+                                                            <div className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                                                                <Lock className="h-3 w-3" />
+                                                                Akses Terkunci
+                                                            </div>
+                                                        )}
+                                                        {course?.requires_premium && !isLocked && (
+                                                            <div className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                                                                Premium
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {isLocked && (
+                                                        <div className="mt-2 text-xs text-amber-700">
+                                                            Akses materi dikunci. Upgrade ke Premium Member untuk lanjut belajar.
                                                         </div>
                                                     )}
                                                 </td>
@@ -283,12 +329,30 @@ export default function LearnerCourses({ enrollments, stats, filters }: Props) {
                                                 </td>
                                                 <td className="px-6 py-4 text-right space-x-2">
                                                     {course?.slug && (
-                                                        <Link
-                                                            href={route("courses.show", course.slug)}
-                                                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
-                                                        >
-                                                            Lanjut Belajar
-                                                        </Link>
+                                                        primaryAction === "upgrade_premium" ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (premiumMembershipProduct?.slug) {
+                                                                        router.post(route("shop.cart.add", premiumMembershipProduct.slug));
+                                                                        return;
+                                                                    }
+
+                                                                    router.visit(route("shop.index"));
+                                                                }}
+                                                                className={primaryActionUi.className}
+                                                            >
+                                                                {primaryActionUi.showCartIcon && <ShoppingCart className="h-3 w-3" />}
+                                                                {primaryActionUi.label}
+                                                            </button>
+                                                        ) : (
+                                                            <Link
+                                                                href={primaryAction === "login" ? route("login") : route("courses.show", course.slug)}
+                                                                className={primaryActionUi.className}
+                                                            >
+                                                                {primaryActionUi.label}
+                                                            </Link>
+                                                        )
                                                     )}
                                                     {enrollment.status === "active" && (
                                                         <button
@@ -308,6 +372,121 @@ export default function LearnerCourses({ enrollments, stats, filters }: Props) {
                                     })}
                                 </tbody>
                             </table>
+                        </div>
+                    )}
+
+                    {enrollments.data.length > 0 && (
+                        <div className="md:hidden px-4 py-4 space-y-3 border-t border-gray-100">
+                            {enrollments.data.map((enrollment) => {
+                                const progress = enrollment.progress_percentage ?? 0;
+                                const course = enrollment.course;
+                                const isLocked = !!enrollment.enrollment_eligibility?.is_locked;
+                                const primaryAction = resolveLearnerCoursePrimaryAction(
+                                    enrollment.enrollment_eligibility,
+                                    { fallback: "continue_learning" },
+                                );
+                                const primaryActionUi = resolveLearnerCoursePrimaryActionUi(primaryAction, {
+                                    size: "mobile",
+                                });
+
+                                return (
+                                    <div key={`mobile-${enrollment.id}`} className="rounded-xl border border-gray-200 p-4 bg-white space-y-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <div className="font-semibold text-gray-900 truncate">
+                                                    {course?.title || "Kursus"}
+                                                </div>
+                                                <div className="mt-1 flex items-center gap-2 flex-wrap">
+                                                    {course?.level && (
+                                                        <div className="text-[10px] inline-flex px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                                                            {course.level}
+                                                        </div>
+                                                    )}
+                                                    {isLocked && (
+                                                        <div className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                                                            <Lock className="h-3 w-3" />
+                                                            Akses Terkunci
+                                                        </div>
+                                                    )}
+                                                    {course?.requires_premium && !isLocked && (
+                                                        <div className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                                                            Premium
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <span
+                                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusBadgeClass(
+                                                    enrollment.status
+                                                )}`}
+                                            >
+                                                {statusLabel(enrollment.status)}
+                                            </span>
+                                        </div>
+
+                                        {isLocked && (
+                                            <div className="text-xs text-amber-700">
+                                                Akses materi dikunci. Upgrade ke Premium Member untuk lanjut belajar.
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <div className="text-xs text-gray-600 mb-1">Progres</div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-sm font-semibold text-gray-900">{progress}%</div>
+                                                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-emerald-500"
+                                                        style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2 flex-wrap">
+                                            {course?.slug && (
+                                                primaryAction === "upgrade_premium" ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (premiumMembershipProduct?.slug) {
+                                                                router.post(route("shop.cart.add", premiumMembershipProduct.slug));
+                                                                return;
+                                                            }
+
+                                                            router.visit(route("shop.index"));
+                                                        }}
+                                                        className={primaryActionUi.className}
+                                                    >
+                                                        {primaryActionUi.showCartIcon && <ShoppingCart className="h-3 w-3" />}
+                                                        {primaryActionUi.label}
+                                                    </button>
+                                                ) : (
+                                                    <Link
+                                                        href={primaryAction === "login" ? route("login") : route("courses.show", course.slug)}
+                                                        className={primaryActionUi.className}
+                                                    >
+                                                        {primaryActionUi.label}
+                                                    </Link>
+                                                )
+                                            )}
+
+                                            {enrollment.status === "active" && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCancel(enrollment.id)}
+                                                    disabled={cancellingId === enrollment.id}
+                                                    className={`inline-flex items-center px-3 py-2 text-xs font-medium rounded-md border border-red-300 text-red-700 hover:bg-red-50 ${
+                                                        cancellingId === enrollment.id ? "opacity-60 cursor-wait" : ""
+                                                    }`}
+                                                >
+                                                    {cancellingId === enrollment.id ? "Membatalkan..." : "Batalkan"}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
 

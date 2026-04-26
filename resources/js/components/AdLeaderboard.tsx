@@ -5,6 +5,8 @@ interface AdLeaderboardProps {
   className?: string;
   /** AdSense ad unit slot id; bila kosong → tidak render unit (placeholder dev only). */
   slot?: string | null;
+  /** AdSense Publisher ID (`ca-pub-XXXXXXXXXXXXXXXX`) untuk `data-ad-client`. */
+  client?: string | null;
   /** Master switch dari SiteSetting `ads_enabled`. False → komponen render null. */
   enabled?: boolean;
   /** Provider iklan; saat ini hanya 'adsense' yang dirender oleh komponen ini. */
@@ -19,10 +21,15 @@ interface AdLeaderboardProps {
  * Saat tidak aktif → komponen mengembalikan `null` (tidak ada placeholder
  * "advertisement" yang menyita ruang) supaya halaman tetap bersih untuk
  * pengguna dan tidak melanggar kebijakan AdSense.
+ *
+ * `client` (Publisher ID) dikirim ke `<ins>` sebagai `data-ad-client` saat
+ * truthy — best practice Google AdSense Phase B. Saat kosong, AdsenseUnit
+ * fallback ke auto-infer dari URL script (sebelum Phase B aktif).
  */
 const AdLeaderboard: React.FC<AdLeaderboardProps> = ({
   className = '',
   slot = null,
+  client = null,
   enabled = false,
   provider = 'adsense',
 }) => {
@@ -40,6 +47,7 @@ const AdLeaderboard: React.FC<AdLeaderboardProps> = ({
           <div className="w-full max-w-[970px] min-h-[90px] flex items-center justify-center">
             <AdsenseUnit
               slot={slot as string}
+              client={client}
               format="auto"
               style={{ display: 'block', width: '100%' }}
             />

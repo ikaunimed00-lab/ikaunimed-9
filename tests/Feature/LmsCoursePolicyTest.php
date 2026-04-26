@@ -92,3 +92,34 @@ test('cannot enroll into unpublished or paid course', function () {
     expect($user->can('enroll', $unpublished))->toBeFalse();
     expect($user->can('enroll', $paid))->toBeFalse();
 });
+
+test('non premium learner cannot enroll premium-only free course', function () {
+    $learner = User::factory()->create();
+    $learner->assignRole('learner');
+
+    $course = Course::create([
+        'title' => 'Premium Access Course',
+        'slug' => 'premium-access-course',
+        'status' => 'published',
+        'is_paid' => false,
+        'requires_premium' => true,
+    ]);
+
+    expect($learner->can('enroll', $course))->toBeFalse();
+});
+
+test('premium member can enroll premium-only free course', function () {
+    $subscriber = User::factory()->create();
+    $subscriber->assignRole('subscriber');
+    $subscriber->assignRole('premium_member');
+
+    $course = Course::create([
+        'title' => 'Premium Alumni Course',
+        'slug' => 'premium-alumni-course',
+        'status' => 'published',
+        'is_paid' => false,
+        'requires_premium' => true,
+    ]);
+
+    expect($subscriber->can('enroll', $course))->toBeTrue();
+});

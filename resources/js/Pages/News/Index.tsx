@@ -81,6 +81,12 @@ interface TagItem {
 interface AdsConfig {
   enabled?: boolean;
   provider?: string;
+  /**
+   * AdSense Publisher ID (`ca-pub-XXXXXXXXXXXXXXXX`) — diteruskan ke setiap
+   * `<ins.adsbygoogle>` lewat prop `client`. Kosong = mode auto-infer dari
+   * URL script (`adsbygoogle.js?client=...`) yang dimuat di `app.blade.php`.
+   */
+  client_id?: string | null;
   leaderboard_slot?: string | null;
   sidebar_1_slot?: string | null;
   sidebar_2_slot?: string | null;
@@ -162,6 +168,7 @@ const NewsIndex = ({
         <AdLeaderboard
           enabled={ads?.enabled}
           provider={ads?.provider}
+          client={ads?.client_id}
           slot={ads?.leaderboard_slot}
         />
 
@@ -379,6 +386,7 @@ const NewsIndex = ({
                                       <div className="flex justify-center items-center min-h-32">
                                         <AdsenseUnit
                                           slot={ads.infeed_slot as string}
+                                          client={ads.client_id}
                                           format="auto"
                                           style={{ display: 'block', width: '100%' }}
                                         />
@@ -457,6 +465,7 @@ const NewsIndex = ({
                         <div className="flex justify-center items-center min-h-[250px]">
                           <AdsenseUnit
                             slot={ads.sidebar_1_slot}
+                            client={ads.client_id}
                             format="auto"
                             style={{ display: 'block', width: '100%' }}
                           />
@@ -496,6 +505,7 @@ const NewsIndex = ({
                         <div className="flex justify-center items-center min-h-[600px]">
                           <AdsenseUnit
                             slot={ads.sidebar_2_slot}
+                            client={ads.client_id}
                             format="auto"
                             style={{ display: 'block', width: '100%' }}
                           />

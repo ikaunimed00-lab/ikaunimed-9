@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Models\Course;
-use App\Models\Enrollment;
 use App\Models\Certificate;
+use App\Models\Enrollment;
+use App\Models\Product;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class LearnerCourseDashboardController extends Controller
 {
@@ -22,7 +22,7 @@ class LearnerCourseDashboardController extends Controller
 
         $enrollmentsQuery = Enrollment::query()
             ->with(['course' => function ($q) {
-                $q->select('id', 'title', 'slug', 'status', 'thumbnail', 'level');
+                $q->select('id', 'title', 'slug', 'status', 'thumbnail', 'level', 'requires_premium');
             }])
             ->where('user_id', $user->id)
             ->orderByRaw("CASE WHEN status = 'active' THEN 0 WHEN status = 'completed' THEN 1 ELSE 2 END")
@@ -37,6 +37,22 @@ class LearnerCourseDashboardController extends Controller
         }
 
         $enrollments = $enrollmentsQuery->paginate(10)->withQueryString();
+        $isPremiumMember = (bool) $user->hasRole('premium_member');
+
+        $enrollments->getCollection()->transform(function (Enrollment $enrollment) use ($isPremiumMember) {
+            $course = $enrollment->course;
+            $requiresPremium = (bool) ($course?->requires_premium ?? false);
+            $isLocked = $requiresPremium && ! $isPremiumMember;
+
+            $enrollment->setAttribute('enrollment_eligibility', [
+                'requires_premium' => $requiresPremium,
+                'is_premium_member' => $isPremiumMember,
+                'is_locked' => $isLocked,
+                'reason' => $isLocked ? 'premium_required' : null,
+            ]);
+
+            return $enrollment;
+        });
 
         $baseStatsQuery = Enrollment::query()->where('user_id', $user->id);
 
@@ -44,6 +60,12 @@ class LearnerCourseDashboardController extends Controller
         $completedCourses = (clone $baseStatsQuery)->where('status', 'completed')->count();
         $averageProgress = (int) floor($baseStatsQuery->avg('progress_percentage') ?? 0);
         $totalCertificates = Certificate::where('user_id', $user->id)->count();
+        $premiumMembershipProduct = Product::query()
+            ->where('is_published', true)
+            ->where('membership_role', 'premium_member')
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->first(['id', 'slug', 'name', 'price']);
 
         return Inertia::render('Dashboard/Learner/Courses', [
             'enrollments' => $enrollments,
@@ -56,6 +78,7 @@ class LearnerCourseDashboardController extends Controller
             'filters' => [
                 'status' => $status,
             ],
+            'premiumMembershipProduct' => $premiumMembershipProduct,
             'lmsRoles' => [
                 'instructor' => $user->hasRole('instructor'),
                 'learner' => $user->hasRole('learner'),

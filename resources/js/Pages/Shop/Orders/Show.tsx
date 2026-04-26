@@ -1,6 +1,7 @@
 import { Link, useForm, usePage } from '@inertiajs/react';
 import MainLayout from '@/components/MainLayout';
 import { route } from 'ziggy-js';
+import { SHOP_COPY } from '../copy';
 
 type Product = {
   id: number;
@@ -35,6 +36,16 @@ type Order = {
   created_at: string;
   shipping_address: ShippingAddress;
   items: OrderItem[];
+  shipment?: Shipment | null;
+};
+
+type Shipment = {
+  courier_name: string | null;
+  tracking_number: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  status: string | null;
+  notes: string | null;
 };
 
 type Payment = {
@@ -116,6 +127,14 @@ const fulfillmentBadgeClass = (status: string) => {
   return 'bg-gray-100 text-gray-800';
 };
 
+const shipmentStatusLabel = (status: string | null | undefined) => {
+  if (status === 'pending') return 'Menunggu Pengiriman';
+  if (status === 'shipped') return 'Sedang Dikirim';
+  if (status === 'delivered') return 'Terkirim';
+  if (status === 'returned') return 'Dikembalikan';
+  return status ?? '-';
+};
+
 export default function OrderShow() {
   const { order, payment, digitalCourses } = usePage<PageProps>().props;
 
@@ -146,6 +165,7 @@ export default function OrderShow() {
     (item) => item.product_type === 'digital'
   );
   const hasDigitalCourses = isPaid && (digitalCourses?.length ?? 0) > 0;
+  const shipment = order.shipment;
 
   return (
     <MainLayout>
@@ -155,10 +175,10 @@ export default function OrderShow() {
           href={route('shop.orders.index')}
           className="text-sm text-blue-600"
         >
-          &larr; Kembali ke riwayat pesanan
+          &larr; {SHOP_COPY.navigation.backToOrderHistory}
         </Link>
         <Link href={route('shop.index')} className="text-sm text-gray-600">
-          Kembali ke katalog
+          {SHOP_COPY.navigation.backToShop}
         </Link>
       </div>
 
@@ -355,6 +375,60 @@ export default function OrderShow() {
             ) : (
               <p className="text-sm text-gray-600">
                 Informasi pembayaran belum tersedia.
+              </p>
+            )}
+          </div>
+
+          <div className="bg-white border rounded-lg p-4">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">
+              Status Pengiriman
+            </h2>
+            {shipment ? (
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>Status</span>
+                  <span className="font-medium text-gray-700">
+                    {shipmentStatusLabel(shipment.status)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Kurir</span>
+                  <span className="text-gray-700">
+                    {shipment.courier_name || '-'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>No. Resi</span>
+                  <span className="font-mono text-xs text-gray-700">
+                    {shipment.tracking_number || '-'}
+                  </span>
+                </div>
+                {shipment.shipped_at && (
+                  <div className="flex items-center justify-between text-gray-500">
+                    <span>Dikirim pada</span>
+                    <span>
+                      {new Date(shipment.shipped_at).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                )}
+                {shipment.delivered_at && (
+                  <div className="flex items-center justify-between text-gray-500">
+                    <span>Diterima pada</span>
+                    <span>
+                      {new Date(shipment.delivered_at).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                )}
+                {shipment.notes && (
+                  <p className="rounded-md bg-gray-50 p-2 text-xs text-gray-600">
+                    Catatan: {shipment.notes}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600">
+                Data pengiriman belum tersedia. Pesanan akan diproses setelah
+                pembayaran dikonfirmasi.
               </p>
             )}
           </div>
