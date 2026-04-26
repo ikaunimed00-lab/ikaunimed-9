@@ -496,10 +496,19 @@ class NewsController extends Controller
      */
     private function buildAdsConfig(): array
     {
+        $rawClientId = SiteSetting::getValue('adsense_client_id');
+        $clientId = null;
+
+        if (is_string($rawClientId)
+            && str_starts_with($rawClientId, 'ca-pub-')
+            && ! str_contains($rawClientId, 'xxxxxxxx')) {
+            $clientId = $rawClientId;
+        }
+
         return [
             'enabled' => (bool) SiteSetting::getValue('ads_enabled', false),
             'provider' => SiteSetting::getValue('ads_provider_primary', 'adsense'),
-            'client_id' => SiteSetting::getValue('adsense_client_id'),
+            'client_id' => $clientId,
             'leaderboard_slot' => SiteSetting::getValue('adsense_slot_banner'),
             'sidebar_1_slot' => SiteSetting::getValue('adsense_slot_sidebar_1'),
             'sidebar_2_slot' => SiteSetting::getValue('adsense_slot_sidebar_2'),
