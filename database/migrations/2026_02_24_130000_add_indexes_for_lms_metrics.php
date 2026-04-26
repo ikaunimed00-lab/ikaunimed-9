@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
@@ -17,10 +18,14 @@ return new class extends Migration {
         });
 
         Schema::table('enrollments', function (Blueprint $table) {
-            $table->index(['course_id', 'status'], 'enrollments_course_status_index');
             $table->index('created_at', 'enrollments_created_at_index');
             $table->index('completed_at', 'enrollments_completed_at_index');
         });
+
+        // Use a prefix index on status to stay compatible with older MySQL key limits.
+        DB::statement(
+            'ALTER TABLE enrollments ADD INDEX enrollments_course_status_index (course_id, status(100))'
+        );
     }
 
     public function down(): void
