@@ -10,8 +10,8 @@ return new class extends Migration {
     {
         $indexExists = static function (string $table, string $indexName): bool {
             $result = DB::selectOne(
-                'SHOW INDEX FROM `' . $table . '` WHERE Key_name = ? LIMIT 1',
-                [$indexName],
+                'SELECT 1 FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ? LIMIT 1',
+                [$table, $indexName],
             );
 
             return $result !== null;
