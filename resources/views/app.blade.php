@@ -47,12 +47,16 @@
     <link rel="canonical" href="{{ url()->current() }}">
 
     {{-- Open Graph --}}
-    <meta property="og:type" content="article">
+    <meta property="og:type" content="{{ $og_type ?? 'article' }}">
     <meta property="og:title" content="{{ $og_title ?? config('app.name') }}">
     <meta property="og:description" content="{{ $og_description ?? '' }}">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:image"
           content="{{ $og_image ?? asset('images/cta_ikaunimed-002.png') }}">
+    @if (! empty($og_image_width) && ! empty($og_image_height))
+    <meta property="og:image:width" content="{{ $og_image_width }}">
+    <meta property="og:image:height" content="{{ $og_image_height }}">
+    @endif
 
     {{-- Twitter --}}
     <meta name="twitter:card" content="summary_large_image">

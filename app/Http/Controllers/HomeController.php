@@ -69,6 +69,8 @@ class HomeController extends Controller
             return collect($sections)->firstWhere('slug', $slug)?->content;
         };
 
+        $openGraph = $this->eventService->openGraph();
+
         return Inertia::render('Home/Portal', [
             'isPreview' => $isPreview,
             'settings' => $this->siteService->getSettings(),
@@ -79,6 +81,14 @@ class HomeController extends Controller
             'services' => config('homepage.services', []),
             'pimpinan' => $this->eventService->pimpinan(),
             'contacts' => config('homepage.reuni_contacts', []),
+        ])->withViewData([
+            'meta_description' => $openGraph['description'],
+            'og_type' => 'website',
+            'og_title' => $openGraph['title'],
+            'og_description' => $openGraph['description'],
+            'og_image' => url($openGraph['image']),
+            'og_image_width' => $openGraph['image_width'],
+            'og_image_height' => $openGraph['image_height'],
         ]);
     }
 }

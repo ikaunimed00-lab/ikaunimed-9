@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\ReuniAkbarController;
 use App\Models\Kegiatan;
+use App\Models\PendaftarTeacherOfChampions;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -10,6 +12,15 @@ use Illuminate\Support\Facades\Cache;
 class UpcomingEventService
 {
     public const CACHE_KEY = 'kegiatan.active_rows';
+
+    public const GRAND_REUNION_SLUGS = [
+        ReuniAkbarController::FUN_WALK_SLUG,
+        ReuniAkbarController::CATUR_SLUG,
+    ];
+
+    public const OG_IMAGE_GRAND_REUNION = '/images/og-beranda-grand-reunion.jpg';
+
+    public const OG_IMAGE_UMUM = '/images/og-beranda-umum.jpg';
 
     public static function clearCache(): void
     {
@@ -79,6 +90,40 @@ class UpcomingEventService
             'schedule' => [],
             'spotlight' => null,
         ];
+    }
+
+    /**
+     * Link preview tags for the portal homepage, chosen from the kegiatan that are still active.
+     *
+     * @return array{title: string, description: string, image: string, image_width: int|null, image_height: int|null}
+     */
+    public function openGraph(?CarbonInterface $at = null): array
+    {
+        $at ??= now();
+        $activeSlugs = $this->active($at)->pluck('slug');
+
+        if ($activeSlugs->intersect(self::GRAND_REUNION_SLUGS)->isNotEmpty()) {
+            return $this->openGraphPayload(
+                'Grand Reunion IKA UNIMED 2026 | Sabtu, 10 Oktober 2026',
+                'Fun Walk, Fun Aerobic, Jumpa Party & Turnamen Catur Nasional di UNIMED. Daftar Teacher of Champions sampai 27 Oktober 2026.',
+                self::OG_IMAGE_GRAND_REUNION,
+            );
+        }
+
+        if ($activeSlugs->contains(ReuniAkbarController::TEACHER_OF_CHAMPIONS_SLUG)
+            && $at->lessThanOrEqualTo(PendaftarTeacherOfChampions::registrationClosesAt())) {
+            return $this->openGraphPayload(
+                'Teacher of Champions 2026 | IKA UNIMED',
+                'Kompetisi online untuk guru se-Indonesia. Pendaftaran 8–27 Oktober 2026.',
+                config('homepage.teacher_of_champions.og_image'),
+            );
+        }
+
+        return $this->openGraphPayload(
+            'IKA UNIMED | Connect, Collaborate, Contribute',
+            'Portal resmi Ikatan Alumni Universitas Negeri Medan: kabar alumni, kegiatan, dan layanan keanggotaan.',
+            self::OG_IMAGE_UMUM,
+        );
     }
 
     /**
@@ -173,6 +218,23 @@ class UpcomingEventService
             'eyebrow' => $spotlight['eyebrow'] ?? null,
             'headline' => $spotlight['headline'] ?? null,
             'pimpinan' => $this->pimpinan($spotlight['pimpinan'] ?? []),
+        ];
+    }
+
+    /**
+     * @return array{title: string, description: string, image: string, image_width: int|null, image_height: int|null}
+     */
+    private function openGraphPayload(string $title, string $description, string $image): array
+    {
+        $path = public_path(ltrim($image, '/'));
+        $size = is_file($path) ? @getimagesize($path) : false;
+
+        return [
+            'title' => $title,
+            'description' => $description,
+            'image' => $image,
+            'image_width' => $size ? $size[0] : null,
+            'image_height' => $size ? $size[1] : null,
         ];
     }
 

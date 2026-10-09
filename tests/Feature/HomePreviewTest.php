@@ -142,6 +142,83 @@ it('always renders the legacy homepage for admins regardless of the portal flag'
     'portal enabled' => true,
 ]);
 
+it('shares the Grand Reunion link preview while the October 10 kegiatan are active', function () {
+    config(['homepage.use_portal' => true]);
+    Carbon::setTestNow('2026-10-09 09:00:00');
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('<meta property="og:type" content="website">', false)
+        ->assertSee('<meta property="og:title" content="Grand Reunion IKA UNIMED 2026 | Sabtu, 10 Oktober 2026">', false)
+        ->assertSee('content="'.url('/images/og-beranda-grand-reunion.jpg').'"', false)
+        ->assertSee('<meta property="og:image:width" content="1200">', false)
+        ->assertSee('<meta property="og:image:height" content="630">', false)
+        ->assertSee('<meta property="og:url" content="'.url('/').'">', false)
+        ->assertSee('Fun Walk, Fun Aerobic, Jumpa Party &amp; Turnamen Catur Nasional di UNIMED.', false)
+        ->assertDontSee('cta_ikaunimed-002.png', false);
+});
+
+it('shares the Teacher of Champions poster when only Teacher of Champions is active', function () {
+    config(['homepage.use_portal' => true]);
+    Carbon::setTestNow(Carbon::parse('2026-10-11 00:30', 'Asia/Jakarta')->utc());
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('<meta property="og:title" content="Teacher of Champions 2026 | IKA UNIMED">', false)
+        ->assertSee('content="'.url(config('homepage.teacher_of_champions.og_image')).'"', false)
+        ->assertDontSee('og-beranda-grand-reunion.jpg', false);
+});
+
+it('shares the general link preview once Teacher of Champions registration has closed', function () {
+    config(['homepage.use_portal' => true]);
+    Carbon::setTestNow(Carbon::parse('2026-10-28 00:00:01', 'Asia/Jakarta')->utc());
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('<meta property="og:title" content="IKA UNIMED | Connect, Collaborate, Contribute">', false)
+        ->assertSee('content="'.url('/images/og-beranda-umum.jpg').'"', false);
+});
+
+it('shares the general link preview when no kegiatan is active', function () {
+    config(['homepage.use_portal' => true]);
+    Carbon::setTestNow('2026-11-23 09:00:00');
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('<meta property="og:title" content="IKA UNIMED | Connect, Collaborate, Contribute">', false)
+        ->assertSee('content="'.url('/images/og-beranda-umum.jpg').'"', false)
+        ->assertSee('<meta property="og:image:width" content="1200">', false);
+});
+
+it('uses the same link preview on the portal preview page', function () {
+    Carbon::setTestNow('2026-10-09 09:00:00');
+
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $this->actingAs($admin)
+        ->get(route('home.preview'))
+        ->assertOk()
+        ->assertSee('content="'.url('/images/og-beranda-grand-reunion.jpg').'"', false);
+});
+
+it('keeps the link preview of other pages unchanged', function () {
+    Carbon::setTestNow('2026-10-09 09:00:00');
+
+    $this->get(route('reuni-akbar.show'))
+        ->assertOk()
+        ->assertSee('<meta property="og:type" content="article">', false)
+        ->assertSee('content="'.url('/images/grand-reunion-banner-2026-koreksi.jpg').'"', false)
+        ->assertDontSee('og:image:width', false);
+
+    config(['homepage.use_portal' => false]);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('<meta property="og:type" content="article">', false)
+        ->assertSee('content="'.url('/images/cta_ikaunimed-002.png').'"', false);
+});
+
 it('omits ended events from the portal payload', function () {
     config(['homepage.use_portal' => true]);
     Carbon::setTestNow('2026-11-23 09:00:00');
