@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ReuniAkbarController;
+use App\Http\Controllers\TeacherOfChampionsRegistrationController;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -27,6 +29,25 @@ Route::get('/storage/{path}', function (string $path) {
 
 Route::middleware([HandleInertiaRequests::class])->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
+
+    Route::get('/preview/home', [HomeController::class, 'preview'])
+        ->middleware('homepage.preview')
+        ->name('home.preview');
+
+    Route::get('/home-lama', [HomeController::class, 'legacy'])
+        ->middleware('homepage.preview')
+        ->name('home.legacy');
+
+    Route::get('/reuni-akbar-2026', [ReuniAkbarController::class, 'show'])->name('reuni-akbar.show');
+
+    Route::get('/teacher-of-champions/daftar', [TeacherOfChampionsRegistrationController::class, 'create'])
+        ->name('teacher-of-champions.create');
+    Route::post('/teacher-of-champions/daftar', [TeacherOfChampionsRegistrationController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('teacher-of-champions.store');
+    Route::get('/teacher-of-champions/daftar/sukses', [TeacherOfChampionsRegistrationController::class, 'success'])
+        ->name('teacher-of-champions.success');
+
     require __DIR__ . '/public/news.php';
     require __DIR__ . '/public/shop.php';
     require __DIR__ . '/public/categories.php';
