@@ -62,6 +62,27 @@ class SitemapController extends Controller
     }
 
     /**
+     * Sitemap halaman statis publik (beranda, landing kegiatan).
+     */
+    public function pages(): Response
+    {
+        $content = Cache::remember('sitemap.pages', 60 * 24, function () {
+            $pages = [
+                ['path' => '/', 'changefreq' => 'daily', 'priority' => '1.0'],
+                ['path' => '/toc', 'changefreq' => 'weekly', 'priority' => '0.9'],
+                ['path' => '/teacher-of-champions/daftar', 'changefreq' => 'weekly', 'priority' => '0.8'],
+                ['path' => '/reuni-akbar-2026', 'changefreq' => 'monthly', 'priority' => '0.6'],
+            ];
+
+            return view('sitemap.pages', compact('pages'))->render();
+        });
+
+        return response($content, 200)
+            ->header('Content-Type', 'application/xml')
+            ->header('Cache-Control', 'public, max-age=86400');
+    }
+
+    /**
      * Google News sitemap - untuk Google News indexing (2 jam cache)
      * Spec: https://support.google.com/news/answer/74288
      */

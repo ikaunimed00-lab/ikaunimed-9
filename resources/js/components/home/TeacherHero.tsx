@@ -1,5 +1,6 @@
 import { CalendarDays, MapPin } from "lucide-react";
 import EventLink from "./EventLink";
+import { eventInfoUrl } from "./groupEvents";
 import MiniTimeline from "./MiniTimeline";
 import type { PortalEvent } from "./types";
 
@@ -11,6 +12,7 @@ type TeacherHeroProps = {
 const TeacherHero = ({ event, headingLevel = "h1" }: TeacherHeroProps) => {
   const Heading = headingLevel;
   const poster = event.hero_image ?? event.image;
+  const infoUrl = eventInfoUrl(event);
 
   return (
     <section className="relative overflow-hidden bg-[#0B3D2E]">
@@ -53,13 +55,21 @@ const TeacherHero = ({ event, headingLevel = "h1" }: TeacherHeroProps) => {
             </div>
           )}
 
-          <div className="mt-8">
+          <div className="mt-8 flex flex-wrap items-center gap-3">
             <EventLink
               href={event.cta_url}
               className="inline-flex rounded-xl bg-[#FFD700] px-6 py-3 text-sm font-bold text-[#0B3D2E] shadow-lg shadow-black/20 transition hover:bg-[#FFE34D]"
             >
               {event.cta_label}
             </EventLink>
+            {infoUrl && (
+              <EventLink
+                href={infoUrl}
+                className="inline-flex rounded-xl border-2 border-white/70 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-white/10"
+              >
+                Info lengkap
+              </EventLink>
+            )}
           </div>
         </div>
 

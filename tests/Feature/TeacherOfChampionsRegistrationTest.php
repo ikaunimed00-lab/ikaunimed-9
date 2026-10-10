@@ -41,7 +41,7 @@ function validRegistration(array $overrides = []): array
 it('shows the open registration form with the regional dataset', function () {
     $this->get(route('teacher-of-champions.create'))
         ->assertOk()
-        ->assertSee(url('/images/teacher-of-champions-poster.jpg'), false)
+        ->assertSee('content="'.url('/images/og-teacher-of-champions.jpg').'"', false)
         ->assertInertia(fn (Assert $page) => $page
             ->component('TeacherOfChampions/Daftar')
             ->where('isOpen', true)

@@ -34,6 +34,19 @@ export const groupEvents = (events: PortalEvent[]): EventGroup[] => {
 
 export const isExternalUrl = (url: string): boolean => /^https?:\/\//.test(url);
 
+/**
+ * Kegiatan with their own landing page get an extra "Info lengkap" link next to the CMS-managed CTA.
+ */
+const landingPages: Record<string, string> = {
+  "teacher-of-champions": "/toc",
+};
+
+export const eventInfoUrl = (event: Pick<PortalEvent, "slug" | "cta_url">): string | null => {
+  const url = landingPages[event.slug];
+
+  return url && url !== event.cta_url ? url : null;
+};
+
 export const whatsappUrl = (contact: ReuniContact | undefined, message?: string): string | null => {
   if (!contact?.whatsapp) {
     return null;

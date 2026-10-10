@@ -35,7 +35,7 @@
     </style>
 
     {{-- TITLE (INERTIA AMAN) --}}
-    <title inertia>{{ config('app.name', 'IKA UNIMED') }}</title>
+    <title inertia>{{ $page_title ?? config('app.name', 'IKA UNIMED') }}</title>
 
     {{-- ===== SEO DEFAULT (AMAN, SERVER-SIDE) ===== --}}
     <meta name="description"

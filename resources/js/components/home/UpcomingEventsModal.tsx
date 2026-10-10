@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import EventLink from "./EventLink";
-import { groupEvents, isEmphasized } from "./groupEvents";
+import { eventInfoUrl, groupEvents, isEmphasized } from "./groupEvents";
 import MiniTimeline from "./MiniTimeline";
 import type { PortalEvent } from "./types";
 
@@ -68,6 +68,7 @@ const UpcomingEventsModal = ({ events }: { events: PortalEvent[] }) => {
               <div className="flex flex-col gap-3">
                 {group.events.map((event) => {
                   const emphasized = isEmphasized(event);
+                  const infoUrl = eventInfoUrl(event);
 
                   return (
                     <div
@@ -102,16 +103,28 @@ const UpcomingEventsModal = ({ events }: { events: PortalEvent[] }) => {
                           <MiniTimeline items={event.schedule} tone={emphasized ? "dark" : "light"} />
                         </div>
                       )}
-                      <EventLink
-                        href={event.cta_url}
-                        className={`mt-3 inline-flex rounded-lg px-3 py-1.5 text-sm font-semibold ${
-                          emphasized
-                            ? "bg-[#FFD700] font-bold text-[#0B3D2E] hover:bg-[#FFE34D]"
-                            : "bg-[#FF7E00] text-white hover:bg-orange-600"
-                        }`}
-                      >
-                        {event.cta_label}
-                      </EventLink>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <EventLink
+                          href={event.cta_url}
+                          className={`inline-flex rounded-lg px-3 py-1.5 text-sm font-semibold ${
+                            emphasized
+                              ? "bg-[#FFD700] font-bold text-[#0B3D2E] hover:bg-[#FFE34D]"
+                              : "bg-[#FF7E00] text-white hover:bg-orange-600"
+                          }`}
+                        >
+                          {event.cta_label}
+                        </EventLink>
+                        {infoUrl && (
+                          <EventLink
+                            href={infoUrl}
+                            className={`text-sm font-semibold underline underline-offset-4 ${
+                              emphasized ? "text-white" : "text-[#006837]"
+                            }`}
+                          >
+                            Info lengkap
+                          </EventLink>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

@@ -224,7 +224,7 @@ class UpcomingEventService
     /**
      * @return array{title: string, description: string, image: string, image_width: int|null, image_height: int|null}
      */
-    private function openGraphPayload(string $title, string $description, string $image): array
+    public function openGraphPayload(string $title, string $description, string $image): array
     {
         $path = public_path(ltrim($image, '/'));
         $size = is_file($path) ? @getimagesize($path) : false;

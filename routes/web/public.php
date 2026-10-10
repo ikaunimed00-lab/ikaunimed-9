@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ReuniAkbarController;
+use App\Http\Controllers\TeacherOfChampionsController;
 use App\Http\Controllers\TeacherOfChampionsRegistrationController;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +40,9 @@ Route::middleware([HandleInertiaRequests::class])->group(function () {
         ->name('home.legacy');
 
     Route::get('/reuni-akbar-2026', [ReuniAkbarController::class, 'show'])->name('reuni-akbar.show');
+
+    Route::get('/toc', [TeacherOfChampionsController::class, 'show'])->name('teacher-of-champions.landing');
+    Route::permanentRedirect('/teacher-of-champions', '/toc');
 
     Route::get('/teacher-of-champions/daftar', [TeacherOfChampionsRegistrationController::class, 'create'])
         ->name('teacher-of-champions.create');

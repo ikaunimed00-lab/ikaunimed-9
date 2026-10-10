@@ -22,13 +22,15 @@ return [
     | Teacher of Champions registration
     |--------------------------------------------------------------------------
     |
-    | Closing time is written in WIB (Asia/Jakarta).
+    | Closing time is written in WIB (Asia/Jakarta). period_label is shown on
+    | /toc when the "teacher-of-champions" kegiatan is not active.
     |
     */
 
     'teacher_of_champions' => [
         'registration_closes_at' => '2026-10-27 23:59',
-        'og_image' => '/images/teacher-of-champions-poster.jpg',
+        'og_image' => '/images/og-teacher-of-champions.jpg',
+        'period_label' => '8 Oktober – 22 November 2026',
     ],
 
     /*

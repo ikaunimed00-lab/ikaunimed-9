@@ -1,12 +1,21 @@
 import { MessageCircle } from "lucide-react";
 
-const FloatingCTA = ({ settings, hideBubble = false }: { settings?: any; hideBubble?: boolean }) => {
+type FloatingCTAProps = {
+  settings?: any;
+  hideBubble?: boolean;
+  /** Sits above a sticky bottom bar on small screens. */
+  liftOnMobile?: boolean;
+};
+
+const FloatingCTA = ({ settings, hideBubble = false, liftOnMobile = false }: FloatingCTAProps) => {
   const whatsappNumber = settings?.contact?.contact_phone || "+62 815 3238 7608";
   const whatsappMessage = encodeURIComponent("Halo IKA UNIMED, saya butuh bantuan.");
   const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${whatsappMessage}`;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+    <div
+      className={`fixed right-6 z-50 flex flex-col items-end gap-2 ${liftOnMobile ? "bottom-24 md:bottom-6" : "bottom-6"}`}
+    >
       {/* Mascot with speech bubble */}
       <div className="relative">
         {/* Bubble Chat: Menggunakan Oxygen Teal agar lebih adem di mata */}

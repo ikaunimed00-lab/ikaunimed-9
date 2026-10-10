@@ -1,11 +1,12 @@
 import { Clock, MapPin } from "lucide-react";
 import EventLink from "./EventLink";
 import EventVisual from "./EventVisual";
-import { groupEvents, isEmphasized } from "./groupEvents";
+import { eventInfoUrl, groupEvents, isEmphasized } from "./groupEvents";
 import type { PortalEvent } from "./types";
 
 const EventCard = ({ event }: { event: PortalEvent }) => {
   const emphasized = isEmphasized(event);
+  const infoUrl = eventInfoUrl(event);
 
   return (
     <article
@@ -42,7 +43,7 @@ const EventCard = ({ event }: { event: PortalEvent }) => {
             </span>
           )}
         </div>
-        <div className="mt-2">
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
           <EventLink
             href={event.cta_url}
             className={`inline-flex rounded-xl px-4 py-2 text-sm font-semibold ${
@@ -53,6 +54,14 @@ const EventCard = ({ event }: { event: PortalEvent }) => {
           >
             {event.cta_label}
           </EventLink>
+          {infoUrl && (
+            <EventLink
+              href={infoUrl}
+              className={`text-sm font-semibold underline underline-offset-4 ${emphasized ? "text-white" : "text-[#006837]"}`}
+            >
+              Info lengkap
+            </EventLink>
+          )}
         </div>
       </div>
     </article>
