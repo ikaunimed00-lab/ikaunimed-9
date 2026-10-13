@@ -3,6 +3,7 @@ import EventLink from "./EventLink";
 import { eventInfoUrl } from "./groupEvents";
 import MiniTimeline from "./MiniTimeline";
 import type { PortalEvent } from "./types";
+import GuidebookLink from "@/components/toc/GuidebookLink";
 
 type TeacherHeroProps = {
   event: PortalEvent;
@@ -70,6 +71,7 @@ const TeacherHero = ({ event, headingLevel = "h1" }: TeacherHeroProps) => {
                 Info lengkap
               </EventLink>
             )}
+            {event.guide_url && <GuidebookLink href={event.guide_url} tone="dark" />}
           </div>
         </div>
 

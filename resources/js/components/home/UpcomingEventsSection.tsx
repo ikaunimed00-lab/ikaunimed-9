@@ -3,6 +3,7 @@ import EventLink from "./EventLink";
 import EventVisual from "./EventVisual";
 import { eventInfoUrl, groupEvents, isEmphasized } from "./groupEvents";
 import type { PortalEvent } from "./types";
+import GuidebookLink from "@/components/toc/GuidebookLink";
 
 const EventCard = ({ event }: { event: PortalEvent }) => {
   const emphasized = isEmphasized(event);
@@ -61,6 +62,14 @@ const EventCard = ({ event }: { event: PortalEvent }) => {
             >
               Info lengkap
             </EventLink>
+          )}
+          {event.guide_url && (
+            <GuidebookLink
+              href={event.guide_url}
+              variant="text"
+              tone={emphasized ? "dark" : "light"}
+              label="Buku panduan"
+            />
           )}
         </div>
       </div>

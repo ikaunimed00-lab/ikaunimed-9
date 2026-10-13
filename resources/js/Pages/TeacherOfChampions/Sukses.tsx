@@ -2,14 +2,16 @@ import { Head, Link } from "@inertiajs/react";
 import { CheckCircle2 } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import FloatingCTA from "@/components/FloatingCTA";
+import GuidebookLink from "@/components/toc/GuidebookLink";
 
 type SuksesPageProps = {
   settings: Record<string, any>;
   footerContent?: unknown;
   nomorPendaftaran: string;
+  guidebookUrl: string | null;
 };
 
-const Sukses = ({ settings, footerContent, nomorPendaftaran }: SuksesPageProps) => {
+const Sukses = ({ settings, footerContent, nomorPendaftaran, guidebookUrl }: SuksesPageProps) => {
   return (
     <>
       <Head>
@@ -29,12 +31,15 @@ const Sukses = ({ settings, footerContent, nomorPendaftaran }: SuksesPageProps) 
               <p className="mt-4 text-sm text-gray-600">
                 Pengumuman peserta terpilih: 1 November 2026. Pantau Instagram resmi IKA UNIMED untuk informasi tahapan berikutnya.
               </p>
-              <Link
-                href="/reuni-akbar-2026#teacher-of-champions"
-                className="mt-6 inline-block rounded-xl bg-[#FFD700] px-6 py-2.5 text-sm font-bold text-[#0B3D2E] hover:bg-[#FFC400]"
-              >
-                Lihat timeline kompetisi
-              </Link>
+              <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <Link
+                  href="/reuni-akbar-2026#teacher-of-champions"
+                  className="inline-block rounded-xl bg-[#FFD700] px-6 py-2.5 text-sm font-bold text-[#0B3D2E] hover:bg-[#FFC400]"
+                >
+                  Lihat timeline kompetisi
+                </Link>
+                {guidebookUrl && <GuidebookLink href={guidebookUrl} />}
+              </div>
             </div>
           </div>
         </section>

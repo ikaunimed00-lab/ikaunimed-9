@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import GuidebookLink from "@/components/toc/GuidebookLink";
 import EventLink from "./EventLink";
 import { eventInfoUrl, groupEvents, isEmphasized } from "./groupEvents";
 import MiniTimeline from "./MiniTimeline";
@@ -123,6 +124,14 @@ const UpcomingEventsModal = ({ events }: { events: PortalEvent[] }) => {
                           >
                             Info lengkap
                           </EventLink>
+                        )}
+                        {event.guide_url && (
+                          <GuidebookLink
+                            href={event.guide_url}
+                            variant="text"
+                            tone={emphasized ? "dark" : "light"}
+                            label="Buku panduan"
+                          />
                         )}
                       </div>
                     </div>

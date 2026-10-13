@@ -77,6 +77,7 @@ class UpcomingEventService
             'cta_url' => $fallback['cta_url'],
             'secondary_cta_label' => $fallback['secondary_cta_label'] ?? null,
             'secondary_cta_url' => $fallback['secondary_cta_url'] ?? null,
+            'guide_url' => null,
             'featured' => false,
             'is_fallback' => true,
             'starts_at' => null,
@@ -188,6 +189,9 @@ class UpcomingEventService
             'cta_url' => $kegiatan->cta_url ?: '/news',
             'secondary_cta_label' => null,
             'secondary_cta_url' => null,
+            'guide_url' => $kegiatan->slug === ReuniAkbarController::TEACHER_OF_CHAMPIONS_SLUG
+                ? config('homepage.teacher_of_champions.guidebook_url')
+                : null,
             'featured' => $kegiatan->featured,
             'is_fallback' => false,
             'starts_at' => $startsAt->toIso8601String(),

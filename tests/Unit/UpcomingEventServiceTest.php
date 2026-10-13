@@ -84,7 +84,8 @@ it('switches the hero to Teacher of Champions after the October 10 events end', 
         ->and($hero['theme'])->toBe('navy-emas')
         ->and($hero['hero_image'])->toBe('/images/teacher-of-champions-poster.jpg')
         ->and($hero['has_started'])->toBeTrue()
-        ->and($hero['schedule'])->toHaveCount(7);
+        ->and($hero['schedule'])->toHaveCount(7)
+        ->and($hero['guide_url'])->toBe(config('homepage.teacher_of_champions.guidebook_url'));
 });
 
 it('keeps the October 10 events active until 23:59 WIB', function () {

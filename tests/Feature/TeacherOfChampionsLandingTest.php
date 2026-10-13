@@ -104,6 +104,29 @@ it('links Instagram only when the site setting holds a URL', function () {
         ->assertInertia(fn (Assert $page) => $page->where('instagramUrl', null));
 });
 
+it('links the guidebook on every Teacher of Champions page', function () {
+    $guidebookUrl = 'https://drive.google.com/drive/folders/1kV0jONNVApXlSDTy8MIPAO_Zs4Wjm4Wt';
+
+    expect(config('homepage.teacher_of_champions.guidebook_url'))->toBe($guidebookUrl);
+
+    $this->get(route('teacher-of-champions.landing'))
+        ->assertInertia(fn (Assert $page) => $page->where('guidebookUrl', $guidebookUrl));
+
+    $this->get(route('teacher-of-champions.create'))
+        ->assertInertia(fn (Assert $page) => $page->where('guidebookUrl', $guidebookUrl));
+
+    $this->withSession(['nomor_pendaftaran' => 'TOC-2026-0001'])
+        ->get(route('teacher-of-champions.success'))
+        ->assertInertia(fn (Assert $page) => $page->where('guidebookUrl', $guidebookUrl));
+
+    $this->get(route('reuni-akbar.show'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('teacherOfChampions.guide_url', $guidebookUrl)
+            ->where('funWalk.guide_url', null)
+            ->where('catur.guide_url', null)
+        );
+});
+
 it('lists /toc in the pages sitemap and the sitemap index', function () {
     $this->get('/sitemap/pages.xml')
         ->assertOk()
@@ -122,7 +145,7 @@ it('keeps the landing page sources free of navy styling', function () {
         ...glob(resource_path('js/components/toc/*.tsx')),
     ];
 
-    expect($files)->toHaveCount(4);
+    expect($files)->toHaveCount(5);
 
     foreach ($files as $file) {
         expect(file_get_contents($file))

@@ -5,6 +5,7 @@ import MainLayout from "@/components/MainLayout";
 import FloatingCTA from "@/components/FloatingCTA";
 import MiniTimeline from "@/components/home/MiniTimeline";
 import type { PortalEvent } from "@/components/home/types";
+import GuidebookLink from "@/components/toc/GuidebookLink";
 
 type Wilayah = {
   kode: string;
@@ -22,6 +23,7 @@ type DaftarPageProps = {
   jenjangOptions: { value: string; label: string }[];
   statusKepegawaianOptions: string[];
   universitasOptions: string[];
+  guidebookUrl: string | null;
 };
 
 type FormData = {
@@ -78,6 +80,7 @@ const Daftar = ({
   jenjangOptions,
   statusKepegawaianOptions,
   universitasOptions,
+  guidebookUrl,
 }: DaftarPageProps) => {
   const form = useForm<FormData>({
     nama: "",
@@ -127,6 +130,11 @@ const Daftar = ({
                 <CalendarDays className="h-4 w-4 shrink-0 text-[#FFD700]" />
                 Pendaftaran ditutup {closesAtLabel}
               </p>
+              {guidebookUrl && (
+                <div className="mt-6">
+                  <GuidebookLink href={guidebookUrl} tone="dark" />
+                </div>
+              )}
             </div>
             {kegiatan && kegiatan.schedule.length > 0 && (
               <div className="rounded-2xl border border-[#FFD700]/25 bg-black/20 p-5">

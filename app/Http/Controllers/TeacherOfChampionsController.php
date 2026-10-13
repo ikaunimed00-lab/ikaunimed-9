@@ -40,6 +40,7 @@ class TeacherOfChampionsController extends Controller
             'periodLabel' => $kegiatanPayload['date_label'] ?? config('homepage.teacher_of_champions.period_label'),
             'jenjangOptions' => PendaftarTeacherOfChampions::jenjangOptions(),
             'instagramUrl' => $this->instagramUrl($settings),
+            'guidebookUrl' => config('homepage.teacher_of_champions.guidebook_url'),
             'meta' => ['title' => $openGraph['title'], 'description' => $openGraph['description']],
         ])->withViewData([
             'page_title' => $openGraph['title'],

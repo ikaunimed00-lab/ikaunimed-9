@@ -24,6 +24,7 @@ return [
     |
     | Closing time is written in WIB (Asia/Jakarta). period_label is shown on
     | /toc when the "teacher-of-champions" kegiatan is not active.
+    | guidebook_url (buku panduan) is linked wherever the competition appears.
     |
     */
 
@@ -31,6 +32,7 @@ return [
         'registration_closes_at' => '2026-10-29 23:59',
         'og_image' => '/images/og-teacher-of-champions.jpg',
         'period_label' => '12 Oktober – 22 November 2026',
+        'guidebook_url' => 'https://drive.google.com/drive/folders/1kV0jONNVApXlSDTy8MIPAO_Zs4Wjm4Wt',
     ],
 
     /*

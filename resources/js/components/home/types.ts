@@ -36,6 +36,7 @@ export type PortalEvent = {
   cta_url: string;
   secondary_cta_label?: string | null;
   secondary_cta_url?: string | null;
+  guide_url?: string | null;
   featured: boolean;
   is_fallback: boolean;
   starts_at: string | null;

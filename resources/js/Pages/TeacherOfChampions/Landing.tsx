@@ -22,6 +22,7 @@ import Countdown from "@/components/home/Countdown";
 import ZoomableImage from "@/components/home/ZoomableImage";
 import type { ReuniContact } from "@/components/home/types";
 import RegisterButton, { REGISTER_URL } from "@/components/toc/RegisterButton";
+import GuidebookLink from "@/components/toc/GuidebookLink";
 import SectionHeading from "@/components/toc/SectionHeading";
 import StickyRegisterBar from "@/components/toc/StickyRegisterBar";
 
@@ -35,6 +36,7 @@ type LandingPageProps = {
   periodLabel: string;
   jenjangOptions: { value: string; label: string }[];
   instagramUrl: string | null;
+  guidebookUrl: string | null;
   meta: { title: string; description: string };
 };
 
@@ -145,6 +147,7 @@ const Landing = ({
   periodLabel,
   jenjangOptions,
   instagramUrl,
+  guidebookUrl,
   meta,
 }: LandingPageProps) => {
   const jenjangLabels = jenjangOptions.map((option) => option.label);
@@ -164,6 +167,14 @@ const Landing = ({
       answer: "Tahap penyisihan berupa CBT online selama 90 menit dengan 50 soal pilihan ganda.",
     },
     { question: "Kapan pengumuman?", answer: "Peserta terpilih diumumkan pada 1 November 2026." },
+    ...(guidebookUrl
+      ? [
+          {
+            question: "Di mana saya bisa membaca ketentuan lengkapnya?",
+            answer: "Unduh buku panduan melalui tombol \"Unduh buku panduan\" di halaman ini.",
+          },
+        ]
+      : []),
     {
       question: "Bagaimana jika ada kendala?",
       answer: "Hubungi WhatsApp panitia yang tercantum di bagian Kontak panitia di halaman ini.",
@@ -211,6 +222,7 @@ const Landing = ({
                 >
                   Lihat jadwal
                 </a>
+                {guidebookUrl && <GuidebookLink href={guidebookUrl} tone="dark" size="lg" />}
               </div>
 
               <div className="mt-8 max-w-md rounded-2xl border border-[#FFD700]/30 bg-black/20 p-5">
@@ -300,6 +312,14 @@ const Landing = ({
                 </li>
               ))}
             </ol>
+            {guidebookUrl && (
+              <div className="mx-auto mt-8 flex max-w-3xl flex-col items-center gap-3 rounded-2xl border border-[#006837]/20 bg-[#F2FAF4] px-5 py-5 text-center sm:flex-row sm:justify-between sm:text-left">
+                <p className="text-sm text-gray-700">
+                  Baca buku panduan untuk ketentuan lengkap kompetisi sebelum mendaftar.
+                </p>
+                <GuidebookLink href={guidebookUrl} className="shrink-0" />
+              </div>
+            )}
             <div className="mt-10 text-center">
               {isOpen ? (
                 <Link
@@ -470,7 +490,7 @@ const Landing = ({
             <SectionHeading id="poster" eyebrow="Poster resmi" title="Bagikan informasi ini" />
             <div className="mx-auto max-w-3xl">
               <ZoomableImage src={POSTER_IMAGE} alt="Poster resmi Teacher of Champions 2026 IKA UNIMED" />
-              <div className="mt-4 text-center">
+              <div className="mt-4 flex flex-wrap justify-center gap-3">
                 <a
                   href={POSTER_IMAGE}
                   download
@@ -479,6 +499,7 @@ const Landing = ({
                   <Download className="h-4 w-4" aria-hidden="true" />
                   Unduh poster
                 </a>
+                {guidebookUrl && <GuidebookLink href={guidebookUrl} />}
               </div>
             </div>
           </div>
@@ -548,8 +569,9 @@ const Landing = ({
             <p className="mx-auto mt-3 max-w-xl text-white/85">
               {isOpen ? `Pendaftaran ditutup ${closesAtLabel}.` : "Pendaftaran telah ditutup. Ikuti tahapan berikutnya melalui Instagram resmi IKA UNIMED."}
             </p>
-            <div className="mt-8">
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <RegisterButton isOpen={isOpen} label="Daftar sekarang" />
+              {guidebookUrl && <GuidebookLink href={guidebookUrl} tone="dark" size="lg" />}
             </div>
           </div>
         </section>

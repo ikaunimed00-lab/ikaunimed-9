@@ -84,6 +84,7 @@ class TeacherOfChampionsRegistrationController extends Controller
             'settings' => $this->siteService->getSettings(),
             'footerContent' => $footer?->content,
             'contacts' => config('homepage.reuni_contacts', []),
+            'guidebookUrl' => config('homepage.teacher_of_champions.guidebook_url'),
         ])->withViewData([
             'meta_description' => $description,
             'og_title' => $title,
