@@ -106,6 +106,24 @@ it('accepts optional jenjang and status kepegawaian', function () {
     expect(PendaftarTeacherOfChampions::query()->sole()->jenjang)->toBeNull();
 });
 
+it('offers inclusive jenjang labels while storing the short code', function () {
+    $this->get(route('teacher-of-champions.create'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('jenjangOptions.1', ['value' => 'SD', 'label' => 'SD/MI/Sederajat'])
+            ->where('jenjangOptions.3', ['value' => 'SMA', 'label' => 'SMA/MA/Sederajat'])
+        );
+
+    $this->post(route('teacher-of-champions.store'), validRegistration(['jenjang' => 'SMP']))
+        ->assertRedirect(route('teacher-of-champions.success'));
+
+    expect(PendaftarTeacherOfChampions::query()->sole()->jenjang)->toBe('SMP');
+});
+
+it('rejects a jenjang label in place of its code', function () {
+    $this->post(route('teacher-of-champions.store'), validRegistration(['jenjang' => 'SD/MI/Sederajat']))
+        ->assertSessionHasErrors(['jenjang' => 'Jenjang tidak valid.']);
+});
+
 it('redirects the success page back to the form without a fresh registration', function () {
     $this->get(route('teacher-of-champions.success'))
         ->assertRedirect(route('teacher-of-champions.create'));

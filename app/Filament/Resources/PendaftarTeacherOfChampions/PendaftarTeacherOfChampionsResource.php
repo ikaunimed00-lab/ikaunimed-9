@@ -119,6 +119,7 @@ class PendaftarTeacherOfChampionsResource extends Resource
                     ->toggleable(),
                 TextColumn::make('jenjang')
                     ->label('Jenjang')
+                    ->formatStateUsing(fn (string $state): string => PendaftarTeacherOfChampions::JENJANG[$state] ?? $state)
                     ->placeholder('-')
                     ->toggleable(),
                 TextColumn::make('status_kepegawaian')
@@ -170,7 +171,7 @@ class PendaftarTeacherOfChampionsResource extends Resource
                     ->searchable(),
                 SelectFilter::make('jenjang')
                     ->label('Jenjang')
-                    ->options(array_combine(PendaftarTeacherOfChampions::JENJANG, PendaftarTeacherOfChampions::JENJANG)),
+                    ->options(PendaftarTeacherOfChampions::JENJANG),
                 TernaryFilter::make('alumni_unimed')
                     ->label('Alumni UNIMED')
                     ->trueLabel('Ya')

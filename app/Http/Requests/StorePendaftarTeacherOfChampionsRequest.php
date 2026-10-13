@@ -46,7 +46,7 @@ class StorePendaftarTeacherOfChampionsRequest extends FormRequest
             'provinsi' => ['required', 'string', Rule::in($wilayah->provinsi())],
             'kabupaten_kota' => ['required', 'string', Rule::in($wilayah->kabupatenKota($this->input('provinsi')))],
             'asal_instansi' => ['required', 'string', 'max:255'],
-            'jenjang' => ['nullable', Rule::in(PendaftarTeacherOfChampions::JENJANG)],
+            'jenjang' => ['nullable', Rule::in(array_keys(PendaftarTeacherOfChampions::JENJANG))],
             'status_kepegawaian' => ['nullable', Rule::in(PendaftarTeacherOfChampions::STATUS_KEPEGAWAIAN)],
             'bidang_studi' => ['required', 'string', 'max:255'],
             'lama_mengabdi_tahun' => ['required', 'integer', 'min:0', 'max:60'],

@@ -30,7 +30,7 @@ class TeacherOfChampionsRegistrationController extends Controller
             'isOpen' => PendaftarTeacherOfChampions::isRegistrationOpen(),
             'closesAtLabel' => $closesAt->translatedFormat('l, j F Y').' pukul '.$closesAt->format('H.i').' WIB',
             'wilayah' => $this->wilayahService->all(),
-            'jenjangOptions' => PendaftarTeacherOfChampions::JENJANG,
+            'jenjangOptions' => PendaftarTeacherOfChampions::jenjangOptions(),
             'statusKepegawaianOptions' => PendaftarTeacherOfChampions::STATUS_KEPEGAWAIAN,
             'universitasOptions' => $this->universitasOptions(),
         ]);

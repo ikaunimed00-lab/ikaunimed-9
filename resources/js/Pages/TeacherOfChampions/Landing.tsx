@@ -33,7 +33,7 @@ type LandingPageProps = {
   closesAt: string;
   closesAtLabel: string;
   periodLabel: string;
-  jenjangOptions: string[];
+  jenjangOptions: { value: string; label: string }[];
   instagramUrl: string | null;
   meta: { title: string; description: string };
 };
@@ -147,10 +147,11 @@ const Landing = ({
   instagramUrl,
   meta,
 }: LandingPageProps) => {
+  const jenjangLabels = jenjangOptions.map((option) => option.label);
   const jenjangLabel =
-    jenjangOptions.length > 1
-      ? `${jenjangOptions.slice(0, -1).join(", ")}, atau ${jenjangOptions[jenjangOptions.length - 1]}`
-      : jenjangOptions.join("");
+    jenjangLabels.length > 1
+      ? `${jenjangLabels.slice(0, -1).join(", ")}, atau ${jenjangLabels[jenjangLabels.length - 1]}`
+      : jenjangLabels.join("");
 
   const faqs = [
     {

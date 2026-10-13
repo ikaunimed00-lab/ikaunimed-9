@@ -28,9 +28,29 @@ class PendaftarTeacherOfChampions extends Model
     ];
 
     /**
-     * @var list<string>
+     * Stored code => label shown to registrants. The jenjang column holds at most 10 characters.
+     *
+     * @var array<string, string>
      */
-    public const JENJANG = ['TK', 'SD', 'SMP', 'SMA', 'SMK', 'SLB'];
+    public const JENJANG = [
+        'TK' => 'TK/RA/Sederajat',
+        'SD' => 'SD/MI/Sederajat',
+        'SMP' => 'SMP/MTs/Sederajat',
+        'SMA' => 'SMA/MA/Sederajat',
+        'SMK' => 'SMK/MAK/Sederajat',
+        'SLB' => 'SLB/Pendidikan Khusus',
+    ];
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    public static function jenjangOptions(): array
+    {
+        return collect(self::JENJANG)
+            ->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])
+            ->values()
+            ->all();
+    }
 
     /**
      * @var list<string>

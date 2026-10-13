@@ -19,7 +19,7 @@ type DaftarPageProps = {
   isOpen: boolean;
   closesAtLabel: string;
   wilayah: Wilayah[];
-  jenjangOptions: string[];
+  jenjangOptions: { value: string; label: string }[];
   statusKepegawaianOptions: string[];
   universitasOptions: string[];
 };
@@ -264,8 +264,8 @@ const Daftar = ({
                     >
                       <option value="">Pilih jenjang</option>
                       {jenjangOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
+                        <option key={option.value} value={option.value}>
+                          {option.label}
                         </option>
                       ))}
                     </select>

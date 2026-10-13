@@ -66,6 +66,7 @@ class PendaftarTeacherOfChampionsExporter
         return collect(array_keys(self::COLUMNS))
             ->map(fn (string $column): string|int|null => match ($column) {
                 'status' => PendaftarTeacherOfChampions::STATUSES[$item->status] ?? $item->status,
+                'jenjang' => $item->jenjang === null ? null : (PendaftarTeacherOfChampions::JENJANG[$item->jenjang] ?? $item->jenjang),
                 'alumni_unimed' => match ($item->alumni_unimed) {
                     true => 'Ya',
                     false => 'Tidak',

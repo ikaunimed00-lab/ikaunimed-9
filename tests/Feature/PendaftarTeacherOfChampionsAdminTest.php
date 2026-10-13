@@ -73,10 +73,12 @@ it('exports registrants to excel', function () {
     $reader->close();
 
     $alumniColumn = array_search('Alumni UNIMED', $rows[0], true);
+    $jenjangColumn = array_search('Jenjang', $rows[0], true);
 
     expect($rows)->toHaveCount(3)
         ->and($rows[0][0])->toBe('Nomor Pendaftaran')
         ->and($alumniColumn)->not->toBeFalse()
         ->and($rows[1][$alumniColumn])->toBe('Ya')
+        ->and($rows[1][$jenjangColumn])->toBe('SMA/MA/Sederajat')
         ->and($response->headers->get('content-disposition'))->toContain('.xlsx');
 });

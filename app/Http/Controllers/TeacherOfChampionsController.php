@@ -38,7 +38,7 @@ class TeacherOfChampionsController extends Controller
             'closesAt' => $closesAt->toIso8601String(),
             'closesAtLabel' => $closesAt->translatedFormat('l, j F Y').' pukul '.$closesAt->format('H.i').' WIB',
             'periodLabel' => $kegiatanPayload['date_label'] ?? config('homepage.teacher_of_champions.period_label'),
-            'jenjangOptions' => PendaftarTeacherOfChampions::JENJANG,
+            'jenjangOptions' => PendaftarTeacherOfChampions::jenjangOptions(),
             'instagramUrl' => $this->instagramUrl($settings),
             'meta' => ['title' => $openGraph['title'], 'description' => $openGraph['description']],
         ])->withViewData([

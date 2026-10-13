@@ -23,7 +23,14 @@ it('renders the Teacher of Champions landing page for guests', function () {
             ->component('TeacherOfChampions/Landing')
             ->where('isOpen', true)
             ->where('periodLabel', '12 Oktober – 22 November 2026')
-            ->where('jenjangOptions', ['TK', 'SD', 'SMP', 'SMA', 'SMK', 'SLB'])
+            ->where('jenjangOptions', [
+                ['value' => 'TK', 'label' => 'TK/RA/Sederajat'],
+                ['value' => 'SD', 'label' => 'SD/MI/Sederajat'],
+                ['value' => 'SMP', 'label' => 'SMP/MTs/Sederajat'],
+                ['value' => 'SMA', 'label' => 'SMA/MA/Sederajat'],
+                ['value' => 'SMK', 'label' => 'SMK/MAK/Sederajat'],
+                ['value' => 'SLB', 'label' => 'SLB/Pendidikan Khusus'],
+            ])
             ->where('closesAt', '2026-10-29T23:59:59+07:00')
             ->has('contacts', 2)
             ->where('meta.title', 'Teacher of Champions 2026 | IKA UNIMED')
