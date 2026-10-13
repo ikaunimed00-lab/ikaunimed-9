@@ -171,7 +171,7 @@ it('shares the Teacher of Champions poster when only Teacher of Champions is act
 
 it('shares the general link preview once Teacher of Champions registration has closed', function () {
     config(['homepage.use_portal' => true]);
-    Carbon::setTestNow(Carbon::parse('2026-10-28 00:00:01', 'Asia/Jakarta')->utc());
+    Carbon::setTestNow(Carbon::parse('2026-10-30 00:00:01', 'Asia/Jakarta')->utc());
 
     $this->get(route('home'))
         ->assertOk()

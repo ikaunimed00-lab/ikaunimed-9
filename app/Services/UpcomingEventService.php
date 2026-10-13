@@ -105,7 +105,7 @@ class UpcomingEventService
         if ($activeSlugs->intersect(self::GRAND_REUNION_SLUGS)->isNotEmpty()) {
             return $this->openGraphPayload(
                 'Grand Reunion IKA UNIMED 2026 | Sabtu, 10 Oktober 2026',
-                'Fun Walk, Fun Aerobic, Jumpa Party & Turnamen Catur Nasional di UNIMED. Daftar Teacher of Champions sampai 27 Oktober 2026.',
+                'Fun Walk, Fun Aerobic, Jumpa Party & Turnamen Catur Nasional di UNIMED. Daftar Teacher of Champions sampai 29 Oktober 2026.',
                 self::OG_IMAGE_GRAND_REUNION,
             );
         }
@@ -114,7 +114,7 @@ class UpcomingEventService
             && $at->lessThanOrEqualTo(PendaftarTeacherOfChampions::registrationClosesAt())) {
             return $this->openGraphPayload(
                 'Teacher of Champions 2026 | IKA UNIMED',
-                'Kompetisi online untuk guru se-Indonesia. Pendaftaran 8–27 Oktober 2026.',
+                'Kompetisi online untuk guru se-Indonesia. Pendaftaran 12–29 Oktober 2026.',
                 config('homepage.teacher_of_champions.og_image'),
             );
         }

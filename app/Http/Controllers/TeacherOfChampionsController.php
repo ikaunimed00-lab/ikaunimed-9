@@ -26,7 +26,7 @@ class TeacherOfChampionsController extends Controller
 
         $openGraph = $this->eventService->openGraphPayload(
             'Teacher of Champions 2026 | IKA UNIMED',
-            'Kompetisi online untuk guru se-Indonesia dari IKA UNIMED. Pendaftaran 8–27 Oktober 2026 untuk Hari Guru Nasional.',
+            'Kompetisi online untuk guru se-Indonesia dari IKA UNIMED. Pendaftaran 12–29 Oktober 2026 untuk Hari Guru Nasional.',
             config('homepage.teacher_of_champions.og_image'),
         );
 

@@ -22,9 +22,9 @@ it('renders the Teacher of Champions landing page for guests', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('TeacherOfChampions/Landing')
             ->where('isOpen', true)
-            ->where('periodLabel', '8 Oktober – 22 November 2026')
+            ->where('periodLabel', '12 Oktober – 22 November 2026')
             ->where('jenjangOptions', ['TK', 'SD', 'SMP', 'SMA', 'SMK', 'SLB'])
-            ->where('closesAt', '2026-10-27T23:59:59+07:00')
+            ->where('closesAt', '2026-10-29T23:59:59+07:00')
             ->has('contacts', 2)
             ->where('meta.title', 'Teacher of Champions 2026 | IKA UNIMED')
         );
@@ -45,13 +45,13 @@ it('keeps the registration and success routes', function () {
     $this->get(route('teacher-of-champions.success'))->assertRedirect(route('teacher-of-champions.create'));
 });
 
-it('closes the register buttons after 27 October 23:59 WIB', function () {
-    Carbon::setTestNow(Carbon::parse('2026-10-27 23:59:30', 'Asia/Jakarta')->utc());
+it('closes the register buttons after 29 October 23:59 WIB', function () {
+    Carbon::setTestNow(Carbon::parse('2026-10-29 23:59:30', 'Asia/Jakarta')->utc());
 
     $this->get(route('teacher-of-champions.landing'))
         ->assertInertia(fn (Assert $page) => $page->where('isOpen', true));
 
-    Carbon::setTestNow(Carbon::parse('2026-10-28 00:00:01', 'Asia/Jakarta')->utc());
+    Carbon::setTestNow(Carbon::parse('2026-10-30 00:00:01', 'Asia/Jakarta')->utc());
 
     $this->get(route('teacher-of-champions.landing'))
         ->assertOk()
@@ -77,7 +77,7 @@ it('prints the link preview tags for /toc', function () {
         ->assertSee('<meta property="og:image:width" content="1200">', false)
         ->assertSee('<meta property="og:image:height" content="630">', false)
         ->assertSee('<meta name="twitter:card" content="summary_large_image">', false)
-        ->assertSee('Kompetisi online untuk guru se-Indonesia dari IKA UNIMED. Pendaftaran 8–27 Oktober 2026 untuk Hari Guru Nasional.', false);
+        ->assertSee('Kompetisi online untuk guru se-Indonesia dari IKA UNIMED. Pendaftaran 12–29 Oktober 2026 untuk Hari Guru Nasional.', false);
 });
 
 it('links Instagram only when the site setting holds a URL', function () {

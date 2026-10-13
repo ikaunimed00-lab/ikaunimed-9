@@ -51,17 +51,17 @@ it('lists active kegiatan ordered by start time', function () {
     $events = $this->service->active()->map(fn (Kegiatan $kegiatan) => $this->service->toArray($kegiatan));
 
     expect($events->pluck('slug')->all())->toBe([
-        'teacher-of-champions',
         'fun-walk-fun-aerobic-jumpa-party',
         'turnamen-catur-nasional-2026',
+        'teacher-of-champions',
     ])
-        ->and($events[1]['group_key'])->toBe($events[2]['group_key'])
-        ->and($events[2]['time_label'])->toBe('08.00 WIB')
-        ->and($events[0]['is_multi_day'])->toBeTrue()
-        ->and($events[0]['theme'])->toBe('navy-emas')
-        ->and($events[0]['time_label'])->toBeNull()
-        ->and($events[0]['date_label'])->toBe('8 Oktober – 22 November 2026')
-        ->and($events[0]['cta_url'])->toBe('/teacher-of-champions/daftar');
+        ->and($events[0]['group_key'])->toBe($events[1]['group_key'])
+        ->and($events[1]['time_label'])->toBe('08.00 WIB')
+        ->and($events[2]['is_multi_day'])->toBeTrue()
+        ->and($events[2]['theme'])->toBe('navy-emas')
+        ->and($events[2]['time_label'])->toBeNull()
+        ->and($events[2]['date_label'])->toBe('12 Oktober – 22 November 2026')
+        ->and($events[2]['cta_url'])->toBe('/teacher-of-champions/daftar');
 });
 
 it('uses the featured kegiatan as hero with a pending countdown', function () {
@@ -75,7 +75,7 @@ it('uses the featured kegiatan as hero with a pending countdown', function () {
 });
 
 it('switches the hero to Teacher of Champions after the October 10 events end', function () {
-    Carbon::setTestNow(Carbon::parse('2026-10-11 00:30', 'Asia/Jakarta')->utc());
+    Carbon::setTestNow(Carbon::parse('2026-10-12 00:30', 'Asia/Jakarta')->utc());
 
     $hero = $this->service->hero();
 
@@ -84,7 +84,7 @@ it('switches the hero to Teacher of Champions after the October 10 events end', 
         ->and($hero['theme'])->toBe('navy-emas')
         ->and($hero['hero_image'])->toBe('/images/teacher-of-champions-poster.jpg')
         ->and($hero['has_started'])->toBeTrue()
-        ->and($hero['schedule'])->toHaveCount(5);
+        ->and($hero['schedule'])->toHaveCount(7);
 });
 
 it('keeps the October 10 events active until 23:59 WIB', function () {

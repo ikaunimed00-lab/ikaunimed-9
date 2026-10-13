@@ -27,7 +27,7 @@ const Sukses = ({ settings, footerContent, nomorPendaftaran }: SuksesPageProps) 
                 {nomorPendaftaran}
               </p>
               <p className="mt-4 text-sm text-gray-600">
-                Pengumuman peserta terpilih: 30 Oktober 2026. Pantau Instagram resmi IKA UNIMED untuk informasi tahapan berikutnya.
+                Pengumuman peserta terpilih: 1 November 2026. Pantau Instagram resmi IKA UNIMED untuk informasi tahapan berikutnya.
               </p>
               <Link
                 href="/reuni-akbar-2026#teacher-of-champions"

@@ -145,15 +145,15 @@ it('requires consent and a regency that belongs to the province', function () {
     expect(PendaftarTeacherOfChampions::query()->count())->toBe(0);
 });
 
-it('stays open until 27 October 23:59 WIB', function () {
-    Carbon::setTestNow(Carbon::parse('2026-10-27 23:59:30', 'Asia/Jakarta')->utc());
+it('stays open until 29 October 23:59 WIB', function () {
+    Carbon::setTestNow(Carbon::parse('2026-10-29 23:59:30', 'Asia/Jakarta')->utc());
 
     $this->post(route('teacher-of-champions.store'), validRegistration())
         ->assertRedirect(route('teacher-of-champions.success'));
 });
 
-it('closes registration after 27 October 23:59 WIB', function () {
-    Carbon::setTestNow(Carbon::parse('2026-10-28 00:00:01', 'Asia/Jakarta')->utc());
+it('closes registration after 29 October 23:59 WIB', function () {
+    Carbon::setTestNow(Carbon::parse('2026-10-30 00:00:01', 'Asia/Jakarta')->utc());
 
     $this->get(route('teacher-of-champions.create'))
         ->assertOk()

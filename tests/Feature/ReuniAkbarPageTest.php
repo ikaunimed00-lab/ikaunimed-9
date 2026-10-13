@@ -19,7 +19,7 @@ it('shows the reuni akbar schedule, route map and Teacher of Champions publicly'
             ->has('catur.spotlight.pimpinan', 2)
             ->where('teacherOfChampions.hero_image', '/images/teacher-of-champions-poster.jpg')
             ->where('teacherOfChampions.cta_url', '/teacher-of-champions/daftar')
-            ->has('teacherOfChampions.schedule', 5)
+            ->has('teacherOfChampions.schedule', 7)
             ->where('bannerImage', '/images/grand-reunion-banner-2026-koreksi.jpg')
             ->has('contacts', 2)
         );

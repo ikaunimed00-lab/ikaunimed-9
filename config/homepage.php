@@ -28,9 +28,9 @@ return [
     */
 
     'teacher_of_champions' => [
-        'registration_closes_at' => '2026-10-27 23:59',
+        'registration_closes_at' => '2026-10-29 23:59',
         'og_image' => '/images/og-teacher-of-champions.jpg',
-        'period_label' => '8 Oktober – 22 November 2026',
+        'period_label' => '12 Oktober – 22 November 2026',
     ],
 
     /*

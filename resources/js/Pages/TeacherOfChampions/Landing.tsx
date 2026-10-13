@@ -48,27 +48,33 @@ const highlights = [
   { icon: Lightbulb, title: "Dampak", text: "Melahirkan guru inspiratif untuk perubahan positif." },
 ];
 
-const timeline = [
-  { date: "8–27 Okt 2026", title: "Pendaftaran", text: "Pendaftaran online untuk seluruh guru di Indonesia." },
-  { date: "30 Okt 2026", title: "Pengumuman", text: "Pengumuman peserta terpilih." },
+const timeline: { date: string; title: string; text?: string }[] = [
+  {
+    date: "12–29 Okt 2026",
+    title: "Pendaftaran Peserta ToC 2026",
+    text: "Pendaftaran online untuk seluruh guru di Indonesia.",
+  },
+  { date: "1 Nov 2026", title: "Pengumuman peserta terpilih mengikuti ToC 2026" },
   {
     date: "9 Nov 2026",
-    title: "Tahap Penyisihan (CBT)",
+    title: "Pelaksanaan Tahap Penyisihan (The Qualifiers)",
     text: "50 soal, 90 menit; 100 peserta terbaik akan lolos ke tahap final.",
   },
+  { date: "12 Nov 2026", title: "Pengumuman 100 besar lolos ke Tahap Final (The Championship)" },
+  { date: "13 Nov 2026", title: "Technical Meeting Babak Final" },
   {
     date: "14–22 Nov 2026",
-    title: "Favorite Teacher Award",
-    text: "Voting melalui Instagram Resmi IKA UNIMED.",
+    title: "Voting melalui Instagram Resmi IKA UNIMED",
+    text: "Penentuan Favorite Teacher Award.",
   },
-  { date: "22 Nov 2026", title: "Tahap Final", text: "Live quiz." },
+  { date: "22 Nov 2026", title: "Pelaksanaan dan Pengumuman Tahap Final (The Championship)", text: "Live quiz." },
 ];
 
 const steps = [
   { title: "Isi formulir pendaftaran online", text: "Gratis, tidak dipungut biaya." },
   {
     title: "Tunggu pengumuman peserta terpilih",
-    text: "Panitia memverifikasi data dan mengumumkan peserta terpilih pada 30 Oktober 2026. Informasi lanjutan dikirim melalui WhatsApp resmi panitia.",
+    text: "Panitia memverifikasi data dan mengumumkan peserta terpilih pada 1 November 2026. Informasi lanjutan dikirim melalui WhatsApp resmi panitia.",
   },
   { title: "Ikuti tahap penyisihan dan final", text: "Kerjakan tahap penyisihan (CBT), lalu lanjutkan ke tahap final bila lolos." },
 ];
@@ -156,7 +162,7 @@ const Landing = ({
       question: "Bagaimana tesnya?",
       answer: "Tahap penyisihan berupa CBT online selama 90 menit dengan 50 soal pilihan ganda.",
     },
-    { question: "Kapan pengumuman?", answer: "Peserta terpilih diumumkan pada 30 Oktober 2026." },
+    { question: "Kapan pengumuman?", answer: "Peserta terpilih diumumkan pada 1 November 2026." },
     {
       question: "Bagaimana jika ada kendala?",
       answer: "Hubungi WhatsApp panitia yang tercantum di bagian Kontak panitia di halaman ini.",
@@ -209,7 +215,7 @@ const Landing = ({
               <div className="mt-8 max-w-md rounded-2xl border border-[#FFD700]/30 bg-black/20 p-5">
                 <p className="flex items-center gap-2 text-sm font-bold text-white">
                   <CalendarDays className="h-4 w-4 shrink-0 text-[#FFD700]" aria-hidden="true" />
-                  Pendaftaran 8–27 Oktober 2026
+                  Pendaftaran 12–29 Oktober 2026
                 </p>
                 {isOpen ? (
                   <div className="mt-4">
@@ -270,7 +276,7 @@ const Landing = ({
                   <div className="min-w-0 flex-1 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                     <p className="text-sm font-bold text-[#B45309]">{item.date}</p>
                     <h3 className="text-lg font-bold text-[#0B3D2E]">{item.title}</h3>
-                    <p className="mt-1 text-sm text-gray-600">{item.text}</p>
+                    {item.text && <p className="mt-1 text-sm text-gray-600">{item.text}</p>}
                   </div>
                 </li>
               ))}
@@ -365,7 +371,7 @@ const Landing = ({
             </div>
 
             <p className="mx-auto mt-8 max-w-3xl rounded-2xl border-l-4 border-[#FFD700] bg-white px-5 py-4 text-center font-semibold text-[#0B3D2E] shadow-sm">
-              100 peserta terbaik melaju ke Tahap Final.
+              100 peserta terbaik akan lolos ke Tahap Final, diumumkan 12 November 2026.
             </p>
           </div>
         </section>
@@ -374,7 +380,7 @@ const Landing = ({
         <section aria-labelledby="final" className="bg-white py-14 md:py-20">
           <div className="container">
             <SectionHeading id="final" eyebrow="Tahap Final" title="The Championship (Live Quiz)">
-              Dilaksanakan online melalui Zoom dan Kahoot pada 22 November 2026, terdiri dari 3 ronde eliminasi.
+              Dilaksanakan online melalui Zoom dan Kahoot pada 22 November 2026, terdiri dari 3 ronde eliminasi. Technical meeting babak final diadakan 13 November 2026.
             </SectionHeading>
 
             <ol className="mx-auto grid max-w-5xl gap-4 md:grid-cols-3">
@@ -422,8 +428,8 @@ const Landing = ({
         <section aria-labelledby="favorite" className="bg-[#F2FAF4] py-14 md:py-20">
           <div className="container">
             <SectionHeading id="favorite" eyebrow="Kompetisi tambahan" title="Favorite Teacher Award">
-              Masyarakat memberi dukungan kepada 100 finalis dengan like pada postingan resmi Instagram IKA UNIMED
-              (@ikaunimed), 14–22 November 2026. Peserta dengan like terbanyak ditetapkan sebagai Favorite Teacher of
+              Masyarakat memberi dukungan kepada 100 finalis melalui voting di Instagram Resmi IKA UNIMED (@ikaunimed),
+              14–22 November 2026. Peserta dengan like terbanyak ditetapkan sebagai Favorite Teacher of
               Champions dan mendapat apresiasi khusus.
             </SectionHeading>
 
