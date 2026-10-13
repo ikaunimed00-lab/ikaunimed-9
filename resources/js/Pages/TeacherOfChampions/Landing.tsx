@@ -54,12 +54,12 @@ const timeline = [
   {
     date: "9 Nov 2026",
     title: "Tahap Penyisihan (CBT)",
-    text: "50 soal, 90 menit; 100 peserta terbaik lolos.",
+    text: "50 soal, 90 menit; 100 peserta terbaik akan lolos ke tahap final.",
   },
   {
     date: "14–22 Nov 2026",
     title: "Favorite Teacher Award",
-    text: "Voting like di Instagram resmi IKA UNIMED.",
+    text: "Voting melalui Instagram Resmi IKA UNIMED.",
   },
   { date: "22 Nov 2026", title: "Tahap Final", text: "Live quiz." },
 ];
