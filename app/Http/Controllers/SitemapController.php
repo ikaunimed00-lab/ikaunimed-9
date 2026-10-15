@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\News;
 use App\Models\Category;
+use App\Models\News;
+use Carbon\Carbon;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
-use Carbon\Carbon;
 
 class SitemapController extends Controller
 {
@@ -92,7 +92,7 @@ class SitemapController extends Controller
             // Google News hanya menerima berita dari 2 hari terakhir
             $news = News::published()
                 ->where('published_at', '>=', Carbon::now()->subDays(2))
-                ->select('id', 'title', 'slug', 'published_at', 'updated_at')
+                ->select('id', 'title', 'slug', 'image', 'published_at', 'updated_at')
                 ->orderBy('published_at', 'desc')
                 ->take(1000)
                 ->get();
