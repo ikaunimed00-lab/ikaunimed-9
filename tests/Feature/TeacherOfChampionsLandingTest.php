@@ -87,7 +87,7 @@ it('prints the link preview tags for /toc', function () {
         ->assertSee('Kompetisi online untuk guru se-Indonesia dari IKA UNIMED. Pendaftaran 12–29 Oktober 2026 untuk Hari Guru Nasional.', false);
 });
 
-it('links Instagram only when the site setting holds a URL', function () {
+it('links the Pengurus Pusat Instagram account for the Favorite Teacher Award', function () {
     SiteSetting::query()->updateOrCreate(
         ['key' => 'social_instagram'],
         ['value' => 'https://instagram.com/ikaunimed', 'type' => 'text', 'group' => 'social', 'label' => 'Instagram URL'],
@@ -95,13 +95,10 @@ it('links Instagram only when the site setting holds a URL', function () {
     SiteManagementService::clearStaticCache();
 
     $this->get(route('teacher-of-champions.landing'))
-        ->assertInertia(fn (Assert $page) => $page->where('instagramUrl', 'https://instagram.com/ikaunimed'));
-
-    SiteSetting::query()->where('key', 'social_instagram')->delete();
-    SiteManagementService::clearStaticCache();
-
-    $this->get(route('teacher-of-champions.landing'))
-        ->assertInertia(fn (Assert $page) => $page->where('instagramUrl', null));
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('instagramUrl', 'https://www.instagram.com/penguruspusatikaunimed/')
+            ->where('instagramHandle', '@penguruspusatikaunimed')
+        );
 });
 
 it('links the guidebook on every Teacher of Champions page', function () {

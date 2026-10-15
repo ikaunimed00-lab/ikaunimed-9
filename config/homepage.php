@@ -25,6 +25,8 @@ return [
     | Closing time is written in WIB (Asia/Jakarta). period_label is shown on
     | /toc when the "teacher-of-champions" kegiatan is not active.
     | guidebook_url (buku panduan) is linked wherever the competition appears.
+    | instagram_url/instagram_handle is the account used for the Favorite
+    | Teacher Award voting.
     |
     */
 
@@ -33,6 +35,8 @@ return [
         'og_image' => '/images/og-teacher-of-champions.jpg',
         'period_label' => '12 Oktober – 22 November 2026',
         'guidebook_url' => 'https://drive.google.com/drive/folders/1kV0jONNVApXlSDTy8MIPAO_Zs4Wjm4Wt',
+        'instagram_url' => 'https://www.instagram.com/penguruspusatikaunimed/',
+        'instagram_handle' => '@penguruspusatikaunimed',
     ],
 
     /*

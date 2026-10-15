@@ -39,7 +39,8 @@ class TeacherOfChampionsController extends Controller
             'closesAtLabel' => $closesAt->translatedFormat('l, j F Y').' pukul '.$closesAt->format('H.i').' WIB',
             'periodLabel' => $kegiatanPayload['date_label'] ?? config('homepage.teacher_of_champions.period_label'),
             'jenjangOptions' => PendaftarTeacherOfChampions::jenjangOptions(),
-            'instagramUrl' => $this->instagramUrl($settings),
+            'instagramUrl' => config('homepage.teacher_of_champions.instagram_url'),
+            'instagramHandle' => config('homepage.teacher_of_champions.instagram_handle'),
             'guidebookUrl' => config('homepage.teacher_of_champions.guidebook_url'),
             'meta' => ['title' => $openGraph['title'], 'description' => $openGraph['description']],
         ])->withViewData([
@@ -52,15 +53,5 @@ class TeacherOfChampionsController extends Controller
             'og_image_width' => $openGraph['image_width'],
             'og_image_height' => $openGraph['image_height'],
         ]);
-    }
-
-    /**
-     * @param  iterable<string, mixed>  $settings
-     */
-    private function instagramUrl(iterable $settings): ?string
-    {
-        $url = collect($settings)->get('social')['social_instagram'] ?? null;
-
-        return is_string($url) && preg_match('#^https?://#', $url) ? $url : null;
     }
 }

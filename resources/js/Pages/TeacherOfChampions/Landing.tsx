@@ -36,6 +36,7 @@ type LandingPageProps = {
   periodLabel: string;
   jenjangOptions: { value: string; label: string }[];
   instagramUrl: string | null;
+  instagramHandle: string;
   guidebookUrl: string | null;
   meta: { title: string; description: string };
 };
@@ -147,6 +148,7 @@ const Landing = ({
   periodLabel,
   jenjangOptions,
   instagramUrl,
+  instagramHandle,
   guidebookUrl,
   meta,
 }: LandingPageProps) => {
@@ -449,7 +451,7 @@ const Landing = ({
         <section aria-labelledby="favorite" className="bg-[#F2FAF4] py-14 md:py-20">
           <div className="container">
             <SectionHeading id="favorite" eyebrow="Kompetisi tambahan" title="Favorite Teacher Award">
-              Masyarakat memberi dukungan kepada 100 finalis melalui voting di Instagram Resmi IKA UNIMED (@ikaunimed),
+              Masyarakat memberi dukungan kepada 100 finalis melalui voting di Instagram Resmi IKA UNIMED ({instagramHandle}),
               14–22 November 2026. Peserta dengan like terbanyak ditetapkan sebagai Favorite Teacher of
               Champions dan mendapat apresiasi khusus.
             </SectionHeading>
@@ -476,7 +478,7 @@ const Landing = ({
                 ) : (
                   <p className="inline-flex items-center gap-2 font-bold text-[#006837]">
                     <Instagram className="h-5 w-5" aria-hidden="true" />
-                    @ikaunimed
+                    {instagramHandle}
                   </p>
                 )}
               </div>
