@@ -39,4 +39,20 @@ Permission yang dipakai: `toc.pendaftar.view`, `toc.pendaftar.update`, `toc.pend
 5. Kosongkan **Organisasi / Daerah**.
 6. Simpan. Pengguna kini login di `/login` dan diarahkan ke `/admin`, dengan menu grup **ToC**.
 
+## Fitur di grup menu ToC
+
+- **Dashboard ToC**: total & pendaftar hari ini (WIB), jumlah per status, persentase alumni UNIMED,
+  tren harian, provinsi/jenjang/bidang studi teratas, dan hitung mundur penutupan pendaftaran
+  (`homepage.teacher_of_champions.registration_closes_at`). Data di-cache 60 detik.
+- **Pendaftar**: filter status, jenjang, provinsi, alumni UNIMED, rentang tanggal daftar (WIB) dan
+  "kemungkinan duplikat"; aksi massal *Tandai terverifikasi / lolos / ditolak* hanya untuk transisi
+  wajar (baru → terverifikasi → lolos; baru/terverifikasi → ditolak), sisanya dilewati dan dilaporkan.
+  Penanda "Kemungkinan duplikat" (WhatsApp/email sama setelah normalisasi, atau nama & sekolah
+  sangat mirip) hanya penanda, tidak memblokir apa pun. Ekspor Excel/CSV mengikuti filter aktif.
+- **Kegiatan ToC**: hanya kegiatan `teacher-of-champions`; slug tidak dapat diubah oleh admin-toc.
+- **Audit Log** (baca saja): perubahan status/catatan pendaftar (termasuk massal), ekspor,
+  perubahan kegiatan ToC, berita yang dibuat/diubah/diterbitkan admin-toc, dan login admin.
+  Kata sandi dan token tidak pernah disimpan. Untuk memberi akses ke auditor tertentu, berikan
+  permission `toc.audit.view` lewat menu Roles.
+
 Untuk mencabut akses: buka user yang sama, hapus role ToC dari **Role Sistem**, lalu simpan.

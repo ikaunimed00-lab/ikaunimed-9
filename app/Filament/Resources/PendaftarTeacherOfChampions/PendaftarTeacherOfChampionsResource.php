@@ -5,6 +5,7 @@ namespace App\Filament\Resources\PendaftarTeacherOfChampions;
 use App\Filament\Resources\PendaftarTeacherOfChampions\Pages\ManagePendaftarTeacherOfChampions;
 use App\Models\Kegiatan;
 use App\Models\PendaftarTeacherOfChampions;
+use App\Services\AuditLogger;
 use App\Services\PendaftarDuplicateDetector;
 use App\Services\PendaftarTeacherOfChampionsExporter;
 use App\Services\WilayahService;
@@ -214,7 +215,7 @@ class PendaftarTeacherOfChampionsResource extends Resource
                         ->label('Ekspor terpilih (Excel)')
                         ->icon(Heroicon::OutlinedArrowDownTray)
                         ->visible(fn (): bool => self::userCan('export'))
-                        ->action(fn (Collection $records) => app(PendaftarTeacherOfChampionsExporter::class)->download($records, 'xlsx')),
+                        ->action(fn (Collection $records) => app(PendaftarTeacherOfChampionsExporter::class)->download($records, 'xlsx', ['sumber' => 'terpilih'])),
                     DeleteBulkAction::make()
                         ->visible(fn (): bool => self::userCan('deleteAny')),
                 ]),
@@ -270,16 +271,20 @@ class PendaftarTeacherOfChampionsResource extends Resource
      */
     public static function bulkUpdateStatus(Collection $records, string $status): array
     {
-        $updated = 0;
+        $updated = app(AuditLogger::class)->withContext(['massal' => true], function () use ($records, $status): int {
+            $updated = 0;
 
-        foreach ($records as $record) {
-            if (! $record->canTransitionTo($status)) {
-                continue;
+            foreach ($records as $record) {
+                if (! $record->canTransitionTo($status)) {
+                    continue;
+                }
+
+                $record->update(['status' => $status]);
+                $updated++;
             }
 
-            $record->update(['status' => $status]);
-            $updated++;
-        }
+            return $updated;
+        });
 
         return ['updated' => $updated, 'skipped' => $records->count() - $updated];
     }

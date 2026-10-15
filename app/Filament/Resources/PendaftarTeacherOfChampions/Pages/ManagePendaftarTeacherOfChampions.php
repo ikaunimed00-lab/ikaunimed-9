@@ -35,6 +35,11 @@ class ManagePendaftarTeacherOfChampions extends ManageRecords
                     return app(PendaftarTeacherOfChampionsExporter::class)->download(
                         $this->getFilteredSortedTableQuery()->get(),
                         $data['format'],
+                        [
+                            'sumber' => 'filter',
+                            'filter' => $this->tableFilters,
+                            'pencarian' => $this->tableSearch,
+                        ],
                     );
                 }),
         ];

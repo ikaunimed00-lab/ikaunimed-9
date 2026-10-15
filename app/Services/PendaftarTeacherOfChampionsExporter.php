@@ -46,12 +46,21 @@ class PendaftarTeacherOfChampionsExporter
      */
     public const TEXT_COLUMNS = ['nomor_pendaftaran', 'whatsapp'];
 
+    public function __construct(private AuditLogger $auditLogger) {}
+
     /**
      * @param  Collection<int, PendaftarTeacherOfChampions>  $pendaftar
+     * @param  array<string, mixed>  $auditContext  e.g. the active table filters and search
      */
-    public function download(Collection $pendaftar, string $format = 'xlsx'): BinaryFileResponse
+    public function download(Collection $pendaftar, string $format = 'xlsx', array $auditContext = []): BinaryFileResponse
     {
         $format = $format === 'csv' ? 'csv' : 'xlsx';
+
+        $this->auditLogger->record('pendaftar.exported', null, [
+            'format' => $format,
+            'jumlah' => $pendaftar->count(),
+            ...$auditContext,
+        ]);
         $path = tempnam(sys_get_temp_dir(), 'toc').'.'.$format;
 
         if ($format === 'csv') {
