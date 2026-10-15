@@ -6,8 +6,10 @@ use App\Models\Legalization;
 use App\Models\LegalizationFile;
 use App\Models\Notification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LegalizationController extends Controller
 {
@@ -137,7 +139,7 @@ class LegalizationController extends Controller
         ]);
 
         $file = $request->file('file');
-        $path = $file->store('legalizations', 'public');
+        $path = $file->store(LegalizationFile::DIRECTORY, LegalizationFile::DISK);
 
         if ($path === false) {
             return back()->with('error', 'File gagal disimpan. Silakan coba lagi.');
@@ -153,11 +155,29 @@ class LegalizationController extends Controller
                 'size' => $file->getSize(),
             ]);
         } catch (\Throwable $exception) {
-            Storage::disk('public')->delete($path);
+            Storage::disk(LegalizationFile::DISK)->delete($path);
 
             throw $exception;
         }
 
         return back()->with('success', 'File berhasil diupload. Pengajuan Anda sedang diproses.');
+    }
+
+    /**
+     * UNDUH FILE IJAZAH (pemilik atau admin legalisasi)
+     */
+    public function download(LegalizationFile $legalizationFile): StreamedResponse
+    {
+        Gate::authorize('view', $legalizationFile);
+
+        $disk = Storage::disk(LegalizationFile::DISK);
+        $path = $legalizationFile->storagePath();
+
+        abort_unless($disk->exists($path), 404);
+
+        return $disk->download($path, $legalizationFile->original_name, [
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

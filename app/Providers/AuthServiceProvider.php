@@ -6,6 +6,7 @@ use App\Models\AlumniPost;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\JobVacancy;
+use App\Models\LegalizationFile;
 use App\Models\News;
 use App\Models\Partnership;
 use App\Models\Scholarship;
@@ -13,6 +14,7 @@ use App\Policies\AlumniPostPolicy;
 use App\Policies\CoursePolicy;
 use App\Policies\EnrollmentPolicy;
 use App\Policies\JobVacancyPolicy;
+use App\Policies\LegalizationFilePolicy;
 use App\Policies\NewsPolicy;
 use App\Policies\PartnershipPolicy;
 use App\Policies\ScholarshipPolicy;
@@ -31,6 +33,7 @@ class AuthServiceProvider extends ServiceProvider
         Enrollment::class => EnrollmentPolicy::class,
         News::class => NewsPolicy::class,
         JobVacancy::class => JobVacancyPolicy::class,
+        LegalizationFile::class => LegalizationFilePolicy::class,
         Scholarship::class => ScholarshipPolicy::class,
         Partnership::class => PartnershipPolicy::class,
     ];

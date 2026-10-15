@@ -2,13 +2,11 @@
 
 namespace App\Filament\Resources\Legalizations\Schemas;
 
-use Filament\Forms\Components\DateTimePicker;
+use App\Models\LegalizationFile;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -54,10 +52,14 @@ class LegalizationForm
                     ->schema([
                         FileUpload::make('file_ijazah')
                             ->label('Scan Ijazah Asli')
+                            ->disk(LegalizationFile::DISK)
+                            ->visibility('private')
                             ->directory('legalizations/ijazah')
                             ->required(),
                         FileUpload::make('file_transkrip')
                             ->label('Scan Transkrip Nilai Asli')
+                            ->disk(LegalizationFile::DISK)
+                            ->visibility('private')
                             ->directory('legalizations/transkrip')
                             ->required(),
                     ])->columns(2),
