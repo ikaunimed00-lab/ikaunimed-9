@@ -18,6 +18,35 @@ it('keeps indexed strings within the MyISAM key limit', function () {
         ->and(Schema::hasIndex('audit_logs', ['created_at']))->toBeTrue();
 });
 
+function createPartialAuditLogsTable(): void
+{
+    Schema::drop('audit_logs');
+    Schema::create('audit_logs', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('user_id')->nullable()->index();
+        $table->string('aksi', 100);
+        $table->string('subject_type')->nullable();
+        $table->unsignedBigInteger('subject_id')->nullable();
+        $table->json('perubahan')->nullable();
+        $table->string('ip', 45)->nullable();
+        $table->timestamp('created_at')->nullable();
+    });
+}
+
+it('previews only audit_logs changes when pretending the repair', function () {
+    createPartialAuditLogsTable();
+    $migration = auditLogsMigration();
+
+    $queries = collect(DB::pretend(fn () => $migration->up()))
+        ->pluck('query')
+        ->filter(fn (string $sql): bool => preg_match('/^\s*(create|alter|drop|insert|update|delete|rename)\b/i', $sql) === 1);
+
+    expect($queries)->not->toBeEmpty()
+        ->and($queries->every(fn (string $sql): bool => str_contains($sql, 'audit_logs')))->toBeTrue()
+        ->and($queries->contains(fn (string $sql): bool => str_starts_with(strtolower($sql), 'create table "audit_logs"')))->toBeFalse()
+        ->and($queries->contains(fn (string $sql): bool => str_contains($sql, 'audit_logs_subject_type_subject_id_index')))->toBeTrue();
+});
+
 it('repairs a partially created audit_logs table without dropping it', function () {
     Schema::drop('audit_logs');
     Schema::create('audit_logs', function (Blueprint $table) {
