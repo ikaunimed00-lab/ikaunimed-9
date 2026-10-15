@@ -5,23 +5,29 @@ namespace App\Filament\Resources\PendaftarTeacherOfChampions;
 use App\Filament\Resources\PendaftarTeacherOfChampions\Pages\ManagePendaftarTeacherOfChampions;
 use App\Models\Kegiatan;
 use App\Models\PendaftarTeacherOfChampions;
+use App\Services\PendaftarDuplicateDetector;
 use App\Services\PendaftarTeacherOfChampionsExporter;
 use App\Services\WilayahService;
 use BackedEnum;
+use Carbon\CarbonImmutable;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 
@@ -61,6 +67,10 @@ class PendaftarTeacherOfChampionsResource extends Resource
             Textarea::make('catatan')
                 ->label('Catatan panitia')
                 ->rows(4),
+            Textarea::make('catatan_internal')
+                ->label('Catatan internal')
+                ->helperText('Hanya terlihat oleh pengelola di panel admin.')
+                ->rows(4),
         ])->columns(1);
     }
 
@@ -70,6 +80,7 @@ class PendaftarTeacherOfChampionsResource extends Resource
             ->mapWithKeys(fn (string $provinsi): array => [$provinsi => $provinsi])
             ->all();
         $canViewContact = self::userCan('viewContact');
+        $duplicates = app(PendaftarDuplicateDetector::class)->duplicates();
 
         return $table
             ->defaultSort('created_at', 'desc')
@@ -84,6 +95,13 @@ class PendaftarTeacherOfChampionsResource extends Resource
                     ->label('Nama')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('kemungkinan_duplikat')
+                    ->label('Duplikat?')
+                    ->state(fn (PendaftarTeacherOfChampions $record): ?string => isset($duplicates[$record->id]) ? 'Kemungkinan duplikat' : null)
+                    ->tooltip(fn (PendaftarTeacherOfChampions $record): ?string => isset($duplicates[$record->id]) ? implode('; ', $duplicates[$record->id]) : null)
+                    ->badge()
+                    ->color('warning')
+                    ->placeholder('-'),
                 TextColumn::make('whatsapp')
                     ->label('WhatsApp')
                     ->searchable($canViewContact)
@@ -140,6 +158,11 @@ class PendaftarTeacherOfChampionsResource extends Resource
                         default => 'gray',
                     })
                     ->sortable(),
+                TextColumn::make('catatan_internal')
+                    ->label('Catatan internal')
+                    ->limit(40)
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
                     ->label('Daftar (WIB)')
                     ->dateTime('d M Y, H:i')
@@ -161,29 +184,32 @@ class PendaftarTeacherOfChampionsResource extends Resource
                     ->label('Alumni UNIMED')
                     ->trueLabel('Ya')
                     ->falseLabel('Tidak'),
+                Filter::make('tanggal_daftar')
+                    ->label('Tanggal daftar (WIB)')
+                    ->schema([
+                        DatePicker::make('dari')->label('Daftar dari (WIB)'),
+                        DatePicker::make('sampai')->label('Daftar sampai (WIB)'),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => self::applyRegistrationDateRange($query, $data['dari'] ?? null, $data['sampai'] ?? null))
+                    ->indicateUsing(function (array $data): array {
+                        return collect([
+                            'dari' => filled($data['dari'] ?? null) ? 'Dari '.CarbonImmutable::parse($data['dari'])->format('d M Y') : null,
+                            'sampai' => filled($data['sampai'] ?? null) ? 'Sampai '.CarbonImmutable::parse($data['sampai'])->format('d M Y') : null,
+                        ])->filter()->all();
+                    }),
+                Filter::make('kemungkinan_duplikat')
+                    ->label('Hanya kemungkinan duplikat')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->whereKey(array_keys(app(PendaftarDuplicateDetector::class)->duplicates()))),
             ])
             ->recordActions([
                 EditAction::make()->label('Status & catatan'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    BulkAction::make('ubahStatus')
-                        ->label('Ubah status')
-                        ->icon(Heroicon::OutlinedCheckBadge)
-                        ->visible(fn (): bool => self::userCan('updateAny'))
-                        ->schema([
-                            Select::make('status')
-                                ->label('Status baru')
-                                ->options(PendaftarTeacherOfChampions::STATUSES)
-                                ->required()
-                                ->native(false),
-                        ])
-                        ->action(function (Collection $records, array $data): void {
-                            PendaftarTeacherOfChampions::query()
-                                ->whereKey($records->modelKeys())
-                                ->update(['status' => $data['status']]);
-                        })
-                        ->deselectRecordsAfterCompletion(),
+                    self::statusBulkAction('tandaiTerverifikasi', 'terverifikasi', 'Tandai terverifikasi', Heroicon::OutlinedCheckBadge),
+                    self::statusBulkAction('tandaiLolos', 'lolos', 'Tandai lolos', Heroicon::OutlinedTrophy),
+                    self::statusBulkAction('tandaiDitolak', 'ditolak', 'Tandai ditolak', Heroicon::OutlinedXCircle),
                     BulkAction::make('eksporTerpilih')
                         ->label('Ekspor terpilih (Excel)')
                         ->icon(Heroicon::OutlinedArrowDownTray)
@@ -213,5 +239,75 @@ class PendaftarTeacherOfChampionsResource extends Resource
     public static function userCan(string $ability): bool
     {
         return Gate::allows($ability, PendaftarTeacherOfChampions::class);
+    }
+
+    /**
+     * Dates are picked in WIB while created_at is stored in UTC.
+     *
+     * @param  Builder<PendaftarTeacherOfChampions>  $query
+     * @return Builder<PendaftarTeacherOfChampions>
+     */
+    public static function applyRegistrationDateRange(Builder $query, ?string $from, ?string $until): Builder
+    {
+        return $query
+            ->when(filled($from), fn (Builder $query): Builder => $query->where(
+                'created_at',
+                '>=',
+                CarbonImmutable::parse($from, Kegiatan::TIMEZONE)->startOfDay()->utc(),
+            ))
+            ->when(filled($until), fn (Builder $query): Builder => $query->where(
+                'created_at',
+                '<',
+                CarbonImmutable::parse($until, Kegiatan::TIMEZONE)->startOfDay()->addDay()->utc(),
+            ));
+    }
+
+    /**
+     * Applies only sensible transitions (see STATUS_TRANSITIONS) and reports how many were skipped.
+     *
+     * @param  Collection<int, PendaftarTeacherOfChampions>  $records
+     * @return array{updated: int, skipped: int}
+     */
+    public static function bulkUpdateStatus(Collection $records, string $status): array
+    {
+        $updated = 0;
+
+        foreach ($records as $record) {
+            if (! $record->canTransitionTo($status)) {
+                continue;
+            }
+
+            $record->update(['status' => $status]);
+            $updated++;
+        }
+
+        return ['updated' => $updated, 'skipped' => $records->count() - $updated];
+    }
+
+    private static function statusBulkAction(string $name, string $status, string $label, Heroicon $icon): BulkAction
+    {
+        $allowedFrom = collect(PendaftarTeacherOfChampions::STATUS_TRANSITIONS[$status])
+            ->map(fn (string $from): string => PendaftarTeacherOfChampions::STATUSES[$from])
+            ->implode(' atau ');
+
+        return BulkAction::make($name)
+            ->label($label)
+            ->icon($icon)
+            ->visible(fn (): bool => self::userCan('updateAny'))
+            ->requiresConfirmation()
+            ->modalHeading($label.'?')
+            ->modalDescription("Hanya pendaftar berstatus {$allowedFrom} yang diubah; sisanya dilewati.")
+            ->action(function (Collection $records) use ($status): void {
+                abort_unless(self::userCan('updateAny'), 403);
+
+                $result = self::bulkUpdateStatus($records, $status);
+
+                Notification::make()
+                    ->title("{$result['updated']} pendaftar diubah menjadi ".PendaftarTeacherOfChampions::STATUSES[$status])
+                    ->body($result['skipped'] > 0 ? "{$result['skipped']} dilewati karena statusnya tidak sesuai." : null)
+                    ->success()
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
     }
 }

@@ -106,7 +106,7 @@ it('masks registrant contacts for panitia-toc and hides export and status change
         ->assertSee('guru****************.com')
         ->assertDontSee('guru.teladan@example.com')
         ->assertActionHidden('ekspor')
-        ->assertTableBulkActionHidden('ubahStatus')
+        ->assertTableBulkActionHidden('tandaiTerverifikasi')
         ->assertTableBulkActionHidden('eksporTerpilih')
         ->assertTableActionHidden('edit', $pendaftar);
 });
@@ -119,7 +119,7 @@ it('shows full contacts and export to admin-toc but never delete', function () {
     Livewire::test(ManagePendaftarTeacherOfChampions::class)
         ->assertSee('6281234567890')
         ->assertActionVisible('ekspor')
-        ->assertTableBulkActionVisible('ubahStatus')
+        ->assertTableBulkActionVisible('tandaiTerverifikasi')
         ->assertTableBulkActionHidden('delete')
         ->assertTableActionVisible('edit', $pendaftar);
 

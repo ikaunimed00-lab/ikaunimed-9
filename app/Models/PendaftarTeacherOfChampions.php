@@ -28,6 +28,17 @@ class PendaftarTeacherOfChampions extends Model
     ];
 
     /**
+     * Target status => statuses it may be reached from in bulk actions.
+     *
+     * @var array<string, list<string>>
+     */
+    public const STATUS_TRANSITIONS = [
+        'terverifikasi' => ['baru'],
+        'lolos' => ['terverifikasi'],
+        'ditolak' => ['baru', 'terverifikasi'],
+    ];
+
+    /**
      * Stored code => label shown to registrants. The jenjang column holds at most 10 characters.
      *
      * @var array<string, string>
@@ -81,6 +92,7 @@ class PendaftarTeacherOfChampions extends Model
         'persetujuan_data',
         'status',
         'catatan',
+        'catatan_internal',
     ];
 
     protected function casts(): array
@@ -132,6 +144,11 @@ class PendaftarTeacherOfChampions extends Model
 
             return $pendaftar;
         });
+    }
+
+    public function canTransitionTo(string $status): bool
+    {
+        return in_array($this->status, self::STATUS_TRANSITIONS[$status] ?? [], true);
     }
 
     public static function registrationClosesAt(): Carbon

@@ -29,10 +29,14 @@ class ManagePendaftarTeacherOfChampions extends ManageRecords
                         ->required()
                         ->native(false),
                 ])
-                ->action(fn (array $data) => app(PendaftarTeacherOfChampionsExporter::class)->download(
-                    $this->getFilteredSortedTableQuery()->get(),
-                    $data['format'],
-                )),
+                ->action(function (array $data) {
+                    abort_unless(PendaftarTeacherOfChampionsResource::userCan('export'), 403);
+
+                    return app(PendaftarTeacherOfChampionsExporter::class)->download(
+                        $this->getFilteredSortedTableQuery()->get(),
+                        $data['format'],
+                    );
+                }),
         ];
     }
 }
