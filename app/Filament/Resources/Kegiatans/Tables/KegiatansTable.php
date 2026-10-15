@@ -11,6 +11,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class KegiatansTable
 {
@@ -40,7 +41,8 @@ class KegiatansTable
                     ->limit(40)
                     ->toggleable(),
                 ToggleColumn::make('is_active')
-                    ->label('Aktif'),
+                    ->label('Aktif')
+                    ->disabled(fn (Kegiatan $record): bool => ! (Auth::user()?->can('update', $record) ?? false)),
                 IconColumn::make('featured')
                     ->label('Unggulan')
                     ->boolean(),

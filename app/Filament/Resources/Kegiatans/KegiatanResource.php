@@ -11,7 +11,9 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use UnitEnum;
 
 class KegiatanResource extends Resource
 {
@@ -19,7 +21,7 @@ class KegiatanResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'CMS';
+    protected static UnitEnum|string|null $navigationGroup = 'CMS';
 
     protected static ?string $navigationLabel = 'Kegiatan';
 
@@ -31,24 +33,25 @@ class KegiatanResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'title';
 
-    public static function canViewAny(): bool
+    public static function getNavigationGroup(): UnitEnum|string|null
     {
-        return self::userCanManage();
+        return self::isLimitedToTeacherOfChampions() ? 'ToC' : parent::getNavigationGroup();
     }
 
-    public static function canCreate(): bool
+    public static function getNavigationLabel(): string
     {
-        return self::userCanManage();
+        return self::isLimitedToTeacherOfChampions() ? 'Kegiatan ToC' : parent::getNavigationLabel();
     }
 
-    public static function canEdit($record): bool
+    public static function getEloquentQuery(): Builder
     {
-        return self::userCanManage();
-    }
+        $query = parent::getEloquentQuery();
 
-    public static function canDelete($record): bool
-    {
-        return self::userCanManage();
+        if (self::isLimitedToTeacherOfChampions()) {
+            $query->where('slug', Kegiatan::TEACHER_OF_CHAMPIONS_SLUG);
+        }
+
+        return $query;
     }
 
     public static function form(Schema $form): Schema
@@ -68,8 +71,10 @@ class KegiatanResource extends Resource
         ];
     }
 
-    private static function userCanManage(): bool
+    public static function isLimitedToTeacherOfChampions(): bool
     {
-        return Auth::user()?->hasSystemRole(['super_admin', 'admin']) ?? false;
+        $user = Auth::user();
+
+        return $user !== null && ! $user->hasSystemRole(['super_admin', 'admin']);
     }
 }

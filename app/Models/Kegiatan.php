@@ -14,6 +14,8 @@ class Kegiatan extends Model
 
     public const TIMEZONE = 'Asia/Jakarta';
 
+    public const TEACHER_OF_CHAMPIONS_SLUG = 'teacher-of-champions';
+
     public const THEME_HIJAU = 'hijau';
 
     public const THEME_NAVY_EMAS = 'navy-emas';
@@ -67,6 +69,11 @@ class Kegiatan extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    public function isTeacherOfChampions(): bool
+    {
+        return $this->getOriginal('slug', $this->slug) === self::TEACHER_OF_CHAMPIONS_SLUG;
     }
 
     /**

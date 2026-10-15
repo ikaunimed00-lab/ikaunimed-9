@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Kegiatans\Schemas;
 
+use App\Filament\Resources\Kegiatans\KegiatanResource;
 use App\Models\Kegiatan;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
@@ -29,6 +30,7 @@ class KegiatanForm
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug((string) $state))),
                         TextInput::make('slug')
+                            ->disabled(fn (): bool => KegiatanResource::isLimitedToTeacherOfChampions())
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),

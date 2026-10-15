@@ -23,7 +23,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class PendaftarTeacherOfChampionsResource extends Resource
 {
@@ -31,9 +31,11 @@ class PendaftarTeacherOfChampionsResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'CMS';
+    protected static \UnitEnum|string|null $navigationGroup = 'ToC';
 
-    protected static ?string $navigationLabel = 'Pendaftar Teacher of Champions';
+    protected static ?int $navigationSort = 1;
+
+    protected static ?string $navigationLabel = 'Pendaftar';
 
     protected static ?string $modelLabel = 'Pendaftar Teacher of Champions';
 
@@ -43,29 +45,9 @@ class PendaftarTeacherOfChampionsResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'nama';
 
-    public static function canViewAny(): bool
-    {
-        return self::userCanManage();
-    }
-
     public static function canCreate(): bool
     {
         return false;
-    }
-
-    public static function canEdit($record): bool
-    {
-        return self::userCanManage();
-    }
-
-    public static function canDelete($record): bool
-    {
-        return self::userCanManage();
-    }
-
-    public static function canDeleteAny(): bool
-    {
-        return self::userCanManage();
     }
 
     public static function form(Schema $form): Schema
@@ -87,6 +69,7 @@ class PendaftarTeacherOfChampionsResource extends Resource
         $provinsiOptions = collect(app(WilayahService::class)->provinsi())
             ->mapWithKeys(fn (string $provinsi): array => [$provinsi => $provinsi])
             ->all();
+        $canViewContact = self::userCan('viewContact');
 
         return $table
             ->defaultSort('created_at', 'desc')
@@ -103,11 +86,13 @@ class PendaftarTeacherOfChampionsResource extends Resource
                     ->sortable(),
                 TextColumn::make('whatsapp')
                     ->label('WhatsApp')
-                    ->searchable()
-                    ->url(fn (PendaftarTeacherOfChampions $record): string => 'https://wa.me/'.$record->whatsapp, shouldOpenInNewTab: true),
+                    ->searchable($canViewContact)
+                    ->formatStateUsing(fn (?string $state): ?string => $canViewContact ? $state : PendaftarTeacherOfChampions::maskContact($state))
+                    ->url($canViewContact ? fn (PendaftarTeacherOfChampions $record): string => 'https://wa.me/'.$record->whatsapp : null, shouldOpenInNewTab: true),
                 TextColumn::make('email')
                     ->label('Email')
-                    ->searchable()
+                    ->searchable($canViewContact)
+                    ->formatStateUsing(fn (?string $state): ?string => $canViewContact ? $state : PendaftarTeacherOfChampions::maskContact($state))
                     ->toggleable(),
                 TextColumn::make('provinsi')
                     ->label('Provinsi')
@@ -185,6 +170,7 @@ class PendaftarTeacherOfChampionsResource extends Resource
                     BulkAction::make('ubahStatus')
                         ->label('Ubah status')
                         ->icon(Heroicon::OutlinedCheckBadge)
+                        ->visible(fn (): bool => self::userCan('updateAny'))
                         ->schema([
                             Select::make('status')
                                 ->label('Status baru')
@@ -201,9 +187,10 @@ class PendaftarTeacherOfChampionsResource extends Resource
                     BulkAction::make('eksporTerpilih')
                         ->label('Ekspor terpilih (Excel)')
                         ->icon(Heroicon::OutlinedArrowDownTray)
+                        ->visible(fn (): bool => self::userCan('export'))
                         ->action(fn (Collection $records) => app(PendaftarTeacherOfChampionsExporter::class)->download($records, 'xlsx')),
                     DeleteBulkAction::make()
-                        ->visible(fn (): bool => Auth::user()?->hasSystemRole('super_admin') ?? false),
+                        ->visible(fn (): bool => self::userCan('deleteAny')),
                 ]),
             ]);
     }
@@ -223,8 +210,8 @@ class PendaftarTeacherOfChampionsResource extends Resource
         return sprintf('Total %d pendaftar · Alumni UNIMED: %d · Bukan alumni UNIMED: %d', $total, $alumni, $total - $alumni);
     }
 
-    private static function userCanManage(): bool
+    public static function userCan(string $ability): bool
     {
-        return Auth::user()?->hasSystemRole(['super_admin', 'admin']) ?? false;
+        return Gate::allows($ability, PendaftarTeacherOfChampions::class);
     }
 }

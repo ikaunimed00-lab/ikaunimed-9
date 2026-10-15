@@ -19,6 +19,7 @@ class ManagePendaftarTeacherOfChampions extends ManageRecords
             Action::make('ekspor')
                 ->label('Ekspor')
                 ->icon(Heroicon::OutlinedArrowDownTray)
+                ->visible(fn (): bool => PendaftarTeacherOfChampionsResource::userCan('export'))
                 ->modalDescription('Mengekspor semua pendaftar sesuai filter & pencarian yang sedang aktif.')
                 ->schema([
                     Select::make('format')

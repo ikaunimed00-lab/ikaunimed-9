@@ -171,6 +171,24 @@ class PendaftarTeacherOfChampions extends Model
         return $digits;
     }
 
+    /**
+     * Keeps only the first and last 4 characters, e.g. "6281********5678".
+     */
+    public static function maskContact(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        $length = mb_strlen($value);
+
+        if ($length <= 8) {
+            return mb_substr($value, 0, min(2, $length)).str_repeat('*', max($length - 2, 0));
+        }
+
+        return mb_substr($value, 0, 4).str_repeat('*', $length - 8).mb_substr($value, -4);
+    }
+
     public static function normalizeInstagram(?string $value): ?string
     {
         if ($value === null) {
