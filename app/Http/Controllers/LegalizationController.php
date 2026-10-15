@@ -139,13 +139,24 @@ class LegalizationController extends Controller
         $file = $request->file('file');
         $path = $file->store('legalizations', 'public');
 
-        LegalizationFile::create([
-            'legalization_id' => $legalization->id,
-            'original_name' => $file->getClientOriginalName(),
-            'filename' => basename($path),
-            'mime_type' => $file->getClientMimeType(),
-            'size' => $file->getSize(),
-        ]);
+        if ($path === false) {
+            return back()->with('error', 'File gagal disimpan. Silakan coba lagi.');
+        }
+
+        try {
+            LegalizationFile::create([
+                'legalization_id' => $legalization->id,
+                'type' => LegalizationFile::TYPE_IJAZAH,
+                'original_name' => $file->getClientOriginalName(),
+                'filename' => basename($path),
+                'mime_type' => $file->getClientMimeType(),
+                'size' => $file->getSize(),
+            ]);
+        } catch (\Throwable $exception) {
+            Storage::disk('public')->delete($path);
+
+            throw $exception;
+        }
 
         return back()->with('success', 'File berhasil diupload. Pengajuan Anda sedang diproses.');
     }

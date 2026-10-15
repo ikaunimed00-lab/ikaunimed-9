@@ -9,6 +9,8 @@ class LegalizationFile extends Model
 {
     use HasFactory;
 
+    public const TYPE_IJAZAH = 'ijazah';
+
     protected $fillable = [
         'legalization_id',
         'type',
