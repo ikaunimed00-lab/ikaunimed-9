@@ -131,12 +131,12 @@ return [
         [
             'name' => 'Sekretariat IKA UNIMED',
             'role' => 'Informasi umum',
-            'whatsapp' => '6282295203346',
+            'whatsapp' => '62895429217077',
         ],
         [
             'name' => 'Lila',
             'role' => 'Panitia',
-            'whatsapp' => '6281218140142',
+            'whatsapp' => '62895429217077',
         ],
     ],
 

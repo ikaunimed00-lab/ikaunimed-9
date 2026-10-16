@@ -5,8 +5,6 @@ import CTACards from "@/components/CTACards";
 import VideoSection from "@/components/VideoSection";
 import PackageSection from "@/components/PackageSection";
 import FeaturesSection from "@/components/FeaturesSection";
-import FloatingCTA from "@/components/FloatingCTA";
-
 // Index.tsx
 const Index = ({ settings, sections }: { settings: any, sections: any }) => {
   // Helper to get section content by type/slug
@@ -49,7 +47,6 @@ const Index = ({ settings, sections }: { settings: any, sections: any }) => {
             return <Component key={section.id} content={section.content} />;
           })}
         </main>
-        <FloatingCTA settings={settings} />
       </MainLayout>
     </>
   );

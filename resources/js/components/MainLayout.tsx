@@ -2,12 +2,15 @@ import React, { ReactNode } from 'react';
 import { HeaderEnterprise as Header } from './navigation/HeaderEnterprise';
 import Footer from './Footer';
 import TopBar from './TopBar';
+import FloatingCTA from './FloatingCTA';
 
 interface MainLayoutProps {
   children: ReactNode;
   variant?: 'default' | 'full';
   settings?: any;
   footerContent?: any;
+  /** Raise the WhatsApp button above a sticky mobile bar. */
+  liftFloatingCtaOnMobile?: boolean;
 }
 
 /**
@@ -19,7 +22,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   children, 
   variant = 'default',
   settings,
-  footerContent 
+  footerContent,
+  liftFloatingCtaOnMobile = false,
 }) => {
   return (
     <div className="min-h-screen bg-[#F8FAF9] flex flex-col">
@@ -45,6 +49,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       </main>
 
       <Footer settings={settings} content={footerContent} />
+      <FloatingCTA settings={settings} liftOnMobile={liftFloatingCtaOnMobile} />
     </div>
   );
 };

@@ -17,7 +17,6 @@ import {
   Trophy,
 } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
-import FloatingCTA from "@/components/FloatingCTA";
 import Countdown from "@/components/home/Countdown";
 import ZoomableImage from "@/components/home/ZoomableImage";
 import type { ReuniContact } from "@/components/home/types";
@@ -190,7 +189,7 @@ const Landing = ({
         <meta name="description" content={meta.description} />
       </Head>
 
-      <MainLayout variant="full" settings={settings} footerContent={footerContent}>
+      <MainLayout variant="full" settings={settings} footerContent={footerContent} liftFloatingCtaOnMobile={isOpen}>
         {/* 1. Hero */}
         <section
           aria-labelledby="toc-title"
@@ -579,7 +578,6 @@ const Landing = ({
         </section>
 
         {isOpen && <StickyRegisterBar hideWhenVisible="#toc-hero-cta, #toc-penutup, footer" />}
-        <FloatingCTA settings={settings} hideBubble liftOnMobile={isOpen} />
       </MainLayout>
     </>
   );

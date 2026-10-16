@@ -78,7 +78,7 @@ it('allows admins to review the portal draft', function () {
             ->has('hero.spotlight.pimpinan', 4)
             ->where('events.1.date_label', 'Sabtu, 10 Oktober 2026')
             ->has('pimpinan', 5)
-            ->where('contacts.0.whatsapp', '6282295203346')
+            ->where('contacts.0.whatsapp', '62895429217077')
             ->has('latestNews', 1)
             ->where('latestNews.0.title', 'Berita terbit portal')
             ->has('services')

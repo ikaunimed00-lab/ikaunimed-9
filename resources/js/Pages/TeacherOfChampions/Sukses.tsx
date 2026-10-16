@@ -1,7 +1,6 @@
 import { Head, Link } from "@inertiajs/react";
 import { CheckCircle2 } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
-import FloatingCTA from "@/components/FloatingCTA";
 import GuidebookLink from "@/components/toc/GuidebookLink";
 
 type SuksesPageProps = {
@@ -43,8 +42,6 @@ const Sukses = ({ settings, footerContent, nomorPendaftaran, guidebookUrl }: Suk
             </div>
           </div>
         </section>
-
-        <FloatingCTA settings={settings} hideBubble />
       </MainLayout>
     </>
   );

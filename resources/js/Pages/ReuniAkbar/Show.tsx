@@ -1,7 +1,6 @@
 import { Head } from "@inertiajs/react";
 import { Info, MessageCircle } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
-import FloatingCTA from "@/components/FloatingCTA";
 import MiniTimeline from "@/components/home/MiniTimeline";
 import SpotlightHero from "@/components/home/SpotlightHero";
 import TeacherHero from "@/components/home/TeacherHero";
@@ -192,8 +191,6 @@ const ReuniAkbarShow = ({
             </div>
           </div>
         </section>
-
-        <FloatingCTA settings={settings} hideBubble />
       </MainLayout>
     </>
   );

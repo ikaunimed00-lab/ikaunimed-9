@@ -1,6 +1,5 @@
 import { Head } from "@inertiajs/react";
 import MainLayout from "@/components/MainLayout";
-import FloatingCTA from "@/components/FloatingCTA";
 import PortalHero from "@/components/home/PortalHero";
 import UpcomingEventsSection from "@/components/home/UpcomingEventsSection";
 import UpcomingEventsModal from "@/components/home/UpcomingEventsModal";
@@ -57,7 +56,6 @@ const Portal = ({
         <PimpinanSection pimpinan={pimpinan} />
         <LatestNewsSection news={latestNews} />
         <ServiceStrip services={services} />
-        <FloatingCTA settings={settings} hideBubble />
       </MainLayout>
     </>
   );

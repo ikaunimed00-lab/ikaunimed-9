@@ -2,7 +2,6 @@ import type { FormEvent, ReactNode } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { CalendarDays, Lock } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
-import FloatingCTA from "@/components/FloatingCTA";
 import MiniTimeline from "@/components/home/MiniTimeline";
 import type { PortalEvent } from "@/components/home/types";
 import GuidebookLink from "@/components/toc/GuidebookLink";
@@ -386,8 +385,6 @@ const Daftar = ({
             )}
           </div>
         </section>
-
-        <FloatingCTA settings={settings} hideBubble />
       </MainLayout>
     </>
   );
