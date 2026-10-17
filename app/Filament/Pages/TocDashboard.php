@@ -118,12 +118,8 @@ class TocDashboard extends Dashboard
             Action::make('cetakPdf')
                 ->label('Cetak / simpan PDF')
                 ->icon(Heroicon::OutlinedPrinter)
-                ->action(function (): void {
-                    TocDashboardStats::forget();
-                    $this->dispatch('$refresh');
-                    $this->recordLaporanShare('print');
-                    $this->js('setTimeout(() => window.print(), 350)');
-                }),
+                ->url(fn (): string => route('toc.print-report', ['autoprint' => 1]))
+                ->openUrlInNewTab(),
 
             Action::make('eksporStatistikXlsx')
                 ->label('Ekspor statistik XLSX')

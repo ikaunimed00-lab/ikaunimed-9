@@ -104,6 +104,43 @@ class TocShareableReport
     }
 
     /**
+     * Dedicated print-page payload (same snapshot as WhatsApp / XLSX / PNG).
+     *
+     * @param  array<string, mixed>|null  $snapshot
+     * @return array<string, mixed>
+     */
+    public function printPayload(?array $snapshot = null): array
+    {
+        $snapshot ??= $this->stats->snapshot();
+        $now = $snapshot['generated_at'];
+        $closesAt = $snapshot['closes_at'];
+        $daily = $snapshot['daily'];
+        $maxDaily = max(1, ...array_map('intval', array_values($daily) ?: [1]));
+
+        return [
+            'title' => 'Teacher of Champions — Update Pendaftar',
+            'generated_at_label' => $now->translatedFormat('l').', '.$now->translatedFormat('j M Y').', '.$now->format('H.i').' WIB',
+            'closes_at_label' => $closesAt->translatedFormat('j M Y').' '.$closesAt->format('H.i').' WIB',
+            'remaining_label' => TocDashboardStats::formatNumber($snapshot['remaining_days'])
+                .' hari '.TocDashboardStats::formatNumber($snapshot['remaining_hours']).' jam',
+            'total' => $snapshot['total'],
+            'today' => $snapshot['today'],
+            'alumni' => $snapshot['alumni'],
+            'alumni_percentage_label' => TocDashboardStats::formatPercentage($snapshot['alumni_percentage']).'%',
+            'statuses' => $snapshot['statuses'],
+            'daily' => $daily,
+            'daily_max' => $maxDaily,
+            'provinces' => array_slice($snapshot['provinces'], 0, 5),
+            'jenjang' => $snapshot['jenjang'],
+            'bidang_studi' => array_slice($snapshot['bidang_studi'], 0, 5),
+            'link' => 'ikaunimed.or.id/toc',
+            'total_label' => TocDashboardStats::formatNumber($snapshot['total']),
+            'today_label' => TocDashboardStats::formatNumber($snapshot['today']),
+            'alumni_label' => TocDashboardStats::formatNumber($snapshot['alumni']),
+        ];
+    }
+
+    /**
      * Renders a real 1080×1350 PNG (no registrant PII).
      *
      * @param  array<string, mixed>|null  $snapshot
