@@ -61,13 +61,35 @@ class TeacherOfChampionsRegistrationController extends Controller
     /**
      * Suggestions for the free-text "asal universitas" field.
      *
-     * @return list<string>
+     * @return list<array{name: string, aliases: list<string>}>
      */
     private function universitasOptions(): array
     {
         $path = resource_path('data/universitas.json');
+        $raw = is_file($path) ? json_decode((string) file_get_contents($path), true) ?? [] : [];
 
-        return is_file($path) ? json_decode((string) file_get_contents($path), true) ?? [] : [];
+        return collect($raw)
+            ->map(function (mixed $item): ?array {
+                if (is_string($item) && $item !== '') {
+                    return ['name' => $item, 'aliases' => []];
+                }
+
+                if (! is_array($item) || ! is_string($item['name'] ?? null) || $item['name'] === '') {
+                    return null;
+                }
+
+                $aliases = collect($item['aliases'] ?? [])
+                    ->filter(fn (mixed $alias): bool => is_string($alias) && $alias !== '')
+                    ->values()
+                    ->all();
+
+                return ['name' => $item['name'], 'aliases' => $aliases];
+            })
+            ->filter()
+            ->unique('name')
+            ->sortBy(fn (array $item): string => mb_strtolower($item['name']), SORT_NATURAL)
+            ->values()
+            ->all();
     }
 
     /**

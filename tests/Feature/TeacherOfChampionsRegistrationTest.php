@@ -3,6 +3,7 @@
 use App\Models\PendaftarTeacherOfChampions;
 use Carbon\Carbon;
 use Database\Seeders\KegiatanSeeder;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -47,9 +48,32 @@ it('shows the open registration form with the regional dataset', function () {
             ->where('isOpen', true)
             ->has('wilayah', 38)
             ->where('kegiatan.slug', 'teacher-of-champions')
-            ->where('universitasOptions.0', 'Universitas Negeri Medan (UNIMED)')
+            ->where('universitasOptions', fn ($options) => collect($options)->contains(
+                fn ($option) => is_array($option)
+                    && ($option['name'] ?? null) === 'Universitas Malikussaleh'
+                    && in_array('UNIMAL', $option['aliases'] ?? [], true)
+            ))
+            ->where('universitasOptions', fn ($options) => collect($options)->contains(
+                fn ($option) => is_array($option) && ($option['name'] ?? null) === 'Universitas Negeri Medan'
+            ))
         );
 });
+
+it('accepts free-text universities outside the suggestion list', function (string $asalUniversitas) {
+    $this->post(route('teacher-of-champions.store'), validRegistration([
+        'asal_universitas' => $asalUniversitas,
+        'email' => Str::slug($asalUniversitas).'@example.com',
+        'whatsapp' => '0812'.fake()->unique()->numerify('########'),
+    ]))->assertRedirect(route('teacher-of-champions.success'));
+
+    $pendaftar = PendaftarTeacherOfChampions::query()->latest('id')->first();
+
+    expect($pendaftar?->asal_universitas)->toBe(trim(preg_replace('/\s+/', ' ', $asalUniversitas) ?? $asalUniversitas))
+        ->and($pendaftar?->alumni_unimed)->toBeFalse();
+})->with([
+    'Malikussaleh' => ['Universitas Malikussaleh'],
+    'random campus' => ['  Institut Teknologi  Fiktif  Nusantara  '],
+]);
 
 it('detects UNIMED alumni from the free-text university name', function (string $asalUniversitas, bool $expected) {
     expect(PendaftarTeacherOfChampions::isAlumniUnimed($asalUniversitas))->toBe($expected);

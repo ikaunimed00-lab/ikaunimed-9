@@ -5,6 +5,7 @@ import MainLayout from "@/components/MainLayout";
 import MiniTimeline from "@/components/home/MiniTimeline";
 import type { PortalEvent } from "@/components/home/types";
 import GuidebookLink from "@/components/toc/GuidebookLink";
+import UniversityCombobox, { type UniversityOption } from "@/components/toc/UniversityCombobox";
 
 type Wilayah = {
   kode: string;
@@ -21,7 +22,7 @@ type DaftarPageProps = {
   wilayah: Wilayah[];
   jenjangOptions: { value: string; label: string }[];
   statusKepegawaianOptions: string[];
-  universitasOptions: string[];
+  universitasOptions: UniversityOption[];
   guidebookUrl: string | null;
 };
 
@@ -322,22 +323,16 @@ const Daftar = ({
                     id="asal_universitas"
                     label="Asal universitas (S1)"
                     error={errors.asal_universitas}
-                    hint="Ketik atau pilih dari saran"
+                    hint="Tidak ada di daftar? Ketik nama lengkap kampus Anda, lalu lanjutkan."
                   >
-                    <input
+                    <UniversityCombobox
                       id="asal_universitas"
-                      list="universitas-options"
                       className={inputClass}
                       value={form.data.asal_universitas}
-                      onChange={(event) => form.setData("asal_universitas", event.target.value)}
-                      autoComplete="off"
+                      options={universitasOptions}
+                      onChange={(next) => form.setData("asal_universitas", next)}
                       required
                     />
-                    <datalist id="universitas-options">
-                      {universitasOptions.map((nama) => (
-                        <option key={nama} value={nama} />
-                      ))}
-                    </datalist>
                   </Field>
 
                   <Field

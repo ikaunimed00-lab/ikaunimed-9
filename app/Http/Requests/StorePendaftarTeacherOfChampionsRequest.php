@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\PendaftarTeacherOfChampions;
 use App\Services\WilayahService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -28,6 +29,9 @@ class StorePendaftarTeacherOfChampionsRequest extends FormRequest
             'whatsapp' => PendaftarTeacherOfChampions::normalizeWhatsapp($this->input('whatsapp')),
             'instagram' => PendaftarTeacherOfChampions::normalizeInstagram($this->input('instagram')),
             'email' => is_string($this->input('email')) ? strtolower(trim($this->input('email'))) : $this->input('email'),
+            'asal_universitas' => is_string($this->input('asal_universitas'))
+                ? Str::of($this->input('asal_universitas'))->squish()->toString()
+                : $this->input('asal_universitas'),
             'jenjang' => $this->filled('jenjang') ? $this->input('jenjang') : null,
             'status_kepegawaian' => $this->filled('status_kepegawaian') ? $this->input('status_kepegawaian') : null,
         ]);
@@ -50,7 +54,7 @@ class StorePendaftarTeacherOfChampionsRequest extends FormRequest
             'status_kepegawaian' => ['nullable', Rule::in(PendaftarTeacherOfChampions::STATUS_KEPEGAWAIAN)],
             'bidang_studi' => ['required', 'string', 'max:255'],
             'lama_mengabdi_tahun' => ['required', 'integer', 'min:0', 'max:60'],
-            'asal_universitas' => ['required', 'string', 'max:255'],
+            'asal_universitas' => ['required', 'string', 'min:3', 'max:150'],
             'instagram' => ['required', 'string', 'regex:/^@[a-z0-9._]{1,30}$/'],
             'persetujuan_data' => ['accepted'],
         ];
@@ -78,6 +82,8 @@ class StorePendaftarTeacherOfChampionsRequest extends FormRequest
             'lama_mengabdi_tahun.required' => 'Lama mengabdi wajib diisi.',
             'lama_mengabdi_tahun.integer' => 'Lama mengabdi diisi angka tahun.',
             'asal_universitas.required' => 'Asal universitas wajib diisi.',
+            'asal_universitas.min' => 'Asal universitas minimal 3 karakter.',
+            'asal_universitas.max' => 'Asal universitas maksimal 150 karakter.',
             'instagram.required' => 'Akun Instagram wajib diisi (untuk Favorite Teacher Award).',
             'instagram.regex' => 'Username Instagram tidak valid. Contoh: @namaguru.',
             'persetujuan_data.accepted' => 'Anda perlu menyetujui penggunaan data untuk melanjutkan.',
