@@ -25,6 +25,7 @@ class AuditLog extends Model
         'news.updated' => 'Ubah berita',
         'news.published' => 'Terbitkan berita',
         'auth.admin_login' => 'Login admin',
+        'laporan.dibagikan' => 'Bagikan laporan ToC',
     ];
 
     protected $fillable = [

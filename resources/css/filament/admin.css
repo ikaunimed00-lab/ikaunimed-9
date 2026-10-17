@@ -47,3 +47,50 @@
 
 /* Sidebar background debug (optional, remove if not needed) */
 /* .fi-sidebar { background-color: #f0fdf4 !important; } */
+
+/* ToC dashboard print: one A4 page, hide chrome, keep readable color */
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 12mm;
+    }
+
+    html,
+    body {
+        background: #fff !important;
+        color: #0f172a !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .fi-sidebar,
+    .fi-topbar,
+    .fi-sidebar-close-overlay,
+    .fi-header-actions,
+    .fi-global-search,
+    .fi-user-menu,
+    .fi-breadcrumbs,
+    aside,
+    nav {
+        display: none !important;
+    }
+
+    .fi-main,
+    .fi-main-ctn,
+    .fi-page,
+    .toc-dashboard-page,
+    .fi-wi-widget {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .toc-dashboard-page .fi-wi-stats-overview-stat,
+    .toc-dashboard-page .fi-section,
+    .toc-dashboard-page .fi-wi-widget {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}

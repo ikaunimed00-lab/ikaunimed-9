@@ -142,7 +142,7 @@ it('keeps the landing page sources free of navy styling', function () {
         ...glob(resource_path('js/components/toc/*.tsx')),
     ];
 
-    expect($files)->toHaveCount(5);
+    expect($files)->toHaveCount(6);
 
     foreach ($files as $file) {
         expect(file_get_contents($file))
