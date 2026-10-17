@@ -47,7 +47,7 @@ it('counts registrants by status, WIB day and alumni share', function () {
         ->and($summary['daily']['2026-10-14'])->toBe(1)
         ->and(array_key_last($summary['daily']))->toBe('2026-10-16')
         ->and($summary['provinces'][0])->toBe(['label' => 'Sumatera Utara', 'total' => 3])
-        ->and($summary['jenjang'])->toContain(['label' => 'SD/MI/Sederajat', 'total' => 1])
+        ->and($summary['jenjang'])->toContain(['label' => 'SD/MI', 'total' => 1])
         ->and($summary['bidang_studi'][0])->toBe(['label' => 'Matematika', 'total' => 3]);
 });
 
@@ -87,7 +87,7 @@ it('renders stats, countdown and breakdown widgets', function () {
         ->assertSee('75%');
 
     Livewire::test(TocTopProvincesWidget::class)->assertSee('Sumatera Utara')->assertSee('Aceh');
-    Livewire::test(TocJenjangWidget::class)->assertSee('SMP/MTs/Sederajat');
+    Livewire::test(TocJenjangWidget::class)->assertSee('SMP/MTs');
     Livewire::test(TocBidangStudiWidget::class)->assertSee('Bahasa Indonesia');
 });
 

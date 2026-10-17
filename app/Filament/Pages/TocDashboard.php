@@ -8,13 +8,10 @@ use App\Filament\Widgets\Toc\TocDailyRegistrationsChart;
 use App\Filament\Widgets\Toc\TocJenjangWidget;
 use App\Filament\Widgets\Toc\TocStatsOverview;
 use App\Filament\Widgets\Toc\TocTopProvincesWidget;
-use App\Models\Kegiatan;
-use App\Models\PendaftarTeacherOfChampions;
 use App\Services\AuditLogger;
 use App\Services\TocDashboardStats;
 use App\Services\TocShareableReport;
 use BackedEnum;
-use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Dashboard;
@@ -67,9 +64,18 @@ class TocDashboard extends Dashboard
 
         Notification::make()
             ->title('Laporan dicatat')
-            ->body('Ringkasan siap dibagikan.')
             ->success()
             ->send();
+    }
+
+    public function downloadPngReport()
+    {
+        abort_unless(self::userCanView(), 403);
+        TocDashboardStats::forget();
+        $snapshot = app(TocDashboardStats::class)->snapshot();
+        app(AuditLogger::class)->record('laporan.dibagikan', null, ['jenis' => 'png']);
+
+        return app(TocShareableReport::class)->downloadPng($snapshot);
     }
 
     protected function getHeaderActions(): array
@@ -79,30 +85,33 @@ class TocDashboard extends Dashboard
                 ->label('Salin ringkasan WhatsApp')
                 ->icon(Heroicon::OutlinedChatBubbleLeftRight)
                 ->modalHeading('Ringkasan untuk WhatsApp')
+                ->modalWidth('2xl')
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Tutup')
-                ->modalContent(fn () => view('filament.toc.whatsapp-summary-modal', [
-                    'text' => app(TocShareableReport::class)->whatsappSummary(),
-                ])),
+                ->modalContent(function () {
+                    TocDashboardStats::forget();
+
+                    return view('filament.toc.whatsapp-summary-modal', [
+                        'text' => app(TocShareableReport::class)->whatsappSummary(),
+                    ]);
+                }),
 
             Action::make('unduhGambarLaporan')
                 ->label('Unduh gambar laporan')
                 ->icon(Heroicon::OutlinedPhoto)
                 ->modalHeading('Gambar laporan ToC')
+                ->modalWidth('2xl')
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Tutup')
                 ->modalContent(function () {
-                    $now = CarbonImmutable::now(Kegiatan::TIMEZONE)->locale('id');
-                    $closesAt = PendaftarTeacherOfChampions::registrationClosesAt()
-                        ->copy()
-                        ->setTimezone(Kegiatan::TIMEZONE)
-                        ->locale('id');
+                    TocDashboardStats::forget();
+                    $snapshot = app(TocDashboardStats::class)->snapshot();
+                    $report = app(TocShareableReport::class);
+                    $payload = $report->imagePayload($snapshot);
 
                     return view('filament.toc.png-report-modal', [
-                        'summary' => app(TocDashboardStats::class)->summary(),
-                        'generatedAt' => $now->translatedFormat('l, j F Y · H.i').' WIB',
-                        'closesLabel' => 'Ditutup '.$closesAt->translatedFormat('j M Y').' '.$closesAt->format('H.i').' WIB',
-                        'filename' => 'toc-update-'.$now->format('Ymd-Hi').'.png',
+                        'previewDataUri' => 'data:image/png;base64,'.base64_encode($report->renderPngBinary($snapshot)),
+                        'filename' => $payload['filename'],
                     ]);
                 }),
 
@@ -110,21 +119,23 @@ class TocDashboard extends Dashboard
                 ->label('Cetak / simpan PDF')
                 ->icon(Heroicon::OutlinedPrinter)
                 ->action(function (): void {
+                    TocDashboardStats::forget();
+                    $this->dispatch('$refresh');
                     $this->recordLaporanShare('print');
-                })
-                ->extraAttributes([
-                    'onclick' => 'setTimeout(() => window.print(), 150)',
-                ]),
+                    $this->js('setTimeout(() => window.print(), 350)');
+                }),
 
-            Action::make('eksporStatistikCsv')
-                ->label('Ekspor statistik CSV')
+            Action::make('eksporStatistikXlsx')
+                ->label('Ekspor statistik XLSX')
                 ->icon(Heroicon::OutlinedArrowDownTray)
                 ->visible(fn (): bool => PendaftarTeacherOfChampionsResource::userCan('export'))
                 ->action(function () {
                     abort_unless(PendaftarTeacherOfChampionsResource::userCan('export'), 403);
-                    app(AuditLogger::class)->record('laporan.dibagikan', null, ['jenis' => 'csv']);
+                    TocDashboardStats::forget();
+                    $snapshot = app(TocDashboardStats::class)->snapshot();
+                    app(AuditLogger::class)->record('laporan.dibagikan', null, ['jenis' => 'xlsx']);
 
-                    return app(TocShareableReport::class)->downloadCsv();
+                    return app(TocShareableReport::class)->downloadXlsx($snapshot);
                 }),
         ];
     }
