@@ -47,6 +47,9 @@ class TocDashboardStats
         'tik' => 'TIK',
         'pjok' => 'PJOK',
         'pai' => 'PAI',
+        'bk' => 'BK',
+        'dki' => 'DKI',
+        'di' => 'DI',
         'unimed' => 'UNIMED',
     ];
 

@@ -2,13 +2,13 @@
 
 namespace App\Services;
 
-use App\Models\Kegiatan;
-use Carbon\CarbonImmutable;
-use OpenSpout\Common\Entity\Cell\DateTimeCell;
+use App\Models\PendaftarTeacherOfChampions;
 use OpenSpout\Common\Entity\Cell\NumericCell;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;
+use OpenSpout\Writer\AutoFilter;
+use OpenSpout\Writer\XLSX\Entity\SheetView;
 use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -180,22 +180,25 @@ class TocShareableReport
             }
         }
 
-        $y = 720;
-        $this->pngText($im, 15, 56, $y, $ink, 'Top Provinsi');
-        foreach ($p['provinces'] as $i => $row) {
-            $this->pngText($im, 12, 56, $y + 32 + ($i * 28), $muted, ($i + 1).'. '.$row['label'].' ('.$row['total'].')');
+        // Two columns for province + jenjang, then bidang below — avoids overlap on 1080×1350.
+        $listTop = 710;
+        $line = 26;
+        $this->pngText($im, 15, 56, $listTop, $ink, 'Top Provinsi');
+        foreach (array_slice($p['provinces'], 0, 5) as $i => $row) {
+            $this->pngText($im, 12, 56, $listTop + 30 + ($i * $line), $muted, ($i + 1).'. '.$row['label'].' ('.$row['total'].')');
         }
 
-        $y = 900;
-        $this->pngText($im, 15, 56, $y, $ink, 'Jenjang');
-        foreach ($p['jenjang'] as $i => $row) {
-            $this->pngText($im, 12, 56, $y + 32 + ($i * 28), $muted, ($i + 1).'. '.$row['label'].' ('.$row['total'].')');
+        $this->pngText($im, 15, 560, $listTop, $ink, 'Jenjang');
+        foreach (array_values($p['jenjang']) as $i => $row) {
+            $this->pngText($im, 12, 560, $listTop + 30 + ($i * $line), $muted, ($i + 1).'. '.$row['label'].' ('.$row['total'].')');
         }
 
-        $y = 1080;
+        $leftRows = min(5, count($p['provinces']));
+        $rightRows = count($p['jenjang']);
+        $y = $listTop + 30 + (max($leftRows, $rightRows) * $line) + 36;
         $this->pngText($im, 15, 56, $y, $ink, 'Bidang Studi Teratas');
-        foreach ($p['bidang_studi'] as $i => $row) {
-            $this->pngText($im, 12, 56, $y + 32 + ($i * 28), $muted, ($i + 1).'. '.$row['label'].' ('.$row['total'].')');
+        foreach (array_slice($p['bidang_studi'], 0, 5) as $i => $row) {
+            $this->pngText($im, 12, 56, $y + 30 + ($i * $line), $muted, ($i + 1).'. '.$row['label'].' ('.$row['total'].')');
         }
 
         imagefilledrectangle($im, 0, $H - 70, $W, $H, $green);
@@ -238,7 +241,7 @@ class TocShareableReport
     }
 
     /**
-     * Multi-sheet XLSX of aggregate stats only.
+     * Single-sheet flat XLSX of aggregate stats only (no personal data).
      *
      * @param  array<string, mixed>|null  $snapshot
      */
@@ -248,65 +251,127 @@ class TocShareableReport
         $now = $snapshot['generated_at'];
         $filename = 'toc-statistik-'.$now->format('Ymd-Hi').'.xlsx';
         $path = tempnam(sys_get_temp_dir(), 'toc-stat').'.xlsx';
-        $headerStyle = (new Style)->setFontBold();
 
-        $writer = new XlsxWriter;
-        $writer->openToFile($path);
-
-        $writer->getCurrentSheet()->setName('Ringkasan');
-        $writer->addRow(Row::fromValues(['Dicetak (WIB)', $now->format('Y-m-d H:i')]));
-        $writer->addRow(Row::fromValues(['Penutupan (WIB)', $snapshot['closes_at']->format('Y-m-d H:i')]));
-        $writer->addRow(new Row([]));
-        $writer->addRow(Row::fromValues(['Metrik', 'Nilai'], $headerStyle));
-
-        $summaryRows = [
-            ['Total pendaftar', $snapshot['total']],
-            ['Hari ini', $snapshot['today']],
-            ['Alumni UNIMED', $snapshot['alumni']],
-            ['Alumni UNIMED (%)', $snapshot['alumni_percentage'] / 100],
-            ['Status Baru', $snapshot['statuses']['baru'] ?? 0],
-            ['Status Terverifikasi', $snapshot['statuses']['terverifikasi'] ?? 0],
-            ['Status Lolos', $snapshot['statuses']['lolos'] ?? 0],
-            ['Status Ditolak', $snapshot['statuses']['ditolak'] ?? 0],
-            ['Sisa hari', $snapshot['remaining_days']],
-            ['Sisa jam (sisa hari)', $snapshot['remaining_hours']],
-        ];
-
-        foreach ($summaryRows as [$label, $value]) {
-            if (str_contains((string) $label, '(%)')) {
-                $writer->addRow(new Row([
-                    new StringCell((string) $label, null),
-                    new NumericCell((float) $value, (new Style)->setFormat('0.0%')),
-                ]));
-            } else {
-                $writer->addRow(new Row([
-                    new StringCell((string) $label, null),
-                    new NumericCell((float) $value, null),
-                ]));
-            }
-        }
-
-        $writer->addNewSheetAndMakeItCurrent()->setName('Tren Harian');
-        $writer->addRow(Row::fromValues(['Tanggal', 'Pendaftar', 'Kumulatif'], $headerStyle));
-        $cumulative = 0;
-        foreach ($snapshot['daily'] as $date => $total) {
-            $cumulative += $total;
-            $writer->addRow(new Row([
-                new DateTimeCell(CarbonImmutable::parse((string) $date, Kegiatan::TIMEZONE)->startOfDay()->toDateTimeImmutable(), (new Style)->setFormat('YYYY-MM-DD')),
-                new NumericCell((float) $total, null),
-                new NumericCell((float) $cumulative, null),
-            ]));
-        }
-
-        $this->writeRankedSheet($writer, 'Provinsi', 'Provinsi', $snapshot['provinces_all'], $headerStyle);
-        $this->writeRankedSheet($writer, 'Jenjang', 'Jenjang', $snapshot['jenjang'], $headerStyle);
-        $this->writeRankedSheet($writer, 'Bidang Studi', 'Bidang Studi', $snapshot['bidang_studi_all'], $headerStyle);
-
-        $writer->close();
+        $this->writeStatistikXlsx($path, $snapshot);
 
         return response()->download($path, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ])->deleteFileAfterSend(true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     */
+    public function writeStatistikXlsx(string $path, array $snapshot): void
+    {
+        $headerStyle = (new Style)->setFontBold();
+        $writer = new XlsxWriter;
+        $writer->openToFile($path);
+
+        $sheet = $writer->getCurrentSheet();
+        $sheet->setName('Statistik ToC');
+        $sheet->setColumnWidth(16, 1);
+        $sheet->setColumnWidth(40, 2);
+        $sheet->setColumnWidth(14, 3);
+        $sheet->setColumnWidth(14, 4);
+        $sheet->setSheetView((new SheetView)->setFreezeRow(2));
+
+        $writer->addRow(Row::fromValues(['Bagian', 'Item', 'Jumlah', 'Persen (%)'], $headerStyle));
+
+        foreach ($this->statistikFlatRows($snapshot) as $row) {
+            $writer->addRow($this->statistikExcelRow($row));
+        }
+
+        $lastRow = max(1, $sheet->getWrittenRowCount());
+        $sheet->setAutoFilter(new AutoFilter(0, 1, 3, $lastRow));
+
+        $writer->close();
+    }
+
+    /**
+     * Flat rows for the Statistik ToC sheet (testable without OpenSpout I/O).
+     *
+     * @param  array<string, mixed>  $snapshot
+     * @return list<array{bagian: string, item: string, jumlah: int|float|string|null, persen: float|null}>
+     */
+    public function statistikFlatRows(array $snapshot): array
+    {
+        $total = (int) $snapshot['total'];
+        $now = $snapshot['generated_at'];
+        $closesAt = $snapshot['closes_at'];
+        $rows = [];
+
+        $rows[] = ['bagian' => 'Ringkasan', 'item' => 'Total pendaftar', 'jumlah' => $total, 'persen' => null];
+        $rows[] = ['bagian' => 'Ringkasan', 'item' => 'Hari ini', 'jumlah' => (int) $snapshot['today'], 'persen' => null];
+        $rows[] = [
+            'bagian' => 'Ringkasan',
+            'item' => 'Alumni UNIMED',
+            'jumlah' => (int) $snapshot['alumni'],
+            'persen' => (float) $snapshot['alumni_percentage'],
+        ];
+        $rows[] = [
+            'bagian' => 'Ringkasan',
+            'item' => 'Dicetak pada',
+            'jumlah' => $now->format('Y-m-d H:i').' WIB',
+            'persen' => null,
+        ];
+        $rows[] = [
+            'bagian' => 'Ringkasan',
+            'item' => 'Pendaftaran ditutup',
+            'jumlah' => $closesAt->format('Y-m-d H:i').' WIB',
+            'persen' => null,
+        ];
+
+        foreach (PendaftarTeacherOfChampions::STATUSES as $status => $label) {
+            $count = (int) ($snapshot['statuses'][$status] ?? 0);
+            $rows[] = [
+                'bagian' => 'Status',
+                'item' => $label,
+                'jumlah' => $count,
+                'persen' => $this->percentShare($count, $total),
+            ];
+        }
+
+        foreach ($snapshot['daily'] as $date => $count) {
+            $rows[] = [
+                'bagian' => 'Tren Harian',
+                'item' => (string) $date,
+                'jumlah' => (int) $count,
+                'persen' => null,
+            ];
+        }
+
+        foreach (array_slice($snapshot['provinces'], 0, 10) as $row) {
+            $count = (int) $row['total'];
+            $rows[] = [
+                'bagian' => 'Provinsi',
+                'item' => $row['label'],
+                'jumlah' => $count,
+                'persen' => $this->percentShare($count, $total),
+            ];
+        }
+
+        foreach ($snapshot['jenjang'] as $row) {
+            $count = (int) $row['total'];
+            $rows[] = [
+                'bagian' => 'Jenjang',
+                'item' => $row['label'],
+                'jumlah' => $count,
+                'persen' => $this->percentShare($count, $total),
+            ];
+        }
+
+        foreach (array_slice($snapshot['bidang_studi'], 0, 10) as $row) {
+            $count = (int) $row['total'];
+            $rows[] = [
+                'bagian' => 'Bidang Studi',
+                'item' => $row['label'],
+                'jumlah' => $count,
+                'persen' => $this->percentShare($count, $total),
+            ];
+        }
+
+        return $rows;
     }
 
     /**
@@ -327,20 +392,36 @@ class TocShareableReport
             ->all();
     }
 
-    /**
-     * @param  list<array{label: string, total: int}>  $rows
-     */
-    private function writeRankedSheet(XlsxWriter $writer, string $sheetName, string $labelHeader, array $rows, Style $headerStyle): void
+    private function percentShare(int $count, int $total): ?float
     {
-        $writer->addNewSheetAndMakeItCurrent()->setName($sheetName);
-        $writer->addRow(Row::fromValues(['Peringkat', $labelHeader, 'Total'], $headerStyle));
-
-        foreach (array_values($rows) as $index => $row) {
-            $writer->addRow(new Row([
-                new NumericCell((float) ($index + 1), null),
-                new StringCell($row['label'], null),
-                new NumericCell((float) $row['total'], null),
-            ]));
+        if ($total <= 0) {
+            return null;
         }
+
+        return round($count / $total * 100, 1);
+    }
+
+    /**
+     * @param  array{bagian: string, item: string, jumlah: int|float|string|null, persen: float|null}  $row
+     */
+    private function statistikExcelRow(array $row): Row
+    {
+        $jumlah = $row['jumlah'];
+        $jumlahCell = match (true) {
+            is_int($jumlah), is_float($jumlah) => new NumericCell((float) $jumlah, null),
+            is_string($jumlah) => new StringCell($jumlah, null),
+            default => new StringCell('', null),
+        };
+
+        $persenCell = $row['persen'] === null
+            ? new StringCell('', null)
+            : new NumericCell((float) $row['persen'], (new Style)->setFormat('0.0'));
+
+        return new Row([
+            new StringCell($row['bagian'], null),
+            new StringCell($row['item'], null),
+            $jumlahCell,
+            $persenCell,
+        ]);
     }
 }

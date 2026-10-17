@@ -157,7 +157,7 @@ it('renders a real 1080x1350 PNG without personal data', function () {
     file_put_contents($dir.'/toc-update-preview.png', $binary);
 });
 
-it('exports a multi-sheet XLSX with Indonesian headers', function () {
+it('exports a single-sheet Statistik ToC XLSX with Indonesian headers', function () {
     seedShareableRegistrants();
     TocDashboardStats::forget();
 
@@ -169,12 +169,18 @@ it('exports a multi-sheet XLSX with Indonesian headers', function () {
     $reader = new XlsxReader;
     $reader->open($path);
     $sheets = [];
+    $header = [];
     foreach ($reader->getSheetIterator() as $sheet) {
         $sheets[] = $sheet->getName();
+        foreach ($sheet->getRowIterator() as $row) {
+            $header = $row->toArray();
+            break;
+        }
     }
     $reader->close();
 
-    expect($sheets)->toBe(['Ringkasan', 'Tren Harian', 'Provinsi', 'Jenjang', 'Bidang Studi'])
+    expect($sheets)->toBe(['Statistik ToC'])
+        ->and($header)->toBe(['Bagian', 'Item', 'Jumlah', 'Persen (%)'])
         ->and($response->headers->get('content-disposition'))->toContain('toc-statistik-');
 });
 
