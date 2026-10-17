@@ -50,7 +50,29 @@ class TocDashboardStats
         'bk' => 'BK',
         'dki' => 'DKI',
         'di' => 'DI',
+        'sma' => 'SMA',
+        'smk' => 'SMK',
+        'smp' => 'SMP',
+        'sd' => 'SD',
+        'tk' => 'TK',
+        'ra' => 'RA',
+        'mi' => 'MI',
+        'mts' => 'MTs',
+        'ma' => 'MA',
+        'mak' => 'MAK',
+        'slb' => 'SLB',
+        'asn' => 'ASN',
+        'non-asn' => 'non-ASN',
         'unimed' => 'UNIMED',
+        'usu' => 'USU',
+        'umsu' => 'UMSU',
+        'uin' => 'UIN',
+        'itb' => 'ITB',
+        'ugm' => 'UGM',
+        'ui' => 'UI',
+        'ipb' => 'IPB',
+        'undip' => 'UNDIP',
+        'unp' => 'UNP',
     ];
 
     /**
@@ -139,14 +161,27 @@ class TocDashboardStats
         }
 
         return collect(preg_split('/\s+/u', mb_strtolower($normalized, 'UTF-8')) ?: [])
-            ->map(function (string $token): string {
-                if (isset(self::PRESERVED_TOKENS[$token])) {
-                    return self::PRESERVED_TOKENS[$token];
-                }
-
-                return mb_convert_case($token, MB_CASE_TITLE, 'UTF-8');
-            })
+            ->map(fn (string $token): string => self::formatDisplayToken($token))
             ->implode(' ');
+    }
+
+    private static function formatDisplayToken(string $token): string
+    {
+        if (preg_match('/^([^\p{L}\p{N}]*)([\p{L}\p{N}-]+)([^\p{L}\p{N}]*)$/u', $token, $matches) === 1) {
+            $core = mb_strtolower($matches[2], 'UTF-8');
+
+            if (isset(self::PRESERVED_TOKENS[$core])) {
+                return $matches[1].self::PRESERVED_TOKENS[$core].$matches[3];
+            }
+
+            return $matches[1].mb_convert_case($matches[2], MB_CASE_TITLE, 'UTF-8').$matches[3];
+        }
+
+        if (isset(self::PRESERVED_TOKENS[$token])) {
+            return self::PRESERVED_TOKENS[$token];
+        }
+
+        return mb_convert_case($token, MB_CASE_TITLE, 'UTF-8');
     }
 
     public static function jenjangLabel(?string $code): string
@@ -175,6 +210,8 @@ class TocDashboardStats
 
         $provincesAll = $this->groupedBreakdown('provinsi');
         $bidangAll = $this->groupedBreakdown('bidang_studi');
+        $kampusAll = $this->groupedBreakdown('asal_universitas');
+        $kepegawaian = $this->groupedBreakdown('status_kepegawaian');
 
         return [
             'total' => $total,
@@ -190,6 +227,8 @@ class TocDashboardStats
             'jenjang' => $this->jenjangBreakdown(),
             'bidang_studi' => array_slice($bidangAll, 0, 10),
             'bidang_studi_all' => $bidangAll,
+            'kepegawaian' => $kepegawaian,
+            'kampus' => array_slice($kampusAll, 0, 5),
         ];
     }
 

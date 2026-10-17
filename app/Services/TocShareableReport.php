@@ -116,6 +116,27 @@ class TocShareableReport
         $closesAt = $snapshot['closes_at'];
         $daily = $snapshot['daily'];
         $maxDaily = max(1, ...array_map('intval', array_values($daily) ?: [1]));
+        $total = (int) $snapshot['total'];
+
+        $cumulative = 0;
+        $dailyRows = [];
+        foreach ($daily as $date => $count) {
+            $cumulative += (int) $count;
+            $dailyRows[] = [
+                'date' => (string) $date,
+                'count' => (int) $count,
+                'cumulative' => $cumulative,
+            ];
+        }
+
+        $kepegawaian = collect($snapshot['kepegawaian'] ?? [])
+            ->map(fn (array $row): array => [
+                'label' => $row['label'],
+                'total' => (int) $row['total'],
+                'persen' => $total > 0 ? round($row['total'] / $total * 100, 1) : 0.0,
+            ])
+            ->values()
+            ->all();
 
         return [
             'title' => 'Teacher of Champions — Update Pendaftar',
@@ -123,18 +144,21 @@ class TocShareableReport
             'closes_at_label' => $closesAt->translatedFormat('j M Y').' '.$closesAt->format('H.i').' WIB',
             'remaining_label' => TocDashboardStats::formatNumber($snapshot['remaining_days'])
                 .' hari '.TocDashboardStats::formatNumber($snapshot['remaining_hours']).' jam',
-            'total' => $snapshot['total'],
+            'total' => $total,
             'today' => $snapshot['today'],
             'alumni' => $snapshot['alumni'],
             'alumni_percentage_label' => TocDashboardStats::formatPercentage($snapshot['alumni_percentage']).'%',
             'statuses' => $snapshot['statuses'],
             'daily' => $daily,
             'daily_max' => $maxDaily,
+            'daily_last7' => array_slice($dailyRows, -7),
+            'kepegawaian' => $kepegawaian,
+            'kampus' => array_slice($snapshot['kampus'] ?? [], 0, 5),
             'provinces' => array_slice($snapshot['provinces'], 0, 5),
             'jenjang' => $snapshot['jenjang'],
             'bidang_studi' => array_slice($snapshot['bidang_studi'], 0, 5),
             'link' => 'ikaunimed.or.id/toc',
-            'total_label' => TocDashboardStats::formatNumber($snapshot['total']),
+            'total_label' => TocDashboardStats::formatNumber($total),
             'today_label' => TocDashboardStats::formatNumber($snapshot['today']),
             'alumni_label' => TocDashboardStats::formatNumber($snapshot['alumni']),
         ];

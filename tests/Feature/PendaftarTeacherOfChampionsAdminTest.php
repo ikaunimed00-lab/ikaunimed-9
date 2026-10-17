@@ -79,6 +79,6 @@ it('exports registrants to excel', function () {
         ->and($rows[0][0])->toBe('Nomor Pendaftaran')
         ->and($alumniColumn)->not->toBeFalse()
         ->and($rows[1][$alumniColumn])->toBe('Ya')
-        ->and($rows[1][$jenjangColumn])->toBe('SMA/MA/Sederajat')
+        ->and($rows[1][$jenjangColumn])->toBe('SMA/MA')
         ->and($response->headers->get('content-disposition'))->toContain('.xlsx');
 });

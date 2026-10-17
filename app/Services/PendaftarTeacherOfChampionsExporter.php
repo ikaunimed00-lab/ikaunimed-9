@@ -8,8 +8,11 @@ use Illuminate\Support\Collection;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\Style;
+use OpenSpout\Writer\AutoFilter;
 use OpenSpout\Writer\CSV\Options as CsvOptions;
 use OpenSpout\Writer\CSV\Writer as CsvWriter;
+use OpenSpout\Writer\XLSX\Entity\SheetView;
 use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -46,6 +49,32 @@ class PendaftarTeacherOfChampionsExporter
      */
     public const TEXT_COLUMNS = ['nomor_pendaftaran', 'whatsapp'];
 
+    /**
+     * Approximate column widths (OpenSpout index starts at 1).
+     *
+     * @var array<int, float>
+     */
+    private const COLUMN_WIDTHS = [
+        1 => 18,
+        2 => 28,
+        3 => 16,
+        4 => 28,
+        5 => 18,
+        6 => 20,
+        7 => 24,
+        8 => 12,
+        9 => 16,
+        10 => 22,
+        11 => 12,
+        12 => 30,
+        13 => 12,
+        14 => 16,
+        15 => 12,
+        16 => 18,
+        17 => 18,
+        18 => 18,
+    ];
+
     public function __construct(private AuditLogger $auditLogger) {}
 
     /**
@@ -67,22 +96,50 @@ class PendaftarTeacherOfChampionsExporter
             $options = new CsvOptions;
             $options->SHOULD_ADD_BOM = true;
             $writer = new CsvWriter($options);
+            $writer->openToFile($path);
+            $writer->addRow(Row::fromValues(array_values(self::COLUMNS)));
+
+            foreach ($pendaftar as $item) {
+                $writer->addRow(new Row($this->cells($item, $format)));
+            }
+
+            $writer->close();
         } else {
-            $writer = new XlsxWriter;
+            $this->writeXlsx($path, $pendaftar);
         }
-
-        $writer->openToFile($path);
-        $writer->addRow(Row::fromValues(array_values(self::COLUMNS)));
-
-        foreach ($pendaftar as $item) {
-            $writer->addRow(new Row($this->cells($item, $format)));
-        }
-
-        $writer->close();
 
         $fileName = 'pendaftar-teacher-of-champions-'.now(Kegiatan::TIMEZONE)->format('Ymd-His').'.'.$format;
 
         return response()->download($path, $fileName)->deleteFileAfterSend();
+    }
+
+    /**
+     * @param  Collection<int, PendaftarTeacherOfChampions>  $pendaftar
+     */
+    private function writeXlsx(string $path, Collection $pendaftar): void
+    {
+        $headerStyle = (new Style)->setFontBold();
+        $writer = new XlsxWriter;
+        $writer->openToFile($path);
+
+        $sheet = $writer->getCurrentSheet();
+        $sheet->setName('Pendaftar');
+        $sheet->setSheetView((new SheetView)->setFreezeRow(2));
+
+        foreach (self::COLUMN_WIDTHS as $index => $width) {
+            $sheet->setColumnWidth($width, $index);
+        }
+
+        $writer->addRow(Row::fromValues(array_values(self::COLUMNS), $headerStyle));
+
+        foreach ($pendaftar as $item) {
+            $writer->addRow(new Row($this->cells($item, 'xlsx')));
+        }
+
+        $lastRow = max(1, $sheet->getWrittenRowCount());
+        $sheet->setAutoFilter(new AutoFilter(0, 1, count(self::COLUMNS) - 1, $lastRow));
+
+        $writer->close();
     }
 
     /**
@@ -98,6 +155,10 @@ class PendaftarTeacherOfChampionsExporter
 
                 if ($format === 'csv' && in_array($column, self::TEXT_COLUMNS, true) && ctype_digit($value)) {
                     return new StringCell('="'.$value.'"', null);
+                }
+
+                if ($format === 'xlsx' && in_array($column, self::TEXT_COLUMNS, true)) {
+                    return new StringCell($value, null);
                 }
 
                 return new StringCell($this->neutralizeFormula($value, $format), null);
@@ -119,6 +180,8 @@ class PendaftarTeacherOfChampionsExporter
     }
 
     /**
+     * Display-only values for export (database rows are unchanged).
+     *
      * @return array<string, string|int|null>
      */
     private function rowValues(PendaftarTeacherOfChampions $item): array
@@ -126,7 +189,12 @@ class PendaftarTeacherOfChampionsExporter
         return collect(array_keys(self::COLUMNS))
             ->mapWithKeys(fn (string $column): array => [$column => match ($column) {
                 'status' => PendaftarTeacherOfChampions::STATUSES[$item->status] ?? $item->status,
-                'jenjang' => $item->jenjang === null ? null : (PendaftarTeacherOfChampions::JENJANG[$item->jenjang] ?? $item->jenjang),
+                'jenjang' => TocDashboardStats::jenjangLabel($item->jenjang),
+                'provinsi' => $this->displayOrEmpty($item->provinsi),
+                'kabupaten_kota' => $this->displayOrEmpty($item->kabupaten_kota),
+                'bidang_studi' => $this->displayOrEmpty($item->bidang_studi),
+                'asal_universitas' => $this->displayOrEmpty($item->asal_universitas),
+                'status_kepegawaian' => $this->displayOrEmpty($item->status_kepegawaian),
                 'alumni_unimed' => match ($item->alumni_unimed) {
                     true => 'Ya',
                     false => 'Tidak',
@@ -136,5 +204,14 @@ class PendaftarTeacherOfChampionsExporter
                 default => $item->{$column},
             }])
             ->all();
+    }
+
+    private function displayOrEmpty(?string $value): string
+    {
+        if ($value === null || trim($value) === '') {
+            return TocDashboardStats::EMPTY_LABEL;
+        }
+
+        return TocDashboardStats::displayLabel($value);
     }
 }

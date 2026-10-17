@@ -59,6 +59,9 @@ it('renders the dedicated ToC print page for panitia without chrome or personal 
         ->assertSee('DKI Jakarta', false)
         ->assertSee('Bahasa Indonesia', false)
         ->assertSee('SMA/MA', false)
+        ->assertSee('Pendaftar per hari', false)
+        ->assertSee('Status kepegawaian', false)
+        ->assertSee('Top 5 Kampus Asal', false)
         ->assertDontSee('Rahasia Nama', false)
         ->assertDontSee('rahasia@example.com', false)
         ->assertDontSee('6281111111111', false)
@@ -99,5 +102,8 @@ it('keeps print payload numbers identical to the shared snapshot', function () {
         ->and($print['closes_at_label'])->toContain('29 Okt 2026')
         ->and(collect($xlsxRows)->firstWhere('item', 'Total pendaftar')['jumlah'])->toBe($snapshot['total'])
         ->and(count($print['provinces']))->toBeLessThanOrEqual(5)
-        ->and(count($print['bidang_studi']))->toBeLessThanOrEqual(5);
+        ->and(count($print['bidang_studi']))->toBeLessThanOrEqual(5)
+        ->and(count($print['daily_last7']))->toBeLessThanOrEqual(7)
+        ->and($print['kepegawaian'])->not->toBeEmpty()
+        ->and(count($print['kampus']))->toBeLessThanOrEqual(5);
 });

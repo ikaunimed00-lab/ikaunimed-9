@@ -240,6 +240,59 @@ it('writes WhatsApp and registration numbers as text cells in Excel', function (
         ->and($cells[1])->toBe('=1+1');
 });
 
+it('exports a single Pendaftar sheet with freeze, autofilter, and normalized display labels', function () {
+    PendaftarTeacherOfChampions::factory()->create([
+        'whatsapp' => '6289999888777',
+        'jenjang' => 'SMA',
+        'provinsi' => 'dki  jakarta',
+        'kabupaten_kota' => 'KOTA  MEDAN',
+        'bidang_studi' => 'BAHASA INDONESIA',
+        'asal_universitas' => 'universitas negeri medan (unimed)',
+        'status_kepegawaian' => 'non-ASN',
+    ]);
+
+    $response = app(PendaftarTeacherOfChampionsExporter::class)
+        ->download(PendaftarTeacherOfChampions::query()->get(), 'xlsx');
+
+    $path = $response->getFile()->getPathname();
+    $reader = new Reader;
+    $reader->open($path);
+
+    $sheetNames = [];
+    $header = [];
+    $row = [];
+    foreach ($reader->getSheetIterator() as $sheet) {
+        $sheetNames[] = $sheet->getName();
+        foreach ($sheet->getRowIterator() as $index => $excelRow) {
+            if ($index === 1) {
+                $header = $excelRow->toArray();
+            }
+            if ($index === 2) {
+                $row = $excelRow->toArray();
+            }
+        }
+    }
+    $reader->close();
+
+    $zip = new ZipArchive;
+    expect($zip->open($path))->toBeTrue();
+    $sheetXml = (string) $zip->getFromName('xl/worksheets/sheet1.xml');
+    $workbookXml = (string) $zip->getFromName('xl/workbook.xml');
+    $zip->close();
+
+    expect($sheetNames)->toBe(['Pendaftar'])
+        ->and($header)->toBe(array_values(PendaftarTeacherOfChampionsExporter::COLUMNS))
+        ->and($row[array_search('Jenjang', $header, true)])->toBe('SMA/MA')
+        ->and($row[array_search('Provinsi', $header, true)])->toBe('DKI Jakarta')
+        ->and($row[array_search('Kabupaten/Kota', $header, true)])->toBe('Kota Medan')
+        ->and($row[array_search('Bidang Studi', $header, true)])->toBe('Bahasa Indonesia')
+        ->and($row[array_search('Asal Universitas (S1)', $header, true)])->toContain('UNIMED')
+        ->and($row[array_search('WhatsApp', $header, true)])->toBe('6289999888777')
+        ->and($sheetXml)->toContain('autoFilter')
+        ->and($sheetXml)->toContain('state="frozen"')
+        ->and($workbookXml)->toContain('Pendaftar');
+});
+
 it('hides export from panitia-toc', function () {
     actingAsToc(User::ROLE_PANITIA_TOC);
     PendaftarTeacherOfChampions::factory()->create();
