@@ -301,10 +301,21 @@ class TocDashboardStats
         /** @var array<string, array{label: string, total: int}> $grouped */
         $grouped = [];
 
+        $universityNormalizer = $column === 'asal_universitas'
+            ? app(UniversityNameNormalizer::class)
+            : null;
+
         foreach ($rows as $row) {
             $raw = is_string($row->value) ? $row->value : '';
-            $key = $raw === '' ? '' : Str::of($raw)->lower()->squish()->toString();
-            $label = $key === '' ? self::EMPTY_LABEL : self::displayLabel($raw);
+
+            if ($universityNormalizer !== null) {
+                $label = $universityNormalizer->canonicalize($raw);
+                $key = $universityNormalizer->groupKey($raw);
+            } else {
+                $key = $raw === '' ? '' : Str::of($raw)->lower()->squish()->toString();
+                $label = $key === '' ? self::EMPTY_LABEL : self::displayLabel($raw);
+            }
+
             $total = (int) $row->total;
 
             if (! isset($grouped[$key])) {

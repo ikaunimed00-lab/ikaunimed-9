@@ -8,6 +8,7 @@ use App\Models\PendaftarTeacherOfChampions;
 use App\Services\AuditLogger;
 use App\Services\PendaftarDuplicateDetector;
 use App\Services\PendaftarTeacherOfChampionsExporter;
+use App\Services\UniversityNameNormalizer;
 use App\Services\WilayahService;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -139,7 +140,18 @@ class PendaftarTeacherOfChampionsResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('asal_universitas')
                     ->label('Universitas (S1)')
-                    ->searchable()
+                    ->formatStateUsing(
+                        fn (?string $state): string => app(UniversityNameNormalizer::class)->canonicalize($state)
+                    )
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        $variants = app(UniversityNameNormalizer::class)->searchVariants($search);
+
+                        return $query->where(function (Builder $nested) use ($variants): void {
+                            foreach ($variants as $variant) {
+                                $nested->orWhere('asal_universitas', 'like', '%'.$variant.'%');
+                            }
+                        });
+                    })
                     ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('alumni_unimed')
                     ->label('Alumni UNIMED')

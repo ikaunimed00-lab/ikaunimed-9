@@ -193,7 +193,7 @@ class PendaftarTeacherOfChampionsExporter
                 'provinsi' => $this->displayOrEmpty($item->provinsi),
                 'kabupaten_kota' => $this->displayOrEmpty($item->kabupaten_kota),
                 'bidang_studi' => $this->displayOrEmpty($item->bidang_studi),
-                'asal_universitas' => $this->displayOrEmpty($item->asal_universitas),
+                'asal_universitas' => app(UniversityNameNormalizer::class)->canonicalize($item->asal_universitas),
                 'status_kepegawaian' => $this->displayOrEmpty($item->status_kepegawaian),
                 'alumni_unimed' => match ($item->alumni_unimed) {
                     true => 'Ya',

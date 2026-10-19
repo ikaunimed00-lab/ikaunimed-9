@@ -286,7 +286,7 @@ it('exports a single Pendaftar sheet with freeze, autofilter, and normalized dis
         ->and($row[array_search('Provinsi', $header, true)])->toBe('DKI Jakarta')
         ->and($row[array_search('Kabupaten/Kota', $header, true)])->toBe('Kota Medan')
         ->and($row[array_search('Bidang Studi', $header, true)])->toBe('Bahasa Indonesia')
-        ->and($row[array_search('Asal Universitas (S1)', $header, true)])->toContain('UNIMED')
+        ->and($row[array_search('Asal Universitas (S1)', $header, true)])->toBe('Universitas Negeri Medan (UNIMED)')
         ->and($row[array_search('WhatsApp', $header, true)])->toBe('6289999888777')
         ->and($sheetXml)->toContain('autoFilter')
         ->and($sheetXml)->toContain('state="frozen"')
