@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class PendaftarTeacherOfChampions extends Model
@@ -204,6 +205,90 @@ class PendaftarTeacherOfChampions extends Model
         }
 
         return mb_substr($value, 0, 4).str_repeat('*', $length - 8).mb_substr($value, -4);
+    }
+
+    /**
+     * Partially masks a display name, e.g. "Eli Astuti" → "Eli A*****".
+     */
+    public static function maskName(?string $name): string
+    {
+        $name = trim((string) $name);
+
+        if ($name === '') {
+            return '';
+        }
+
+        $parts = preg_split('/\s+/u', $name) ?: [];
+        $first = $parts[0] ?? '';
+        $second = $parts[1] ?? null;
+
+        if ($second === null || $second === '') {
+            $length = mb_strlen($first);
+
+            if ($length <= 1) {
+                return $first;
+            }
+
+            return mb_substr($first, 0, 1).str_repeat('*', $length - 1);
+        }
+
+        $initial = mb_substr($second, 0, 1);
+        $maskedRest = str_repeat('*', max(mb_strlen($second) - 1, 1));
+
+        return $first.' '.$initial.$maskedRest;
+    }
+
+    public function statusLabel(): string
+    {
+        return self::STATUSES[$this->status] ?? (string) $this->status;
+    }
+
+    public function jenjangLabel(): string
+    {
+        if ($this->jenjang === null || $this->jenjang === '') {
+            return '-';
+        }
+
+        return self::JENJANG[$this->jenjang] ?? (string) $this->jenjang;
+    }
+
+    public function registeredAtWibLabel(): string
+    {
+        return $this->created_at
+            ? $this->created_at->timezone(Kegiatan::TIMEZONE)->format('d M Y, H:i').' WIB'
+            : '-';
+    }
+
+    public function signedSuccessUrl(?Carbon $expiresAt = null): string
+    {
+        return URL::temporarySignedRoute(
+            'teacher-of-champions.success.show',
+            $expiresAt ?? now()->addDays(30),
+            ['pendaftar' => $this],
+        );
+    }
+
+    public function signedBuktiUrl(?Carbon $expiresAt = null): string
+    {
+        return URL::temporarySignedRoute(
+            'teacher-of-champions.bukti',
+            $expiresAt ?? now()->addDays(30),
+            ['pendaftar' => $this],
+        );
+    }
+
+    public function registrationNoticeMessage(): string
+    {
+        return implode("\n", [
+            'Assalamu\'alaikum,'.($this->nama ? " {$this->nama}." : ''),
+            '',
+            'Nomor pendaftaran Teacher of Champions Anda: '.$this->nomor_pendaftaran,
+            'Status: '.$this->statusLabel(),
+            '',
+            'Cek status: '.url('/toc/cek-status'),
+            '',
+            'IKA UNIMED — ikaunimed.or.id/toc',
+        ]);
     }
 
     public static function normalizeInstagram(?string $value): ?string

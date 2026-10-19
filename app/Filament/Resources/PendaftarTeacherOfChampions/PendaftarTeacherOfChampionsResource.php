@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\PendaftarTeacherOfChampions;
 
 use App\Filament\Resources\PendaftarTeacherOfChampions\Pages\ManagePendaftarTeacherOfChampions;
+use App\Filament\Resources\PendaftarTeacherOfChampions\Pages\ViewPendaftarTeacherOfChampions;
+use App\Filament\Resources\PendaftarTeacherOfChampions\Schemas\PendaftarTeacherOfChampionsInfolist;
 use App\Models\Kegiatan;
 use App\Models\PendaftarTeacherOfChampions;
 use App\Services\AuditLogger;
@@ -16,6 +18,7 @@ use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -74,6 +77,11 @@ class PendaftarTeacherOfChampionsResource extends Resource
                 ->helperText('Hanya terlihat oleh pengelola di panel admin.')
                 ->rows(4),
         ])->columns(1);
+    }
+
+    public static function infolist(Schema $infolist): Schema
+    {
+        return PendaftarTeacherOfChampionsInfolist::configure($infolist);
     }
 
     public static function table(Table $table): Table
@@ -216,6 +224,7 @@ class PendaftarTeacherOfChampionsResource extends Resource
                     ->query(fn (Builder $query): Builder => $query->whereKey(array_keys(app(PendaftarDuplicateDetector::class)->duplicates()))),
             ])
             ->recordActions([
+                ViewAction::make()->label('Detail'),
                 EditAction::make()->label('Status & catatan'),
             ])
             ->toolbarActions([
@@ -238,6 +247,7 @@ class PendaftarTeacherOfChampionsResource extends Resource
     {
         return [
             'index' => ManagePendaftarTeacherOfChampions::route('/'),
+            'view' => ViewPendaftarTeacherOfChampions::route('/{record}'),
         ];
     }
 

@@ -3,13 +3,15 @@
 namespace App\Providers;
 
 use App\Models\Kegiatan;
+use App\Models\News;
 use App\Models\PendaftarTeacherOfChampions;
+use App\Observers\NewsObserver;
 use App\Observers\TocAuditObserver;
 use App\Services\AuditLogger;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use Inertia\Inertia;
-use App\Models\News;
-use App\Observers\NewsObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,5 +32,12 @@ class AppServiceProvider extends ServiceProvider
         News::observe(TocAuditObserver::class);
         Kegiatan::observe(TocAuditObserver::class);
         PendaftarTeacherOfChampions::observe(TocAuditObserver::class);
+
+        RateLimiter::for('toc-status', function (Request $request) {
+            return [
+                Limit::perMinute(5)->by($request->ip()),
+                Limit::perHour(20)->by($request->ip()),
+            ];
+        });
     }
 }

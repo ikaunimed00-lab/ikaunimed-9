@@ -168,6 +168,16 @@ const Daftar = ({
                   <p className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{errors.form}</p>
                 )}
 
+                {(errors.whatsapp?.includes("Cek Status") || errors.email?.includes("Cek Status")) && (
+                  <p className="mb-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                    Data Anda sudah terdaftar.{" "}
+                    <Link href="/toc/cek-status" className="font-bold text-[#006837] underline">
+                      Cek nomor pendaftaran di Cek Status
+                    </Link>
+                    . Bila masih terkendala, hubungi panitia.
+                  </p>
+                )}
+
                 <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
                   <label htmlFor="website">Website</label>
                   <input

@@ -20,6 +20,8 @@ class AuditLog extends Model
     public const ACTIONS = [
         'pendaftar.updated' => 'Ubah pendaftar',
         'pendaftar.exported' => 'Ekspor pendaftar',
+        'pendaftar.dilihat' => 'Lihat pendaftar',
+        'pendaftar.dicetak' => 'Cetak pendaftar',
         'kegiatan.updated' => 'Ubah kegiatan ToC',
         'news.created' => 'Buat berita',
         'news.updated' => 'Ubah berita',

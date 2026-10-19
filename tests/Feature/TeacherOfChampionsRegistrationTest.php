@@ -39,6 +39,16 @@ function validRegistration(array $overrides = []): array
     ];
 }
 
+function assertRedirectedToSignedSuccess($response): PendaftarTeacherOfChampions
+{
+    $pendaftar = PendaftarTeacherOfChampions::query()->latest('id')->first();
+
+    expect($pendaftar)->not->toBeNull();
+    $response->assertRedirect($pendaftar->signedSuccessUrl());
+
+    return $pendaftar;
+}
+
 it('shows the open registration form with the regional dataset', function () {
     $this->get(route('teacher-of-champions.create'))
         ->assertOk()
@@ -60,16 +70,16 @@ it('shows the open registration form with the regional dataset', function () {
 });
 
 it('accepts free-text universities outside the suggestion list', function (string $asalUniversitas) {
-    $this->post(route('teacher-of-champions.store'), validRegistration([
+    $response = $this->post(route('teacher-of-champions.store'), validRegistration([
         'asal_universitas' => $asalUniversitas,
         'email' => Str::slug($asalUniversitas).'@example.com',
         'whatsapp' => '0812'.fake()->unique()->numerify('########'),
-    ]))->assertRedirect(route('teacher-of-champions.success'));
+    ]));
 
-    $pendaftar = PendaftarTeacherOfChampions::query()->latest('id')->first();
+    $pendaftar = assertRedirectedToSignedSuccess($response);
 
-    expect($pendaftar?->asal_universitas)->toBe(trim(preg_replace('/\s+/', ' ', $asalUniversitas) ?? $asalUniversitas))
-        ->and($pendaftar?->alumni_unimed)->toBeFalse();
+    expect($pendaftar->asal_universitas)->toBe(trim(preg_replace('/\s+/', ' ', $asalUniversitas) ?? $asalUniversitas))
+        ->and($pendaftar->alumni_unimed)->toBeFalse();
 })->with([
     'Malikussaleh' => ['Universitas Malikussaleh'],
     'random campus' => ['  Institut Teknologi  Fiktif  Nusantara  '],
@@ -88,8 +98,9 @@ it('detects UNIMED alumni from the free-text university name', function (string 
 ]);
 
 it('stores the alumni flag on registration and updates it when the university changes', function () {
-    $this->post(route('teacher-of-champions.store'), validRegistration(['asal_universitas' => 'Unimed']))
-        ->assertRedirect(route('teacher-of-champions.success'));
+    assertRedirectedToSignedSuccess(
+        $this->post(route('teacher-of-champions.store'), validRegistration(['asal_universitas' => 'Unimed']))
+    );
 
     $pendaftar = PendaftarTeacherOfChampions::query()->sole();
 
@@ -101,11 +112,10 @@ it('stores the alumni flag on registration and updates it when the university ch
 });
 
 it('registers a teacher with normalized contact data and a sequential number', function () {
-    $this->post(route('teacher-of-champions.store'), validRegistration())
-        ->assertRedirect(route('teacher-of-champions.success'))
+    $response = $this->post(route('teacher-of-champions.store'), validRegistration())
         ->assertSessionHas('nomor_pendaftaran', 'TOC-2026-0001');
 
-    $pendaftar = PendaftarTeacherOfChampions::query()->sole();
+    $pendaftar = assertRedirectedToSignedSuccess($response);
 
     expect($pendaftar->whatsapp)->toBe('6281234567890')
         ->and($pendaftar->email)->toBe('siti.aminah@example.com')
@@ -113,19 +123,65 @@ it('registers a teacher with normalized contact data and a sequential number', f
         ->and($pendaftar->status)->toBe('baru')
         ->and($pendaftar->persetujuan_data)->toBeTrue();
 
+    $this->get($pendaftar->signedSuccessUrl())
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('TeacherOfChampions/Sukses')
+            ->where('nomorPendaftaran', 'TOC-2026-0001')
+            ->where('nama', 'Siti Aminah, S.Pd.')
+            ->has('buktiUrl')
+        );
+
     $this->withSession(['nomor_pendaftaran' => 'TOC-2026-0001'])
         ->get(route('teacher-of-champions.success'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('TeacherOfChampions/Sukses')
             ->where('nomorPendaftaran', 'TOC-2026-0001')
-            ->missing('nama')
         );
 });
 
+it('keeps the signed success page after refresh and rejects forged or expired signatures', function () {
+    $pendaftar = PendaftarTeacherOfChampions::factory()->create([
+        'nama' => 'Eli Astuti',
+        'nomor_pendaftaran' => 'TOC-2026-0042',
+    ]);
+
+    $url = $pendaftar->signedSuccessUrl();
+
+    $this->get($url)
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('TeacherOfChampions/Sukses')
+            ->where('nomorPendaftaran', 'TOC-2026-0042')
+            ->where('nama', 'Eli Astuti')
+        );
+
+    $this->get($url)
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('TeacherOfChampions/Sukses')
+            ->where('nomorPendaftaran', 'TOC-2026-0042')
+        );
+
+    $this->get(route('teacher-of-champions.success.show', $pendaftar).'?signature=forged')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('TeacherOfChampions/TautanTidakValid')
+            ->where('cekStatusUrl', route('teacher-of-champions.status'))
+        );
+
+    Carbon::setTestNow(Carbon::parse('2026-11-25 10:00', 'Asia/Jakarta')->utc());
+
+    $this->get($url)
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('TeacherOfChampions/TautanTidakValid'));
+});
+
 it('accepts optional jenjang and status kepegawaian', function () {
-    $this->post(route('teacher-of-champions.store'), validRegistration(['jenjang' => '', 'status_kepegawaian' => '']))
-        ->assertRedirect(route('teacher-of-champions.success'));
+    assertRedirectedToSignedSuccess(
+        $this->post(route('teacher-of-champions.store'), validRegistration(['jenjang' => '', 'status_kepegawaian' => '']))
+    );
 
     expect(PendaftarTeacherOfChampions::query()->sole()->jenjang)->toBeNull();
 });
@@ -137,8 +193,9 @@ it('offers inclusive jenjang labels while storing the short code', function () {
             ->where('jenjangOptions.3', ['value' => 'SMA', 'label' => 'SMA/MA/Sederajat'])
         );
 
-    $this->post(route('teacher-of-champions.store'), validRegistration(['jenjang' => 'SMP']))
-        ->assertRedirect(route('teacher-of-champions.success'));
+    assertRedirectedToSignedSuccess(
+        $this->post(route('teacher-of-champions.store'), validRegistration(['jenjang' => 'SMP']))
+    );
 
     expect(PendaftarTeacherOfChampions::query()->sole()->jenjang)->toBe('SMP');
 });
@@ -157,7 +214,7 @@ it('rejects a duplicate whatsapp number written in another format', function () 
     PendaftarTeacherOfChampions::factory()->create(['whatsapp' => '6281234567890']);
 
     $this->post(route('teacher-of-champions.store'), validRegistration(['whatsapp' => '+62 812 3456 7890']))
-        ->assertSessionHasErrors(['whatsapp' => 'Nomor WhatsApp ini sudah terdaftar. Hubungi panitia bila Anda belum menerima nomor pendaftaran.']);
+        ->assertSessionHasErrors(['whatsapp' => 'Data Anda sudah terdaftar. Cek nomor pendaftaran Anda di Cek Status. Bila masih terkendala, hubungi panitia.']);
 
     expect(PendaftarTeacherOfChampions::query()->count())->toBe(1);
 });
@@ -190,8 +247,9 @@ it('requires consent and a regency that belongs to the province', function () {
 it('stays open until 29 October 23:59 WIB', function () {
     Carbon::setTestNow(Carbon::parse('2026-10-29 23:59:30', 'Asia/Jakarta')->utc());
 
-    $this->post(route('teacher-of-champions.store'), validRegistration())
-        ->assertRedirect(route('teacher-of-champions.success'));
+    assertRedirectedToSignedSuccess(
+        $this->post(route('teacher-of-champions.store'), validRegistration())
+    );
 });
 
 it('closes registration after 29 October 23:59 WIB', function () {

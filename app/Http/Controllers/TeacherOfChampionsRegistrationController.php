@@ -9,6 +9,7 @@ use App\Services\SiteManagementService;
 use App\Services\UpcomingEventService;
 use App\Services\WilayahService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -33,6 +34,7 @@ class TeacherOfChampionsRegistrationController extends Controller
             'jenjangOptions' => PendaftarTeacherOfChampions::jenjangOptions(),
             'statusKepegawaianOptions' => PendaftarTeacherOfChampions::STATUS_KEPEGAWAIAN,
             'universitasOptions' => $this->universitasOptions(),
+            'cekStatusUrl' => route('teacher-of-champions.status'),
         ]);
     }
 
@@ -41,10 +43,13 @@ class TeacherOfChampionsRegistrationController extends Controller
         $pendaftar = PendaftarTeacherOfChampions::register($request->safe()->except(['website']));
 
         return redirect()
-            ->route('teacher-of-champions.success')
+            ->to($pendaftar->signedSuccessUrl())
             ->with('nomor_pendaftaran', $pendaftar->nomor_pendaftaran);
     }
 
+    /**
+     * Legacy success page that relies on session flash (kept for older redirects).
+     */
     public function success(): Response|RedirectResponse
     {
         $nomor = session('nomor_pendaftaran');
@@ -53,8 +58,31 @@ class TeacherOfChampionsRegistrationController extends Controller
             return redirect()->route('teacher-of-champions.create');
         }
 
+        $pendaftar = PendaftarTeacherOfChampions::query()
+            ->where('nomor_pendaftaran', $nomor)
+            ->first();
+
         return $this->render('TeacherOfChampions/Sukses', [
             'nomorPendaftaran' => $nomor,
+            'nama' => $pendaftar?->nama,
+            'buktiUrl' => $pendaftar?->signedBuktiUrl(),
+            'cekStatusUrl' => route('teacher-of-champions.status'),
+        ]);
+    }
+
+    public function showSuccess(Request $request, PendaftarTeacherOfChampions $pendaftar): Response
+    {
+        if (! $request->hasValidSignature()) {
+            return $this->render('TeacherOfChampions/TautanTidakValid', [
+                'cekStatusUrl' => route('teacher-of-champions.status'),
+            ]);
+        }
+
+        return $this->render('TeacherOfChampions/Sukses', [
+            'nomorPendaftaran' => $pendaftar->nomor_pendaftaran,
+            'nama' => $pendaftar->nama,
+            'buktiUrl' => $pendaftar->signedBuktiUrl(),
+            'cekStatusUrl' => route('teacher-of-champions.status'),
         ]);
     }
 

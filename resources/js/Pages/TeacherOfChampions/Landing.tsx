@@ -177,6 +177,11 @@ const Landing = ({
         ]
       : []),
     {
+      question: "Saya sudah mendaftar tetapi lupa nomor pendaftaran?",
+      answer:
+        "Buka halaman Cek Status (/toc/cek-status) dan isi WhatsApp serta email yang sama saat mendaftar. Jika masih terkendala, hubungi panitia.",
+    },
+    {
       question: "Bagaimana jika ada kendala?",
       answer: "Hubungi WhatsApp panitia yang tercantum di bagian Kontak panitia di halaman ini.",
     },
@@ -215,8 +220,14 @@ const Landing = ({
                 Nasional 25 November.
               </p>
 
-              <div id="toc-hero-cta" className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <div id="toc-hero-cta" className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <RegisterButton isOpen={isOpen} />
+                <a
+                  href="/toc/cek-status"
+                  className="inline-flex items-center justify-center rounded-xl border-2 border-[#FFD700]/70 px-6 py-3 text-base font-bold text-[#FFD700] transition hover:bg-[#FFD700]/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFD700]/60"
+                >
+                  Cek Status
+                </a>
                 <a
                   href="#jadwal"
                   className="inline-flex items-center justify-center rounded-xl border-2 border-white/70 px-6 py-3 text-base font-bold text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFD700]/60"
@@ -570,8 +581,14 @@ const Landing = ({
             <p className="mx-auto mt-3 max-w-xl text-white/85">
               {isOpen ? `Pendaftaran ditutup ${closesAtLabel}.` : "Pendaftaran telah ditutup. Ikuti tahapan berikutnya melalui Instagram resmi IKA UNIMED."}
             </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
               <RegisterButton isOpen={isOpen} label="Daftar sekarang" />
+              <a
+                href="/toc/cek-status"
+                className="inline-flex items-center justify-center rounded-xl border-2 border-[#FFD700]/70 px-6 py-3 text-base font-bold text-[#FFD700] transition hover:bg-[#FFD700]/10"
+              >
+                Cek Status pendaftaran
+              </a>
               {guidebookUrl && <GuidebookLink href={guidebookUrl} tone="dark" size="lg" />}
             </div>
           </div>
