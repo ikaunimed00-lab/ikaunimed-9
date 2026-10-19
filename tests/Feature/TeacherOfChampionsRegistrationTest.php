@@ -244,6 +244,29 @@ it('requires consent and a regency that belongs to the province', function () {
     expect(PendaftarTeacherOfChampions::query()->count())->toBe(0);
 });
 
+it('accepts DKI Jakarta Utara after TrimStrings removes surrounding whitespace', function () {
+    $response = $this->post(route('teacher-of-champions.store'), validRegistration([
+        'provinsi' => 'DKI Jakarta',
+        'kabupaten_kota' => ' Kota Administrasi Jakarta Utara ',
+        'email' => 'jakarta.utara@example.com',
+        'whatsapp' => '087714396731',
+    ]));
+
+    assertRedirectedToSignedSuccess($response);
+
+    expect(PendaftarTeacherOfChampions::query()->sole()->kabupaten_kota)->toBe('Kota Administrasi Jakarta Utara');
+});
+
+it('keeps wilayah kabupaten names free of surrounding whitespace', function () {
+    $wilayah = json_decode((string) file_get_contents(resource_path('data/wilayah.json')), true, flags: JSON_THROW_ON_ERROR);
+
+    foreach ($wilayah as $provinsi) {
+        foreach ($provinsi['kabupaten_kota'] as $nama) {
+            expect($nama)->toBe(trim($nama));
+        }
+    }
+});
+
 it('stays open until 29 October 23:59 WIB', function () {
     Carbon::setTestNow(Carbon::parse('2026-10-29 23:59:30', 'Asia/Jakarta')->utc());
 
