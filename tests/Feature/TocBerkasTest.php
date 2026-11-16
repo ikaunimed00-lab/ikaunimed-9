@@ -40,6 +40,21 @@ function makeImage(int $width, int $height, string $name = 'foto.jpg'): Uploaded
     return new UploadedFile($path, $name, 'image/jpeg', null, true);
 }
 
+it('sends no-store cache headers on berkas login and formulir pages', function () {
+    $this->get(route('toc.berkas'))
+        ->assertOk()
+        ->assertHeader('Cache-Control', 'no-store, private')
+        ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+
+    $peserta = PendaftarTeacherOfChampions::factory()->lulus()->create();
+    loginBerkas($peserta)->assertRedirect(route('toc.berkas.formulir'));
+
+    $this->get(route('toc.berkas.formulir'))
+        ->assertOk()
+        ->assertHeader('Cache-Control', 'no-store, private')
+        ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+});
+
 it('rejects non-passing participants from berkas login with the generic message', function () {
     $peserta = PendaftarTeacherOfChampions::factory()->tidakLulus()->create();
 

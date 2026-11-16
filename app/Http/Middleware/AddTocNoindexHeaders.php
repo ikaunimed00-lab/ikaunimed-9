@@ -16,7 +16,8 @@ class AddTocNoindexHeaders
         $response = $next($request);
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
 
-        if ($request->is('toc/pengumuman')) {
+        // Inertia TOC HTML must never be cached by CDN/browsers (hashed Vite refs change per deploy).
+        if ($request->is('toc', 'toc/*')) {
             $response->headers->set('Cache-Control', 'no-store, private');
         }
 

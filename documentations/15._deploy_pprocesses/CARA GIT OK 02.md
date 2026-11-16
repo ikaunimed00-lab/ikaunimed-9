@@ -36,11 +36,25 @@ Catatan: jika folder hosting bukan git repo, gunakan metode ZIP/SCP ini.
 git archive -o source.zip HEAD
 ```
 
-### 2) Upload source + build
+### 2) Upload source + build (atau pakai skrip)
+
+Disarankan: `pwsh scripts/deploy-production.ps1` (atomic swap + chmod otomatis).
+
+Manual:
 
 ```bash
 scp -i "C:\Users\Asus\.ssh\id_ikaunimed" source.zip elawepco@103.185.53.246:/home/elawepco/repositories/ikaunimed-9/
-scp -i "C:\Users\Asus\.ssh\id_ikaunimed" -r public/build elawepco@103.185.53.246:/home/elawepco/repositories/ikaunimed-9/public/
+# Upload ke staging dulu — JANGAN hapus public/build sebelum aset baru siap
+ssh ... "rm -rf public/build_incoming && mkdir -p public/build_incoming"
+scp -i "C:\Users\Asus\.ssh\id_ikaunimed" -r public/build/* elawepco@103.185.53.246:/home/elawepco/repositories/ikaunimed-9/public/build_incoming/
+```
+
+Setelah extract source di server, swap lalu **wajib** chmod (SCP Windows sering membuat file `640` → LiteSpeed 403):
+
+```bash
+mv public/build public/build_old && mv public/build_incoming public/build && rm -rf public/build_old
+find public/build -type d -exec chmod 755 {} \;
+find public/build -type f -exec chmod 644 {} \;
 ```
 
 ## C. Eksekusi di Hosting
