@@ -103,7 +103,9 @@ class TocBerkasKeputusanExportService
     {
         $this->assertWithinLimit($pendaftar->count());
 
-        $pendaftar->loadMissing('berkas');
+        $pendaftar->each(function (PendaftarTeacherOfChampions $peserta): void {
+            $peserta->loadMissing('berkas');
+        });
 
         $disk = Storage::disk(config('toc.berkas.disk'));
         $xlsxPath = $zipPath.'.xlsx.tmp';
