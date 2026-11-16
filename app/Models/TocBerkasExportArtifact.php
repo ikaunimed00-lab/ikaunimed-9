@@ -9,9 +9,12 @@ class TocBerkasExportArtifact extends Model
 {
     protected $fillable = [
         'token',
+        'batch_id',
         'user_id',
         'path',
         'peserta_count',
+        'part_number',
+        'part_total',
         'expires_at',
     ];
 
@@ -19,8 +22,19 @@ class TocBerkasExportArtifact extends Model
     {
         return [
             'peserta_count' => 'integer',
+            'part_number' => 'integer',
+            'part_total' => 'integer',
             'expires_at' => 'datetime',
         ];
+    }
+
+    public function label(): string
+    {
+        if ($this->part_total > 1) {
+            return "Bagian {$this->part_number}/{$this->part_total}";
+        }
+
+        return 'ZIP berkas + Excel keputusan';
     }
 
     public function user(): BelongsTo

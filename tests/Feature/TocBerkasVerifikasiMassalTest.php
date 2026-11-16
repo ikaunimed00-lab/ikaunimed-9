@@ -230,8 +230,10 @@ it('generates the export artifact, notifies the requester and audits the export'
     $artifact = TocBerkasExportArtifact::query()->firstOrFail();
 
     expect($artifact->user_id)->toBe($admin->id)
-        ->and($artifact->path)->toBe('toc/exports/'.$artifact->token.'.zip')
+        ->and($artifact->path)->toBe('toc/exports/'.$artifact->token.'-bagian-1.zip')
         ->and($artifact->peserta_count)->toBe(1)
+        ->and($artifact->part_number)->toBe(1)
+        ->and($artifact->part_total)->toBe(1)
         ->and($artifact->expires_at->toIso8601String())->toBe(now()->addMinutes(60)->toIso8601String());
     Storage::disk('local')->assertExists($artifact->path);
 
@@ -243,6 +245,52 @@ it('generates the export artifact, notifies the requester and audits the export'
     expect($audit->user_id)->toBe($admin->id)->and($audit->peserta_count)->toBe(1);
 
     $this->actingAs($admin)->get($notification->action_url)->assertOk();
+});
+
+it('re-dispatches large exports into chunk jobs of at most the configured size', function () {
+    Queue::fake();
+    config(['toc.berkas.export_chunk_size' => 2]);
+
+    $admin = verifMassalAdmin();
+    $ids = collect(range(1, 5))->map(fn () => verifMassalPeserta()->id)->all();
+
+    (new GenerateTocBerkasKeputusanZipJob($admin->id, $ids))
+        ->handle(app(TocBerkasKeputusanExportService::class));
+
+    Queue::assertPushed(GenerateTocBerkasKeputusanZipJob::class, 3);
+
+    $parts = [];
+    Queue::assertPushed(GenerateTocBerkasKeputusanZipJob::class, function (GenerateTocBerkasKeputusanZipJob $job) use (&$parts) {
+        $parts[] = [$job->partNumber, $job->partTotal, count($job->pendaftarIds), $job->batchId];
+
+        return $job->batchId !== null && $job->partTotal === 3;
+    });
+
+    expect(collect($parts)->pluck(0)->sort()->values()->all())->toBe([1, 2, 3])
+        ->and(collect($parts)->pluck(2)->sum())->toBe(5)
+        ->and(TocBerkasExportArtifact::query()->count())->toBe(0);
+
+    $notice = Notification::query()->where('user_id', $admin->id)->firstOrFail();
+    expect($notice->title)->toContain('dibagi')
+        ->and($notice->message)->toContain('3 bagian');
+});
+
+it('labels multi-part zip artifacts so Unduhan saya can show every bagian', function () {
+    $admin = verifMassalAdmin();
+    $peserta = verifMassalPeserta();
+    verifMassalCompleteSet($peserta);
+
+    GenerateTocBerkasKeputusanZipJob::dispatchSync($admin->id, [$peserta->id], 'batch-test', 2, 6);
+
+    $artifact = TocBerkasExportArtifact::query()->firstOrFail();
+
+    expect($artifact->batch_id)->toBe('batch-test')
+        ->and($artifact->part_number)->toBe(2)
+        ->and($artifact->part_total)->toBe(6)
+        ->and($artifact->label())->toBe('Bagian 2/6')
+        ->and($artifact->path)->toEndWith('-bagian-2.zip');
+
+    expect(Notification::query()->where('user_id', $admin->id)->value('title'))->toContain('Bagian 2/6');
 });
 
 it('only lets the requesting admin open a valid signed export link and removes expired ones', function () {

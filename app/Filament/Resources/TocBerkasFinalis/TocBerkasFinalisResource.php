@@ -289,11 +289,21 @@ class TocBerkasFinalisResource extends Resource
             return;
         }
 
-        GenerateTocBerkasKeputusanZipJob::dispatch((int) Auth::id(), $records->pluck('id')->map(fn ($id): int => (int) $id)->all());
+        $ids = $records->pluck('id')->map(fn ($id): int => (int) $id)->values()->all();
+        $chunkSize = max(1, (int) config('toc.berkas.export_chunk_size', 100));
+        $parts = (int) ceil(count($ids) / $chunkSize);
+
+        GenerateTocBerkasKeputusanZipJob::dispatch((int) Auth::id(), $ids);
+
+        $body = $records->count().' peserta';
+        $body .= $parts > 1
+            ? " akan dipecah menjadi {$parts} ZIP (maks. {$chunkSize} peserta/bagian)."
+            : '.';
+        $body .= ' Tautan unduhan (berlaku 1 jam) muncul di notifikasi dashboard dan menu "Unduhan saya" setelah antrian selesai.';
 
         Notification::make()
             ->title('Ekspor sedang diproses')
-            ->body($records->count().' peserta. Tautan unduhan (berlaku 1 jam) akan muncul di notifikasi dashboard Anda dan di menu "Unduhan saya".')
+            ->body($body)
             ->success()
             ->send();
     }

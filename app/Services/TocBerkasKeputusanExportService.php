@@ -13,6 +13,7 @@ use PhpOffice\PhpSpreadsheet\Style\Protection;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
+use Throwable;
 use ZipArchive;
 
 class TocBerkasKeputusanExportService
@@ -126,14 +127,29 @@ class TocBerkasKeputusanExportService
                         continue;
                     }
 
-                    $zip->addFile($disk->path($berkas->path), $folder.'/'.$this->entryName($berkas));
+                    // Stream from disk path — do not read file contents into PHP memory.
+                    $absolute = $disk->path($berkas->path);
+                    if (! is_readable($absolute) || ! $zip->addFile($absolute, $folder.'/'.$this->entryName($berkas))) {
+                        throw new RuntimeException('Tidak dapat menambahkan berkas ke ZIP.');
+                    }
                 }
             }
 
             $this->writeKeputusanXlsx($pendaftar, $xlsxPath);
-            $zip->addFile($xlsxPath, self::XLSX_NAME);
+            if (! $zip->addFile($xlsxPath, self::XLSX_NAME)) {
+                throw new RuntimeException('Tidak dapat menambahkan Excel keputusan ke ZIP.');
+            }
 
-            $zip->close();
+            if (! $zip->close()) {
+                throw new RuntimeException('Tidak dapat menutup berkas ZIP.');
+            }
+        } catch (Throwable $exception) {
+            @$zip->close();
+            if (is_file($zipPath)) {
+                @unlink($zipPath);
+            }
+
+            throw $exception;
         } finally {
             if (is_file($xlsxPath)) {
                 @unlink($xlsxPath);

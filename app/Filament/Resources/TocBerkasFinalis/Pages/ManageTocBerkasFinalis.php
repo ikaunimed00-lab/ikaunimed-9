@@ -89,9 +89,12 @@ class ManageTocBerkasFinalis extends ManageRecords
                     'artifacts' => TocBerkasExportArtifact::query()
                         ->where('user_id', Auth::id())
                         ->where('expires_at', '>', now())
-                        ->latest('id')
+                        ->orderByDesc('batch_id')
+                        ->orderBy('part_number')
+                        ->orderByDesc('id')
                         ->get()
                         ->map(fn (TocBerkasExportArtifact $artifact): array => [
+                            'label' => $artifact->label(),
                             'dibuat' => $artifact->created_at->timezone(config('toc.timezone'))->format('d M Y H:i'),
                             'pesertaCount' => $artifact->peserta_count,
                             'berlakuSampai' => $artifact->expires_at->timezone(config('toc.timezone'))->format('H:i'),

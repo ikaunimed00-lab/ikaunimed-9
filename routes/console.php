@@ -9,3 +9,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('toc:berkas-bersihkan-ekspor')->hourly();
+
+// Shared hosting has no Supervisor: drain the database queue every minute.
+Schedule::command('queue:work --stop-when-empty --max-time=55 --memory=256 --tries=1 --timeout=240')
+    ->everyMinute()
+    ->withoutOverlapping(5);
