@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -94,6 +95,8 @@ class PendaftarTeacherOfChampions extends Model
         'status',
         'catatan',
         'catatan_internal',
+        'lulus_penyisihan',
+        'setuju_publikasi_at',
     ];
 
     protected function casts(): array
@@ -102,7 +105,19 @@ class PendaftarTeacherOfChampions extends Model
             'lama_mengabdi_tahun' => 'integer',
             'persetujuan_data' => 'boolean',
             'alumni_unimed' => 'boolean',
+            'lulus_penyisihan' => 'boolean',
+            'setuju_publikasi_at' => 'datetime',
         ];
+    }
+
+    public function berkas(): HasMany
+    {
+        return $this->hasMany(TocBerkas::class, 'pendaftar_id');
+    }
+
+    public function rejectionMailLogs(): HasMany
+    {
+        return $this->hasMany(TocBerkasRejectionMailLog::class, 'pendaftar_id');
     }
 
     protected static function booted(): void

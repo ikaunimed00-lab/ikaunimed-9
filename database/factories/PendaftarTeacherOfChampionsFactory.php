@@ -15,7 +15,7 @@ class PendaftarTeacherOfChampionsFactory extends Factory
     public function definition(): array
     {
         return [
-            'nomor_pendaftaran' => sprintf('TOC-2026-%04d', fake()->unique()->numberBetween(1000, 9999)),
+            'nomor_pendaftaran' => sprintf('TOC-2026-%04d', fake()->unique()->numberBetween(1, 4118)),
             'nama' => fake()->name(),
             'asal_instansi' => 'SMA Negeri '.fake()->numberBetween(1, 20).' Medan',
             'whatsapp' => '628'.fake()->unique()->numerify('##########'),
@@ -31,6 +31,22 @@ class PendaftarTeacherOfChampionsFactory extends Factory
             'persetujuan_data' => true,
             'status' => 'baru',
             'catatan' => null,
+            'lulus_penyisihan' => null,
+            'setuju_publikasi_at' => null,
         ];
+    }
+
+    public function lulus(): static
+    {
+        return $this->state(fn (): array => [
+            'lulus_penyisihan' => true,
+        ]);
+    }
+
+    public function tidakLulus(): static
+    {
+        return $this->state(fn (): array => [
+            'lulus_penyisihan' => false,
+        ]);
     }
 }

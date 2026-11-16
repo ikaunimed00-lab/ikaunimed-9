@@ -64,6 +64,7 @@ Route::middleware([HandleInertiaRequests::class])->group(function () {
         ->middleware('throttle:toc-status')
         ->name('teacher-of-champions.status.check');
 
+    require __DIR__.'/public/toc-berkas.php';
     require __DIR__.'/public/news.php';
     require __DIR__.'/public/shop.php';
     require __DIR__.'/public/categories.php';
