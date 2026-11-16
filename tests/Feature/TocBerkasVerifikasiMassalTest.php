@@ -1,6 +1,7 @@
 <?php
 
 use App\Filament\Resources\TocBerkasFinalis\Pages\ManageTocBerkasFinalis;
+use App\Filament\Resources\TocBerkasFinalis\TocBerkasFinalisResource;
 use App\Jobs\GenerateTocBerkasKeputusanZipJob;
 use App\Jobs\SendTocBerkasRejectionMailJob;
 use App\Mail\TocBerkasDitolakMail;
@@ -20,7 +21,6 @@ use Filament\Facades\Filament;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -247,50 +247,78 @@ it('generates the export artifact, notifies the requester and audits the export'
     $this->actingAs($admin)->get($notification->action_url)->assertOk();
 });
 
-it('re-dispatches large exports into chunk jobs of at most the configured size', function () {
-    Queue::fake();
-    config(['toc.berkas.export_chunk_size' => 2]);
+it('partitions peserta into download parts of at most the configured size', function () {
+    config(['toc.berkas.export_chunk_size' => 50]);
+    $service = app(TocBerkasKeputusanExportService::class);
 
-    $admin = verifMassalAdmin();
-    $ids = collect(range(1, 5))->map(fn () => verifMassalPeserta()->id)->all();
-
-    (new GenerateTocBerkasKeputusanZipJob($admin->id, $ids))
-        ->handle(app(TocBerkasKeputusanExportService::class));
-
-    Queue::assertPushed(GenerateTocBerkasKeputusanZipJob::class, 3);
-
-    $parts = [];
-    Queue::assertPushed(GenerateTocBerkasKeputusanZipJob::class, function (GenerateTocBerkasKeputusanZipJob $job) use (&$parts) {
-        $parts[] = [$job->partNumber, $job->partTotal, count($job->pendaftarIds), $job->batchId];
-
-        return $job->batchId !== null && $job->partTotal === 3;
-    });
-
-    expect(collect($parts)->pluck(0)->sort()->values()->all())->toBe([1, 2, 3])
-        ->and(collect($parts)->pluck(2)->sum())->toBe(5)
-        ->and(TocBerkasExportArtifact::query()->count())->toBe(0);
-
-    $notice = Notification::query()->where('user_id', $admin->id)->firstOrFail();
-    expect($notice->title)->toContain('dibagi')
-        ->and($notice->message)->toContain('3 bagian');
+    expect($service->partitionIds(range(1, 50)))->toHaveCount(1)
+        ->and($service->partitionIds(range(1, 51)))->toHaveCount(2)
+        ->and($service->partitionIds(range(1, 514)))->toHaveCount(11)
+        ->and(collect($service->partitionIds(range(1, 514)))->map(fn (array $chunk): int => count($chunk))->all())
+        ->toBe([50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 14]);
 });
 
-it('labels multi-part zip artifacts so Unduhan saya can show every bagian', function () {
+it('streams a direct zip part with folders, berkas and keputusan workbook', function () {
     $admin = verifMassalAdmin();
+    $lengkap = verifMassalPeserta(['nomor_pendaftaran' => 'TOC-2026-0101', 'nama' => 'Langsung Satu']);
+    $kosong = verifMassalPeserta(['nomor_pendaftaran' => 'TOC-2026-0102', 'nama' => 'Langsung Kosong']);
+    verifMassalCompleteSet($lengkap);
+
+    config(['toc.berkas.export_chunk_size' => 50]);
+    $manifest = app(TocBerkasKeputusanExportService::class)
+        ->rememberSelection($admin->id, [$lengkap->id, $kosong->id]);
+
+    expect($manifest['total_bagian'])->toBe(1)
+        ->and($manifest['parts'][0]['label'])->toBe('Bagian 1 (peserta 1-2)');
+
+    $response = $this->actingAs($admin)->get($manifest['parts'][0]['url']);
+    $response->assertOk();
+    expect($response->headers->get('content-disposition'))->toContain('berkas-finalis-bagian-1-dari-1-');
+
+    $zipPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.uniqid('toc-direct-', true).'.zip';
+    file_put_contents($zipPath, $response->streamedContent());
+
+    $zip = new ZipArchive;
+    expect($zip->open($zipPath))->toBeTrue();
+    $names = collect(range(0, $zip->numFiles - 1))->map(fn (int $i) => $zip->getNameIndex($i))->all();
+    expect($names)->toContain('TOC-2026-0101 - Langsung Satu/foto.jpg')
+        ->toContain('keputusan-berkas.xlsx');
+    expect(collect($names)->contains(fn (string $n) => str_starts_with($n, 'TOC-2026-0102 - Langsung Kosong')))->toBeTrue();
+
+    $xlsxPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.uniqid('toc-direct-x-', true).'.xlsx';
+    file_put_contents($xlsxPath, $zip->getFromName('keputusan-berkas.xlsx'));
+    $zip->close();
+
+    $sheets = verifMassalReadXlsx($xlsxPath);
+    expect($sheets['Keputusan'])->toHaveCount(3)
+        ->and($sheets['Keputusan'][0])->toBe(TocBerkasKeputusanExportService::headers());
+
+    expect(TocBerkasAuditLog::query()->where('type', TocBerkasAuditLog::TYPE_EXPORT_ZIP)->count())->toBe(1)
+        ->and(TocBerkasAuditLog::query()->value('meta')['mode'] ?? null)->toBe('langsung');
+
+    @unlink($zipPath);
+    @unlink($xlsxPath);
+});
+
+it('limits direct zip downloads to the selecting admin and rejects editors', function () {
+    $admin = verifMassalAdmin();
+    $other = verifMassalAdmin();
+    $editor = verifMassalAdmin('editor');
     $peserta = verifMassalPeserta();
     verifMassalCompleteSet($peserta);
 
-    GenerateTocBerkasKeputusanZipJob::dispatchSync($admin->id, [$peserta->id], 'batch-test', 2, 6);
+    $manifest = app(TocBerkasKeputusanExportService::class)
+        ->rememberSelection($admin->id, [$peserta->id]);
+    $url = $manifest['parts'][0]['url'];
 
-    $artifact = TocBerkasExportArtifact::query()->firstOrFail();
+    $this->get($url)->assertRedirect();
+    $this->actingAs($editor)->get($url)->assertForbidden();
+    $this->actingAs($other)->get($url)->assertForbidden();
+    $this->actingAs($admin)->get($url)->assertOk();
 
-    expect($artifact->batch_id)->toBe('batch-test')
-        ->and($artifact->part_number)->toBe(2)
-        ->and($artifact->part_total)->toBe(6)
-        ->and($artifact->label())->toBe('Bagian 2/6')
-        ->and($artifact->path)->toEndWith('-bagian-2.zip');
-
-    expect(Notification::query()->where('user_id', $admin->id)->value('title'))->toContain('Bagian 2/6');
+    $this->actingAs($admin)
+        ->get(route('admin.toc.berkas.exports.langsung', ['token' => $manifest['token'], 'bagian' => 9]))
+        ->assertNotFound();
 });
 
 it('only lets the requesting admin open a valid signed export link and removes expired ones', function () {
@@ -535,8 +563,7 @@ it('accepts all waiting berkas for many peserta and leaves other statuses alone'
     expect($service->acceptWaitingForPeserta($three, $admin))->toBe(3);
 });
 
-it('lets admins run the mass accept and export bulk actions from the filament table', function () {
-    Queue::fake();
+it('lets admins open the direct zip parts modal and run mass accept from the filament table', function () {
     $admin = verifMassalAdmin();
     $peserta = verifMassalPeserta();
     verifMassalCompleteSet($peserta);
@@ -544,12 +571,15 @@ it('lets admins run the mass accept and export bulk actions from the filament ta
     $this->actingAs($admin);
     Filament::setCurrentPanel('admin');
 
-    Livewire::test(ManageTocBerkasFinalis::class)
-        ->callTableBulkAction('unduhZipKeputusan', [$peserta])
-        ->assertNotified('Ekspor sedang diproses');
+    $modalHtml = TocBerkasFinalisResource::keputusanExportModal(collect([$peserta]))->render();
+    expect($modalHtml)->toContain('Bagian 1 (peserta 1-1)')
+        ->and($modalHtml)->toContain('/admin/toc/berkas/exports/langsung/')
+        ->and($modalHtml)->toContain('tanpa antrean');
 
-    Queue::assertPushed(GenerateTocBerkasKeputusanZipJob::class, fn ($job) => $job->userId === $admin->id
-        && $job->pendaftarIds === [$peserta->id]);
+    Livewire::test(ManageTocBerkasFinalis::class)
+        ->assertActionExists('unduhZipKeputusan')
+        ->assertActionExists('imporKeputusan')
+        ->assertActionDoesNotExist('unduhanSaya');
 
     Livewire::test(ManageTocBerkasFinalis::class)
         ->callTableBulkAction('terimaSemuaMenunggu', [$peserta])
@@ -560,6 +590,19 @@ it('lets admins run the mass accept and export bulk actions from the filament ta
     Livewire::test(ManageTocBerkasFinalis::class)
         ->callAction('terimaSemuaMenunggu')
         ->assertNotified('0 berkas diterima');
+});
+
+it('builds multi-part labels for selections larger than the part size', function () {
+    config(['toc.berkas.export_chunk_size' => 2]);
+    $admin = verifMassalAdmin();
+    $ids = collect(range(1, 5))->map(fn () => verifMassalPeserta()->id)->all();
+
+    $manifest = app(TocBerkasKeputusanExportService::class)->rememberSelection($admin->id, $ids);
+
+    expect($manifest['total_bagian'])->toBe(3)
+        ->and($manifest['parts'][0]['label'])->toBe('Bagian 1 (peserta 1-2)')
+        ->and($manifest['parts'][1]['label'])->toBe('Bagian 2 (peserta 3-4)')
+        ->and($manifest['parts'][2]['label'])->toBe('Bagian 3 (peserta 5-5)');
 });
 
 it('queues one rejection email with all rejected files and renders the reupload instructions', function () {

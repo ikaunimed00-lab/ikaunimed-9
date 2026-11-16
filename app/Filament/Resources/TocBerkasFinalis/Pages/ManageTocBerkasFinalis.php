@@ -3,8 +3,6 @@
 namespace App\Filament\Resources\TocBerkasFinalis\Pages;
 
 use App\Filament\Resources\TocBerkasFinalis\TocBerkasFinalisResource;
-use App\Jobs\GenerateTocBerkasKeputusanZipJob;
-use App\Models\TocBerkasExportArtifact;
 use App\Services\TocBerkasAdminService;
 use App\Services\TocBerkasKeputusanImportService;
 use Filament\Actions\Action;
@@ -59,9 +57,13 @@ class ManageTocBerkasFinalis extends ManageRecords
             Action::make('unduhZipKeputusan')
                 ->label('Unduh ZIP + Excel keputusan')
                 ->icon(Heroicon::OutlinedArchiveBoxArrowDown)
-                ->action(fn () => TocBerkasFinalisResource::queueKeputusanExport(
+                ->modalHeading('Unduh ZIP per bagian')
+                ->modalDescription('Setiap bagian diunduh langsung dari server (maks. 50 peserta).')
+                ->modalContent(fn () => TocBerkasFinalisResource::keputusanExportModal(
                     $this->getFilteredSortedTableQuery()->get(),
-                )),
+                ))
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Tutup'),
             Action::make('imporKeputusan')
                 ->label('Impor keputusan (Excel)')
                 ->icon(Heroicon::OutlinedArrowUpTray)
@@ -88,29 +90,6 @@ class ManageTocBerkasFinalis extends ManageRecords
 
                     $this->replaceMountedAction('konfirmasiImporKeputusan');
                 }),
-            Action::make('unduhanSaya')
-                ->label('Unduhan saya')
-                ->icon(Heroicon::OutlinedCloudArrowDown)
-                ->color('gray')
-                ->modalHeading('ZIP berkas + Excel keputusan')
-                ->modalContent(fn () => view('filament.toc.unduhan-ekspor', [
-                    'artifacts' => TocBerkasExportArtifact::query()
-                        ->where('user_id', Auth::id())
-                        ->where('expires_at', '>', now())
-                        ->orderByDesc('batch_id')
-                        ->orderBy('part_number')
-                        ->orderByDesc('id')
-                        ->get()
-                        ->map(fn (TocBerkasExportArtifact $artifact): array => [
-                            'label' => $artifact->label(),
-                            'dibuat' => $artifact->created_at->timezone(config('toc.timezone'))->format('d M Y H:i'),
-                            'pesertaCount' => $artifact->peserta_count,
-                            'berlakuSampai' => $artifact->expires_at->timezone(config('toc.timezone'))->format('H:i'),
-                            'url' => GenerateTocBerkasKeputusanZipJob::downloadUrl($artifact),
-                        ]),
-                ]))
-                ->modalSubmitAction(false)
-                ->modalCancelActionLabel('Tutup'),
         ];
     }
 

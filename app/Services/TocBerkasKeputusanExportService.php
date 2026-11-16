@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\PendaftarTeacherOfChampions;
 use App\Models\TocBerkas;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -13,8 +15,11 @@ use PhpOffice\PhpSpreadsheet\Style\Protection;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 use ZipArchive;
+use ZipStream\CompressionMethod;
+use ZipStream\ZipStream;
 
 class TocBerkasKeputusanExportService
 {
@@ -73,6 +78,192 @@ class TocBerkasKeputusanExportService
                 'peserta' => "Maksimal {$max} peserta per unduhan (dipilih {$count}). Persempit filter atau pilih lebih sedikit baris.",
             ]);
         }
+    }
+
+    public function partSize(): int
+    {
+        return max(1, (int) config('toc.berkas.export_chunk_size', 50));
+    }
+
+    /**
+     * @param  list<int>  $ids
+     * @return list<list<int>>
+     */
+    public function partitionIds(array $ids): array
+    {
+        $unique = array_values(array_unique(array_map('intval', $ids)));
+
+        return array_values(array_chunk($unique, $this->partSize()));
+    }
+
+    /**
+     * @param  list<int>  $ids
+     * @return array{token: string, total_peserta: int, total_bagian: int, parts: list<array{bagian: int, dari: int, sampai: int, jumlah: int, label: string, url: string}>}
+     */
+    public function rememberSelection(int $userId, array $ids): array
+    {
+        $chunks = $this->partitionIds($ids);
+        $flat = array_merge(...($chunks ?: [[]]));
+        $this->assertWithinLimit(count($flat));
+
+        if ($flat === []) {
+            throw ValidationException::withMessages([
+                'peserta' => 'Tidak ada peserta untuk diekspor.',
+            ]);
+        }
+
+        $token = (string) Str::uuid();
+        $ttl = max(5, (int) config('toc.berkas.export_selection_ttl_minutes', 120));
+
+        Cache::put($this->selectionCacheKey($token), [
+            'user_id' => $userId,
+            'ids' => $flat,
+            'part_size' => $this->partSize(),
+        ], now()->addMinutes($ttl));
+
+        return $this->selectionManifest($token, $flat);
+    }
+
+    /**
+     * @return array{user_id: int, ids: list<int>, part_size: int}|null
+     */
+    public function selection(string $token): ?array
+    {
+        $payload = Cache::get($this->selectionCacheKey($token));
+
+        if (! is_array($payload) || ! isset($payload['user_id'], $payload['ids']) || ! is_array($payload['ids'])) {
+            return null;
+        }
+
+        return [
+            'user_id' => (int) $payload['user_id'],
+            'ids' => array_values(array_map('intval', $payload['ids'])),
+            'part_size' => max(1, (int) ($payload['part_size'] ?? $this->partSize())),
+        ];
+    }
+
+    /**
+     * @param  list<int>  $ids
+     * @return array{token: string, total_peserta: int, total_bagian: int, parts: list<array{bagian: int, dari: int, sampai: int, jumlah: int, label: string, url: string}>}
+     */
+    public function selectionManifest(string $token, array $ids): array
+    {
+        $chunks = $this->partitionIds($ids);
+        $total = count($chunks);
+        $parts = [];
+        $cursor = 1;
+
+        foreach ($chunks as $index => $chunk) {
+            $count = count($chunk);
+            $dari = $cursor;
+            $sampai = $cursor + $count - 1;
+            $bagian = $index + 1;
+            $parts[] = [
+                'bagian' => $bagian,
+                'dari' => $dari,
+                'sampai' => $sampai,
+                'jumlah' => $count,
+                'label' => "Bagian {$bagian} (peserta {$dari}-{$sampai})",
+                'url' => route('admin.toc.berkas.exports.langsung', [
+                    'token' => $token,
+                    'bagian' => $bagian,
+                ]),
+            ];
+            $cursor = $sampai + 1;
+        }
+
+        return [
+            'token' => $token,
+            'total_peserta' => count($ids),
+            'total_bagian' => $total,
+            'parts' => $parts,
+        ];
+    }
+
+    public function zipFilename(int $bagian, int $totalBagian, ?\DateTimeInterface $when = null): string
+    {
+        $tanggal = ($when ?? now(config('toc.timezone')))->format('Ymd');
+
+        return "berkas-finalis-bagian-{$bagian}-dari-{$totalBagian}-{$tanggal}.zip";
+    }
+
+    /**
+     * Streaming ZIP langsung ke klien (ZipStream); berkas dibaca dari disk, bukan dimuat ke memori.
+     *
+     * @param  Collection<int, PendaftarTeacherOfChampions>  $pendaftar
+     */
+    public function streamZip(Collection $pendaftar, string $downloadName): StreamedResponse
+    {
+        $this->assertWithinLimit($pendaftar->count());
+        $pendaftar->each(fn (PendaftarTeacherOfChampions $peserta) => $peserta->loadMissing('berkas'));
+
+        $timeLimit = max(60, (int) config('toc.berkas.export_download_time_limit', 300));
+        if (function_exists('set_time_limit')) {
+            @set_time_limit($timeLimit);
+        }
+
+        return response()->streamDownload(function () use ($pendaftar): void {
+            $disk = Storage::disk(config('toc.berkas.disk'));
+            $tmp = tempnam(sys_get_temp_dir(), 'toc-xlsx-');
+            $xlsxPath = $tmp.'.xlsx';
+            @unlink($tmp);
+
+            $zip = new ZipStream(
+                sendHttpHeaders: false,
+                defaultCompressionMethod: CompressionMethod::STORE,
+                defaultEnableZeroHeader: true,
+                flushOutput: true,
+            );
+
+            try {
+                foreach ($pendaftar as $peserta) {
+                    $folder = $this->folderName($peserta);
+                    $added = false;
+
+                    foreach ($peserta->berkas as $berkas) {
+                        if (! $disk->exists($berkas->path)) {
+                            continue;
+                        }
+
+                        $absolute = $disk->path($berkas->path);
+                        if (! is_readable($absolute)) {
+                            throw new RuntimeException('Tidak dapat membaca berkas untuk ZIP.');
+                        }
+
+                        $zip->addFileFromPath(
+                            fileName: $folder.'/'.$this->entryName($berkas),
+                            path: $absolute,
+                            compressionMethod: CompressionMethod::STORE,
+                        );
+                        $added = true;
+                    }
+
+                    if (! $added) {
+                        $zip->addDirectory($folder.'/');
+                    }
+                }
+
+                $this->writeKeputusanXlsx($pendaftar, $xlsxPath);
+                $zip->addFileFromPath(
+                    fileName: self::XLSX_NAME,
+                    path: $xlsxPath,
+                    compressionMethod: CompressionMethod::DEFLATE,
+                );
+                $zip->finish();
+            } finally {
+                if (is_file($xlsxPath)) {
+                    @unlink($xlsxPath);
+                }
+            }
+        }, $downloadName, [
+            'Content-Type' => 'application/zip',
+            'X-Accel-Buffering' => 'no',
+        ]);
+    }
+
+    public function selectionCacheKey(string $token): string
+    {
+        return 'toc_berkas_export_sel_'.$token;
     }
 
     public function folderName(PendaftarTeacherOfChampions $peserta): string

@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\TocBerkasFinalis;
 
 use App\Filament\Resources\TocBerkasFinalis\Pages\ManageTocBerkasFinalis;
-use App\Jobs\GenerateTocBerkasKeputusanZipJob;
 use App\Models\Kegiatan;
 use App\Models\PendaftarTeacherOfChampions;
 use App\Models\TocBerkas;
@@ -27,6 +26,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class TocBerkasFinalisResource extends Resource
 {
@@ -220,8 +220,12 @@ class TocBerkasFinalisResource extends Resource
                         ->label('Unduh ZIP berkas + Excel keputusan')
                         ->icon(Heroicon::OutlinedArchiveBoxArrowDown)
                         ->visible(fn (): bool => self::userCanManage())
-                        ->deselectRecordsAfterCompletion()
-                        ->action(fn (Collection $records) => self::queueKeputusanExport($records)),
+                        ->modalHeading('Unduh ZIP per bagian')
+                        ->modalDescription('Setiap bagian diunduh langsung dari server (maks. 50 peserta).')
+                        ->modalContent(fn (Collection $records): View => self::keputusanExportModal($records))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Tutup')
+                        ->deselectRecordsAfterCompletion(),
                     BulkAction::make('terimaSemuaMenunggu')
                         ->label('Terima semua berkas yang menunggu')
                         ->icon(Heroicon::OutlinedCheckCircle)
@@ -263,49 +267,39 @@ class TocBerkasFinalisResource extends Resource
     }
 
     /**
-     * Mengantrekan job ZIP + Excel keputusan untuk peserta terpilih.
+     * Modal unduhan langsung ZIP + Excel keputusan per bagian.
      *
      * @param  Collection<int, PendaftarTeacherOfChampions>  $records
      */
-    public static function queueKeputusanExport(Collection $records): void
+    public static function keputusanExportModal(Collection $records): View
     {
         abort_unless(self::userCanManage(), 403);
 
         if ($records->isEmpty()) {
-            Notification::make()->title('Tidak ada peserta untuk diekspor')->warning()->send();
-
-            return;
+            return view('filament.toc.unduh-zip-bagian', [
+                'manifest' => ['error' => 'Tidak ada peserta untuk diekspor. Sesuaikan filter atau pilih baris.'],
+            ]);
         }
 
         try {
-            app(TocBerkasKeputusanExportService::class)->assertWithinLimit($records->count());
-        } catch (ValidationException $exception) {
-            Notification::make()
-                ->title('Ekspor dibatalkan')
-                ->body(collect($exception->errors())->flatten()->implode(' '))
-                ->danger()
-                ->send();
+            $ids = $records
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
 
-            return;
+            $manifest = app(TocBerkasKeputusanExportService::class)
+                ->rememberSelection((int) Auth::id(), $ids);
+        } catch (ValidationException $exception) {
+            return view('filament.toc.unduh-zip-bagian', [
+                'manifest' => [
+                    'error' => collect($exception->errors())->flatten()->implode(' '),
+                ],
+            ]);
         }
 
-        $ids = $records->pluck('id')->map(fn ($id): int => (int) $id)->values()->all();
-        $chunkSize = max(1, (int) config('toc.berkas.export_chunk_size', 100));
-        $parts = (int) ceil(count($ids) / $chunkSize);
-
-        GenerateTocBerkasKeputusanZipJob::dispatch((int) Auth::id(), $ids);
-
-        $body = $records->count().' peserta';
-        $body .= $parts > 1
-            ? " akan dipecah menjadi {$parts} ZIP (maks. {$chunkSize} peserta/bagian)."
-            : '.';
-        $body .= ' Tautan unduhan (berlaku 1 jam) muncul di notifikasi dashboard dan menu "Unduhan saya" setelah antrian selesai.';
-
-        Notification::make()
-            ->title('Ekspor sedang diproses')
-            ->body($body)
-            ->success()
-            ->send();
+        return view('filament.toc.unduh-zip-bagian', ['manifest' => $manifest]);
     }
 
     /**

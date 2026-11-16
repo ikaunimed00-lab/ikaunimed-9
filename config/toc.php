@@ -48,7 +48,10 @@ return [
         'path_prefix' => 'toc/berkas',
         'export_path' => 'toc/exports',
         'export_max_peserta' => 600,
-        'export_chunk_size' => (int) env('TOC_BERKAS_EXPORT_CHUNK_SIZE', 100),
+        // Maks peserta per ZIP unduhan langsung (modal bagian).
+        'export_chunk_size' => (int) env('TOC_BERKAS_EXPORT_CHUNK_SIZE', 50),
+        'export_selection_ttl_minutes' => (int) env('TOC_BERKAS_EXPORT_SELECTION_TTL', 120),
+        'export_download_time_limit' => (int) env('TOC_BERKAS_EXPORT_TIME_LIMIT', 300),
         'export_ttl_minutes' => 60,
         'import_max_kb' => 5120,
         'rejection_mail_per_minute' => 30,

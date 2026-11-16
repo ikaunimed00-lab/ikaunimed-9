@@ -14,6 +14,10 @@ Route::middleware('role:admin,super_admin')->prefix('admin/toc')->name('admin.to
         ->name('berkas.terima');
     Route::post('/berkas/{berkas}/tolak', [TocBerkasAdminController::class, 'tolak'])
         ->name('berkas.tolak');
+    Route::get('/berkas/exports/langsung/{token}/bagian/{bagian}', [TocBerkasAdminController::class, 'downloadLangsung'])
+        ->whereUuid('token')
+        ->whereNumber('bagian')
+        ->name('berkas.exports.langsung');
     Route::get('/berkas/exports/{artifact:token}', [TocBerkasAdminController::class, 'downloadExport'])
         ->middleware('signed')
         ->name('berkas.exports.download');
