@@ -17,18 +17,23 @@ if [ -d public/build_incoming ]; then
   rm -rf "public/build_old_$$"
 fi
 
-# Windows/OpenSSH SCP often creates 640 files; LiteSpeed (nobody) needs 644.
-find public/build -type d -exec chmod 755 {} \;
-find public/build -type f -exec chmod 644 {} \;
-chmod 755 public/build public/build/assets 2>/dev/null || true
+# Windows/OpenSSH SCP + unzip often create 640 files; LiteSpeed (nobody) needs 644.
+# Apply to the entire public/ tree (Vite build, Filament js/css/fonts, images, downloads).
+find public -type d -exec chmod 755 {} \;
+find public -type f -exec chmod 644 {} \;
 chmod 755 public 2>/dev/null || true
-find public -maxdepth 1 -type f -exec chmod 644 {} \; 2>/dev/null || true
 
 if [ "${SKIP_COMPOSER:-0}" != "1" ]; then
   composer install --no-dev --optimize-autoloader --no-interaction
 fi
 
 php artisan migrate --force
+
+# Refresh Filament published assets, then re-apply readable perms (umask may reintroduce 640).
+php artisan filament:assets
+find public -type d -exec chmod 755 {} \;
+find public -type f -exec chmod 644 {} \;
+
 php artisan optimize:clear
 php artisan view:clear
 php artisan config:clear
@@ -46,3 +51,15 @@ foreach (($entry["css"] ?? []) as $css) {
 }
 echo "manifest assets readable\n";
 '
+
+for f in \
+  public/js/filament/filament/app.js \
+  public/css/filament/filament/app.css \
+  public/js/filament/support/support.js
+do
+  if [ ! -r "$f" ]; then
+    echo "not readable: $f" >&2
+    exit 1
+  fi
+done
+echo "filament assets readable"

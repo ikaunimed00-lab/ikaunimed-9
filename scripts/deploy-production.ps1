@@ -5,8 +5,9 @@
 .DESCRIPTION
   - Build Vite, upload ke build_incoming, lalu atomic swap (aset lama tetap
     dilayani sampai aset baru siap).
-  - Selalu chmod public/build ke 755/644 — SCP dari Windows sering membuat 640
-    yang ditolak LiteSpeed/nobody (HTTP 403 / CSS MIME text/html).
+  - Selalu chmod SELURUH public/ ke dirs 755 / files 644 — SCP/unzip dari Windows
+    sering membuat 640 yang ditolak LiteSpeed/nobody (HTTP 403 pada Vite DAN Filament).
+  - Setelah deploy: php artisan filament:assets lalu chmod ulang public/.
 #>
 
 [CmdletBinding()]
@@ -57,4 +58,7 @@ if ($LASTEXITCODE -ne 0) { throw "remote deploy steps failed" }
 Write-Host "==> 6/6 cleanup local source.zip" -ForegroundColor Cyan
 Remove-Item "source.zip" -Force -ErrorAction SilentlyContinue
 
-Write-Host "Deploy selesai. Verifikasi aset: curl -I https://www.ikaunimed.or.id/build/assets/... harus 200 + MIME benar." -ForegroundColor Green
+Write-Host "Deploy selesai. Verifikasi:" -ForegroundColor Green
+Write-Host "  curl -I https://www.ikaunimed.or.id/build/assets/...  -> 200 + MIME benar"
+Write-Host "  curl -I https://www.ikaunimed.or.id/js/filament/filament/app.js -> 200"
+Write-Host "  curl -I https://www.ikaunimed.or.id/css/filament/filament/app.css -> 200"
