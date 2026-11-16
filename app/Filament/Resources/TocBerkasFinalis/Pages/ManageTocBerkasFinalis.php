@@ -8,6 +8,7 @@ use App\Models\TocBerkasExportArtifact;
 use App\Services\TocBerkasAdminService;
 use App\Services\TocBerkasKeputusanImportService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ManageRecords;
@@ -24,34 +25,41 @@ class ManageTocBerkasFinalis extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('eksporSemua')
-                ->label('Ekspor CSV semua')
-                ->icon(Heroicon::OutlinedArrowDownTray)
-                ->action(fn () => app(TocBerkasAdminService::class)->exportCsv(
-                    $this->getFilteredSortedTableQuery()->with('berkas')->get(),
-                )),
-            Action::make('unduhZipSemua')
-                ->label('ZIP foto diterima (filter aktif)')
-                ->icon(Heroicon::OutlinedArchiveBox)
-                ->action(fn () => app(TocBerkasAdminService::class)->downloadAcceptedPhotosZip(
-                    $this->getFilteredSortedTableQuery()->with('berkas')->get(),
-                )),
+            ActionGroup::make([
+                Action::make('eksporSemua')
+                    ->label('Ekspor CSV semua')
+                    ->icon(Heroicon::OutlinedArrowDownTray)
+                    ->action(fn () => app(TocBerkasAdminService::class)->exportCsv(
+                        $this->getFilteredSortedTableQuery()->with('berkas')->get(),
+                    )),
+                Action::make('unduhZipSemua')
+                    ->label('ZIP foto diterima (filter aktif)')
+                    ->icon(Heroicon::OutlinedArchiveBox)
+                    ->action(fn () => app(TocBerkasAdminService::class)->downloadAcceptedPhotosZip(
+                        $this->getFilteredSortedTableQuery()->with('berkas')->get(),
+                    )),
+                Action::make('terimaSemuaMenunggu')
+                    ->label('Terima semua berkas yang menunggu (filter aktif)')
+                    ->icon(Heroicon::OutlinedCheckCircle)
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Terima semua berkas yang menunggu?')
+                    ->modalDescription(fn (): string => TocBerkasFinalisResource::waitingDescription(
+                        $this->getFilteredSortedTableQuery()->get(),
+                    ))
+                    ->action(fn () => TocBerkasFinalisResource::acceptAllWaiting(
+                        $this->getFilteredSortedTableQuery()->get(),
+                    )),
+            ])
+                ->label('Aksi')
+                ->icon(Heroicon::OutlinedEllipsisVertical)
+                ->color('gray')
+                ->button()
+                ->dropdownAutoPlacement(),
             Action::make('unduhZipKeputusan')
-                ->label('Unduh ZIP berkas + Excel keputusan (filter aktif)')
+                ->label('Unduh ZIP + Excel keputusan')
                 ->icon(Heroicon::OutlinedArchiveBoxArrowDown)
                 ->action(fn () => TocBerkasFinalisResource::queueKeputusanExport(
-                    $this->getFilteredSortedTableQuery()->get(),
-                )),
-            Action::make('terimaSemuaMenunggu')
-                ->label('Terima semua berkas yang menunggu (filter aktif)')
-                ->icon(Heroicon::OutlinedCheckCircle)
-                ->color('success')
-                ->requiresConfirmation()
-                ->modalHeading('Terima semua berkas yang menunggu?')
-                ->modalDescription(fn (): string => TocBerkasFinalisResource::waitingDescription(
-                    $this->getFilteredSortedTableQuery()->get(),
-                ))
-                ->action(fn () => TocBerkasFinalisResource::acceptAllWaiting(
                     $this->getFilteredSortedTableQuery()->get(),
                 )),
             Action::make('imporKeputusan')
