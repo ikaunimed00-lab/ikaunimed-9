@@ -152,7 +152,7 @@ class TocBerkasController extends Controller
 
         if (now(config('toc.timezone'))->greaterThan($this->verification->effectiveBatas($peserta))) {
             return back()->withErrors([
-                'file' => 'Batas waktu unggah berkas telah berakhir.',
+                'file' => 'Unggah berkas telah ditutup. Batas waktu sudah lewat. Hubungi panitia bila Anda memerlukan bantuan.',
             ]);
         }
 

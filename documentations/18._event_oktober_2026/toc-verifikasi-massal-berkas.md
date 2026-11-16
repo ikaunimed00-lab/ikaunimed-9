@@ -58,7 +58,7 @@ Memakai kolom yang sudah ada: `toc_berkas.verified_by` dan `verified_at` (tampil
 
 Konfigurasi `.env` (tanpa deploy kode):
 
-- `TOC_BATAS_UNGGAH` (default `2026-11-15 23:59:59`), zona waktu `Asia/Jakarta`.
+- `TOC_BATAS_UNGGAH` (default `2026-11-18 23:59:59`), zona waktu `Asia/Jakarta`.
 - `TOC_BATAS_UNGGAH_ULANG` (default sama dengan `TOC_BATAS_UNGGAH`).
 - `TOC_PANITIA_WHATSAPP` (daftar dipisah koma; default `089679018457,081397718747`).
 

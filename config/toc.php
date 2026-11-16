@@ -16,9 +16,9 @@ return [
 
     'link_grup_wa_finalis' => env('TOC_FINALIS_WA_LINK', ''),
 
-    'batas_unggah' => env('TOC_BATAS_UNGGAH', '2026-11-15 23:59:59'),
+    'batas_unggah' => env('TOC_BATAS_UNGGAH', '2026-11-18 23:59:59'),
 
-    'batas_unggah_ulang' => env('TOC_BATAS_UNGGAH_ULANG', env('TOC_BATAS_UNGGAH', '2026-11-15 23:59:59')),
+    'batas_unggah_ulang' => env('TOC_BATAS_UNGGAH_ULANG', env('TOC_BATAS_UNGGAH', '2026-11-18 23:59:59')),
 
     'panitia_whatsapp' => array_values(array_filter(array_map(
         'trim',

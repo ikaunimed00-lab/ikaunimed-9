@@ -1,5 +1,5 @@
 import { Form, Head, router, usePage } from "@inertiajs/react";
-import { Download, LogOut } from "lucide-react";
+import { Download, LogOut, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import MainLayout from "@/components/MainLayout";
 import FloatingCTA from "@/components/FloatingCTA";
@@ -21,10 +21,12 @@ type BerkasItem = {
 };
 
 type TemplateItem = { key: string; label: string; url: string };
+type Contact = { name: string; role: string; whatsapp: string };
 
 type PageProps = {
   settings: Record<string, any>;
   footerContent?: unknown;
+  contacts: Contact[];
   peserta: {
     nama: string;
     nomorPendaftaran: string;
@@ -56,6 +58,7 @@ function countdownLabel(targetIso: string): string {
 const BerkasFormulir = ({
   settings,
   footerContent,
+  contacts,
   peserta,
   batasUnggah,
   batasUnggahLabel,
@@ -65,6 +68,7 @@ const BerkasFormulir = ({
 }: PageProps) => {
   const page = usePage<PageProps>().props;
   const [countdown, setCountdown] = useState(() => countdownLabel(batasUnggah));
+  const helpdesk = contacts?.[0];
 
   useEffect(() => {
     const id = window.setInterval(() => setCountdown(countdownLabel(batasUnggah)), 1000);
@@ -110,6 +114,27 @@ const BerkasFormulir = ({
                   <p className="mt-1 font-mono text-sm font-semibold text-[#0B3D2E]">{countdown}</p>
                 </div>
               </div>
+
+              {terkunci && (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+                  <p className="font-semibold">Unggah berkas telah ditutup</p>
+                  <p className="mt-1">
+                    Batas waktu unggah sudah lewat ({batasUnggahLabel}). Anda masih dapat melihat status
+                    berkas, tetapi unggahan baru tidak diterima.
+                  </p>
+                  {helpdesk?.whatsapp && (
+                    <a
+                      href={`https://wa.me/${helpdesk.whatsapp.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex items-center gap-2 font-semibold text-[#006837]"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Hubungi panitia {helpdesk.name}
+                    </a>
+                  )}
+                </div>
+              )}
 
               {page.flash?.success && (
                 <p className="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
@@ -239,7 +264,7 @@ const BerkasFormulir = ({
                     !item.status || item.status !== "diterima" ? (
                       <p className="mt-4 text-sm text-gray-500">
                         {terkunci
-                          ? "Formulir terkunci karena batas waktu unggah telah berakhir."
+                          ? "Unggah ditutup. Hubungi panitia bila Anda memerlukan bantuan."
                           : null}
                       </p>
                     ) : null

@@ -11,12 +11,12 @@ use Inertia\Testing\AssertableInertia as Assert;
 beforeEach(function () {
     config([
         'toc.pengumuman_dibuka' => true,
-        'toc.batas_unggah' => '2026-11-15 23:59:59',
-        'toc.batas_unggah_ulang' => '2026-11-15 23:59:59',
+        'toc.batas_unggah' => '2026-11-18 23:59:59',
+        'toc.batas_unggah_ulang' => '2026-11-18 23:59:59',
     ]);
     Cache::flush();
     Storage::fake('local');
-    Carbon::setTestNow(Carbon::parse('2026-11-12 10:00', 'Asia/Jakarta'));
+    Carbon::setTestNow(Carbon::parse('2026-11-16 10:00', 'Asia/Jakarta'));
 });
 
 afterEach(function () {
@@ -195,7 +195,7 @@ it('replaces a waiting file and deletes the old one from disk', function () {
 });
 
 it('rejects uploads after the deadline on the server', function () {
-    Carbon::setTestNow(Carbon::parse('2026-11-16 00:00:01', 'Asia/Jakarta'));
+    Carbon::setTestNow(Carbon::parse('2026-11-19 00:00:01', 'Asia/Jakarta'));
 
     $peserta = PendaftarTeacherOfChampions::factory()->lulus()->create();
     loginBerkas($peserta)->assertRedirect();
@@ -204,6 +204,25 @@ it('rejects uploads after the deadline on the server', function () {
         'file' => makeImage(1080, 1350),
         'setuju_publikasi' => '1',
     ])->assertRedirect()->assertSessionHasErrors('file');
+});
+
+it('keeps the formulir countdown and unlock state until 18 November 2026', function () {
+    Carbon::setTestNow(Carbon::parse('2026-11-18 23:59:00', 'Asia/Jakarta'));
+
+    $peserta = PendaftarTeacherOfChampions::factory()->lulus()->create();
+    loginBerkas($peserta)->assertRedirect();
+
+    $this->get(route('toc.berkas.formulir'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('terkunci', false)
+            ->where('batasUnggah', Carbon::parse('2026-11-18 23:59:59', 'Asia/Jakarta')->toIso8601String()));
+
+    Carbon::setTestNow(Carbon::parse('2026-11-19 00:00:00', 'Asia/Jakarta'));
+
+    $this->get(route('toc.berkas.formulir'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('terkunci', true));
 });
 
 it('serves public templates', function () {

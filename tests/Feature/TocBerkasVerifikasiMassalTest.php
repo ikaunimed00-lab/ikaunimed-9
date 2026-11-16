@@ -36,8 +36,8 @@ beforeEach(function () {
     Storage::fake('local');
     config([
         'toc.pengumuman_dibuka' => true,
-        'toc.batas_unggah' => '2026-11-15 23:59:59',
-        'toc.batas_unggah_ulang' => '2026-11-15 23:59:59',
+        'toc.batas_unggah' => '2026-11-18 23:59:59',
+        'toc.batas_unggah_ulang' => '2026-11-18 23:59:59',
     ]);
     Carbon::setTestNow(Carbon::parse('2026-11-12 10:00', 'Asia/Jakarta')->utc());
 });
@@ -592,18 +592,18 @@ it('sends rejection emails when berkas are rejected from the admin popup route',
 });
 
 it('uses the general deadline before it passes', function () {
-    config(['toc.batas_unggah_ulang' => '2026-11-20 23:59:59']);
+    config(['toc.batas_unggah_ulang' => '2026-11-22 23:59:59']);
     $peserta = verifMassalPeserta();
     verifMassalBerkas($peserta, TocBerkas::JENIS_FOTO, TocBerkas::STATUS_DITOLAK);
 
     $batas = app(TocBerkasVerificationService::class)->effectiveBatas($peserta);
 
-    expect($batas->toDateTimeString())->toBe('2026-11-15 23:59:59');
+    expect($batas->toDateTimeString())->toBe('2026-11-18 23:59:59');
 });
 
 it('gives peserta with rejected or incomplete berkas the reupload deadline after the general deadline', function () {
-    config(['toc.batas_unggah_ulang' => '2026-11-20 23:59:59']);
-    Carbon::setTestNow(Carbon::parse('2026-11-17 10:00', 'Asia/Jakarta')->utc());
+    config(['toc.batas_unggah_ulang' => '2026-11-22 23:59:59']);
+    Carbon::setTestNow(Carbon::parse('2026-11-19 10:00', 'Asia/Jakarta')->utc());
 
     $ditolak = verifMassalPeserta();
     $set = verifMassalCompleteSet($ditolak);
@@ -619,7 +619,7 @@ it('gives peserta with rejected or incomplete berkas the reupload deadline after
         ->get(route('toc.berkas.formulir'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('terkunci', false)
-            ->where('batasUnggah', Carbon::parse('2026-11-20 23:59:59', 'Asia/Jakarta')->toIso8601String())
+            ->where('batasUnggah', Carbon::parse('2026-11-22 23:59:59', 'Asia/Jakarta')->toIso8601String())
             ->where('berkas.0.bolehUnggah', true)
             ->where('berkas.0.catatan', 'Buram'));
 
@@ -631,7 +631,7 @@ it('gives peserta with rejected or incomplete berkas the reupload deadline after
         ->get(route('toc.berkas.formulir'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('terkunci', true)
-            ->where('batasUnggah', Carbon::parse('2026-11-15 23:59:59', 'Asia/Jakarta')->toIso8601String()));
+            ->where('batasUnggah', Carbon::parse('2026-11-18 23:59:59', 'Asia/Jakarta')->toIso8601String()));
 
     $this->withSession(verifMassalBerkasSession($lengkap))
         ->post(route('toc.berkas.unggah', TocBerkas::JENIS_FOTO), ['file' => UploadedFile::fake()->image('foto.jpg', 1080, 1350), 'setuju_publikasi' => true])
@@ -639,8 +639,8 @@ it('gives peserta with rejected or incomplete berkas the reupload deadline after
 });
 
 it('locks everyone after the reupload deadline', function () {
-    config(['toc.batas_unggah_ulang' => '2026-11-20 23:59:59']);
-    Carbon::setTestNow(Carbon::parse('2026-11-21 00:30', 'Asia/Jakarta')->utc());
+    config(['toc.batas_unggah_ulang' => '2026-11-22 23:59:59']);
+    Carbon::setTestNow(Carbon::parse('2026-11-23 00:30', 'Asia/Jakarta')->utc());
 
     $peserta = verifMassalPeserta();
     verifMassalBerkas($peserta, TocBerkas::JENIS_FOTO, TocBerkas::STATUS_DITOLAK);
