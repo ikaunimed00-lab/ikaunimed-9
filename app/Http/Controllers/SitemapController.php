@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\News;
 use App\Models\Category;
+use App\Models\News;
+use Carbon\Carbon;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
-use Carbon\Carbon;
 
 class SitemapController extends Controller
 {
@@ -62,6 +62,27 @@ class SitemapController extends Controller
     }
 
     /**
+     * Sitemap halaman statis publik (beranda, landing kegiatan).
+     */
+    public function pages(): Response
+    {
+        $content = Cache::remember('sitemap.pages', 60 * 24, function () {
+            $pages = [
+                ['path' => '/', 'changefreq' => 'daily', 'priority' => '1.0'],
+                ['path' => '/toc', 'changefreq' => 'weekly', 'priority' => '0.9'],
+                ['path' => '/teacher-of-champions/daftar', 'changefreq' => 'weekly', 'priority' => '0.8'],
+                ['path' => '/reuni-akbar-2026', 'changefreq' => 'monthly', 'priority' => '0.6'],
+            ];
+
+            return view('sitemap.pages', compact('pages'))->render();
+        });
+
+        return response($content, 200)
+            ->header('Content-Type', 'application/xml')
+            ->header('Cache-Control', 'public, max-age=86400');
+    }
+
+    /**
      * Google News sitemap - untuk Google News indexing (2 jam cache)
      * Spec: https://support.google.com/news/answer/74288
      */
@@ -71,7 +92,7 @@ class SitemapController extends Controller
             // Google News hanya menerima berita dari 2 hari terakhir
             $news = News::published()
                 ->where('published_at', '>=', Carbon::now()->subDays(2))
-                ->select('id', 'title', 'slug', 'published_at', 'updated_at')
+                ->select('id', 'title', 'slug', 'image', 'published_at', 'updated_at')
                 ->orderBy('published_at', 'desc')
                 ->take(1000)
                 ->get();

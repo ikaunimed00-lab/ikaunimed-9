@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\News\Pages;
 
 use App\Filament\Resources\NewsResource;
+use App\Models\News;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateNews extends CreateRecord
@@ -21,5 +22,15 @@ class CreateNews extends CreateRecord
         }
         
         return $data;
+    }
+
+    protected function afterCreate(): void
+    {
+        /** @var News $news */
+        $news = $this->getRecord();
+
+        if (auth()->user()?->isTocNewsAuthor()) {
+            $news->tagAsTeacherOfChampions();
+        }
     }
 }

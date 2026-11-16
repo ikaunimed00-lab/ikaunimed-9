@@ -81,6 +81,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 'Dashboard',
+                'ToC',
                 'CMS',
                 'User Management',
                 'LMS Governance',

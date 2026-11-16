@@ -57,7 +57,7 @@ class HomepageSeeder extends Seeder
             ],
             [
                 'key' => 'contact_phone',
-                'value' => '+62 815 3238 7608',
+                'value' => '+62 895-4292-17077',
                 'type' => 'text',
                 'group' => 'contact',
                 'label' => 'Nomor Telepon/WA',

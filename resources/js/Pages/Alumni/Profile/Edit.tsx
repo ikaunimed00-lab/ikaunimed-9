@@ -1,4 +1,5 @@
 import { Head, usePage, useForm } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 import {
     GraduationCap,
     User,
@@ -42,7 +43,7 @@ export default function AlumniProfileEdit({
 }: ProfileEditProps) {
     
     // Initialize form with user data
-    const { data, setData, post, processing, errors, transform } = useForm({
+    const { data, setData, patch, processing, errors, transform } = useForm({
         // Identitas Pribadi
         name: user.name || '',
         email: user.email || '',
@@ -107,7 +108,7 @@ export default function AlumniProfileEdit({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('profile.update'), {
+        patch(route('profile.update'), {
             preserveScroll: true,
             onSuccess: () => {
                 // Optional: Show toast

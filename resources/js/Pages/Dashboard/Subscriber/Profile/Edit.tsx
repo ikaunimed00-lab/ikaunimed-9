@@ -23,6 +23,12 @@ interface Props {
 
 const educationLevels = ['D1', 'D2', 'D3', 'D4', 'S1', 'S2', 'S3'];
 
+const SKILLS_MAX_LENGTH = 2000;
+
+function FieldError({ message }: { message?: string }) {
+  return message ? <p className="text-red-500 text-sm mt-1">{message}</p> : null;
+}
+
 export default function EditProfile({ mustVerifyEmail, status, educations = [] }: Props) {
   const { auth }: any = usePage().props;
   
@@ -69,9 +75,12 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
     auth?.user?.role === "writer" ? WriterLayout :
     SubscriberLayout;
 
+  const fieldErrors = errors as Record<string, string | undefined>;
+  const hasErrors = Object.keys(errors).length > 0;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    patch(route("profile.update"));
+    patch(route("profile.update"), { preserveScroll: true });
   };
 
   const updateEducation = (index: number, field: keyof Education, value: string) => {
@@ -131,10 +140,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             type="text"
                             value={data.name}
                             onChange={e => setData("name", e.target.value)}
+                            maxLength={125}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="Nama Lengkap Beserta Gelar"
                         />
-                        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                        <FieldError message={errors.name} />
                     </div>
 
                     {/* Email */}
@@ -158,10 +168,12 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                 type="text"
                                 value={data.nik}
                                 onChange={e => setData("nik", e.target.value)}
+                                maxLength={20}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                 placeholder="16 digit NIK"
                             />
                         </div>
+                        <FieldError message={errors.nik} />
                     </div>
 
                     {/* Jenis Kelamin */}
@@ -176,6 +188,7 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             <option value="L">Laki-laki</option>
                             <option value="P">Perempuan</option>
                         </select>
+                        <FieldError message={errors.gender} />
                     </div>
 
                     {/* WhatsApp */}
@@ -187,10 +200,12 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                 type="text"
                                 value={data.wa}
                                 onChange={e => setData("wa", e.target.value)}
+                                maxLength={20}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                 placeholder="08..."
                             />
                         </div>
+                        <FieldError message={errors.wa} />
                     </div>
 
                     {/* Tempat Lahir */}
@@ -200,9 +215,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             type="text"
                             value={data.tempat_lahir}
                             onChange={e => setData("tempat_lahir", e.target.value)}
+                            maxLength={125}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="Kota Kelahiran"
                         />
+                        <FieldError message={errors.tempat_lahir} />
                     </div>
 
                     {/* Tanggal Lahir */}
@@ -217,6 +234,7 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
+                        <FieldError message={errors.tanggal_lahir} />
                     </div>
 
                     {/* Pekerjaan */}
@@ -228,10 +246,12 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                 type="text"
                                 value={data.occupation}
                                 onChange={e => setData("occupation", e.target.value)}
+                                maxLength={255}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                 placeholder="Nama Pekerjaan / Instansi"
                             />
                         </div>
+                        <FieldError message={errors.occupation} />
                     </div>
 
                     {/* Domisili */}
@@ -243,10 +263,12 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                 type="text"
                                 value={data.domicile}
                                 onChange={e => setData("domicile", e.target.value)}
+                                maxLength={255}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                 placeholder="Contoh: Medan, Jakarta Selatan"
                             />
                         </div>
+                        <FieldError message={errors.domicile} />
                     </div>
 
                     {/* Alamat Lengkap */}
@@ -256,9 +278,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             value={data.alamat_lengkap}
                             onChange={e => setData("alamat_lengkap", e.target.value)}
                             rows={3}
+                            maxLength={5000}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="Jalan, RT/RW, Kelurahan, Kecamatan"
                         />
+                        <FieldError message={errors.alamat_lengkap} />
                     </div>
                 </div>
             </div>
@@ -287,9 +311,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                         type="text"
                                         value={edu.university}
                                         onChange={e => updateEducation(index, 'university', e.target.value)}
+                                        maxLength={255}
                                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                                         placeholder={`Nama Universitas ${edu.level}`}
                                     />
+                                    <FieldError message={fieldErrors[`educations.${index}.university`]} />
                                 </div>
 
                                 <div>
@@ -298,9 +324,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                         type="text"
                                         value={edu.faculty}
                                         onChange={e => updateEducation(index, 'faculty', e.target.value)}
+                                        maxLength={255}
                                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                                         placeholder="Nama Fakultas"
                                     />
+                                    <FieldError message={fieldErrors[`educations.${index}.faculty`]} />
                                 </div>
 
                                 <div>
@@ -309,9 +337,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                         type="text"
                                         value={edu.major}
                                         onChange={e => updateEducation(index, 'major', e.target.value)}
+                                        maxLength={255}
                                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                                         placeholder="Nama Jurusan/Prodi"
                                     />
+                                    <FieldError message={fieldErrors[`educations.${index}.major`]} />
                                 </div>
 
                                 <div>
@@ -323,6 +353,7 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                                         placeholder="YYYY"
                                     />
+                                    <FieldError message={fieldErrors[`educations.${index}.admission_year`]} />
                                 </div>
 
                                 <div>
@@ -334,6 +365,7 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                                         placeholder="YYYY"
                                     />
+                                    <FieldError message={fieldErrors[`educations.${index}.graduation_year`]} />
                                 </div>
                             </div>
                         </div>
@@ -369,6 +401,7 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             <option value="akademisi">Akademisi / Peneliti</option>
                             <option value="lainnya">Lainnya</option>
                         </select>
+                        <FieldError message={errors.bidang_pekerjaan} />
                     </div>
 
                     <div>
@@ -386,6 +419,7 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             <option value="studi_lanjut">Studi Lanjut</option>
                             <option value="mencari_kerja">Sedang Mencari Kerja</option>
                         </select>
+                        <FieldError message={errors.status_pekerjaan} />
                     </div>
 
                     <div>
@@ -394,9 +428,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             type="text"
                             value={data.posisi_saat_ini}
                             onChange={e => setData("posisi_saat_ini", e.target.value)}
+                            maxLength={150}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="Contoh: Manajer Keuangan, Dosen, Guru, dll."
                         />
+                        <FieldError message={errors.posisi_saat_ini} />
                     </div>
 
                     <div>
@@ -405,9 +441,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             type="text"
                             value={data.perusahaan}
                             onChange={e => setData("perusahaan", e.target.value)}
+                            maxLength={150}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="Nama perusahaan atau instansi"
                         />
+                        <FieldError message={errors.perusahaan} />
                     </div>
 
                     <div className="md:col-span-2">
@@ -416,9 +454,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             type="text"
                             value={data.kota_profesional}
                             onChange={e => setData("kota_profesional", e.target.value)}
+                            maxLength={150}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="Contoh: Medan, Jakarta, dll."
                         />
+                        <FieldError message={errors.kota_profesional} />
                     </div>
 
                     <div className="md:col-span-2">
@@ -427,9 +467,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             value={data.ringkasan_profesional}
                             onChange={e => setData("ringkasan_profesional", e.target.value)}
                             rows={4}
+                            maxLength={5000}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="Ceritakan secara singkat pengalaman dan keahlian profesional Anda."
                         />
+                        <FieldError message={errors.ringkasan_profesional} />
                     </div>
 
                     <div>
@@ -438,9 +480,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             type="url"
                             value={data.linkedin_url}
                             onChange={e => setData("linkedin_url", e.target.value)}
+                            maxLength={255}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="https://linkedin.com/in/username"
                         />
+                        <FieldError message={errors.linkedin_url} />
                     </div>
 
                     <div>
@@ -449,20 +493,30 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
                             type="url"
                             value={data.website_url}
                             onChange={e => setData("website_url", e.target.value)}
+                            maxLength={255}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="https://"
                         />
+                        <FieldError message={errors.website_url} />
                     </div>
 
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Keahlian Utama (pisahkan dengan koma)</label>
-                        <input
-                            type="text"
+                        <label htmlFor="skills" className="block text-sm font-medium text-gray-700 mb-1">Keahlian Utama (pisahkan dengan koma)</label>
+                        <textarea
+                            id="skills"
                             value={data.skills}
                             onChange={e => setData("skills", e.target.value)}
+                            rows={3}
+                            maxLength={SKILLS_MAX_LENGTH}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="Contoh: Manajemen Proyek, Data Analysis, Public Speaking"
                         />
+                        <div className="flex items-start justify-between gap-4">
+                            <FieldError message={errors.skills} />
+                            <p className={`ml-auto mt-1 text-xs ${data.skills.length >= SKILLS_MAX_LENGTH ? "text-red-500" : "text-gray-500"}`}>
+                                {data.skills.length}/{SKILLS_MAX_LENGTH} karakter
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -494,6 +548,11 @@ export default function EditProfile({ mustVerifyEmail, status, educations = [] }
             </div>
 
             <div className="flex items-center justify-end gap-4 pt-4">
+                {hasErrors && (
+                    <span role="alert" className="text-red-600 text-sm font-medium">
+                        Data belum tersimpan. Periksa kembali isian yang bertanda merah.
+                    </span>
+                )}
                 {recentlySuccessful && (
                     <span className="text-green-600 font-medium animate-fade-in">
                         ✓ Berhasil disimpan

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Events\Payments\TripayPaymentSettled;
 use App\Listeners\Payments\HandleTripayPaymentSettled;
+use App\Listeners\LogAdminLogin;
 use App\Listeners\RedirectAfterLogin;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
@@ -18,6 +19,7 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         Login::class => [
             RedirectAfterLogin::class,
+            LogAdminLogin::class,
         ],
         TripayPaymentSettled::class => [
             HandleTripayPaymentSettled::class,

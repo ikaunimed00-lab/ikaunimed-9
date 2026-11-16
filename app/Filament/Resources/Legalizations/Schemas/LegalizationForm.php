@@ -2,13 +2,9 @@
 
 namespace App\Filament\Resources\Legalizations\Schemas;
 
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -28,7 +24,8 @@ class LegalizationForm
                             ->default(auth()->id()),
                         TextInput::make('jenjang')
                             ->label('Jenjang Pendidikan')
-                            ->placeholder('Contoh: S1 Pendidikan Ekonomi')
+                            ->placeholder('Contoh: S1')
+                            ->maxLength(10)
                             ->required(),
                         TextInput::make('tahun_lulus')
                             ->label('Tahun Lulus')
@@ -50,31 +47,19 @@ class LegalizationForm
                             ->columnSpanFull(),
                     ])->columns(2),
 
-                Section::make('Dokumen Pendukung')
-                    ->schema([
-                        FileUpload::make('file_ijazah')
-                            ->label('Scan Ijazah Asli')
-                            ->directory('legalizations/ijazah')
-                            ->required(),
-                        FileUpload::make('file_transkrip')
-                            ->label('Scan Transkrip Nilai Asli')
-                            ->directory('legalizations/transkrip')
-                            ->required(),
-                    ])->columns(2),
-
                 Section::make('Status & Moderasi')
                     ->schema([
                         Select::make('status')
                             ->options([
                                 'submitted' => 'Diajukan',
                                 'verified' => 'Diverifikasi',
-                                'processing' => 'Diproses',
+                                'approved' => 'Disetujui',
                                 'completed' => 'Selesai',
                                 'rejected' => 'Ditolak',
                             ])
                             ->required()
                             ->live(),
-                        Textarea::make('keterangan')
+                        Textarea::make('admin_note')
                             ->label('Keterangan / Alasan Penolakan')
                             ->columnSpanFull(),
                     ]),

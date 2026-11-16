@@ -44,8 +44,13 @@ class NewsResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        
-        return app(OrganizationScopeService::class)->applyScope($query, auth()->user());
+        $user = auth()->user();
+
+        if ($user?->isTocNewsAuthor()) {
+            return $query->where('user_id', $user->id);
+        }
+
+        return app(OrganizationScopeService::class)->applyScope($query, $user);
     }
 
     public static function getRelations(): array

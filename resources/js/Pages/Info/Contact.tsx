@@ -52,7 +52,14 @@ export default function Contact({ page }: PageProps) {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-lg">Telepon / WhatsApp</h3>
-                                    <p className="text-slate-600">+62 812-3456-7890</p>
+                                    <a
+                                        href="https://wa.me/62895429217077"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-slate-600 hover:text-teal-700 underline-offset-2 hover:underline"
+                                    >
+                                        +62 895-4292-17077
+                                    </a>
                                 </div>
                             </div>
 

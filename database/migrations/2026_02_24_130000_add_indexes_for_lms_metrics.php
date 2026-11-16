@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        // MySQL-only: information_schema.statistics and prefix indexes are not available on SQLite (Pest).
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         $indexExists = static function (string $table, string $indexName): bool {
             $result = DB::selectOne(
                 'SELECT 1 FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ? LIMIT 1',

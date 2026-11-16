@@ -7,9 +7,21 @@ use App\Models\User;
 
 class NewsPolicy
 {
+    /**
+     * admin-toc holds cms.news.publish for their own news only, so it never grants global access.
+     */
     private function canPublish(User $user): bool
     {
-        return $user->can('cms.news.publish') || $user->hasSystemRole(['super_admin', 'admin']);
+        if ($user->hasSystemRole(['super_admin', 'admin'])) {
+            return true;
+        }
+
+        return $user->can('cms.news.publish') && ! $user->isTocNewsAuthor();
+    }
+
+    private function owns(User $user, News $news): bool
+    {
+        return $news->user_id === $user->id;
     }
 
     public function view(User $user, News $news): bool
@@ -18,7 +30,7 @@ class NewsPolicy
             return true;
         }
 
-        return $user->can('cms.news.view') && $news->user_id === $user->id;
+        return $user->can('cms.news.view') && $this->owns($user, $news);
     }
 
     public function create(User $user): bool
@@ -32,15 +44,39 @@ class NewsPolicy
             return true;
         }
 
-        return $user->can('cms.news.edit') && $news->user_id === $user->id;
+        return $user->can('cms.news.edit') && $this->owns($user, $news);
     }
 
     public function delete(User $user, News $news): bool
     {
-        return $this->canPublish($user);
+        if ($this->canPublish($user)) {
+            return true;
+        }
+
+        return $user->isTocNewsAuthor() && $this->owns($user, $news);
     }
 
     public function deleteAny(User $user): bool
+    {
+        return $this->canPublish($user);
+    }
+
+    public function restore(User $user, News $news): bool
+    {
+        return $this->delete($user, $news);
+    }
+
+    public function restoreAny(User $user): bool
+    {
+        return $this->canPublish($user);
+    }
+
+    public function forceDelete(User $user, News $news): bool
+    {
+        return $this->canPublish($user);
+    }
+
+    public function forceDeleteAny(User $user): bool
     {
         return $this->canPublish($user);
     }

@@ -17,6 +17,10 @@ class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable, TwoFactorAuthenticatable, HasProgramRoles, HasRoles;
 
+    public const ROLE_ADMIN_TOC = 'admin-toc';
+
+    public const ROLE_PANITIA_TOC = 'panitia-toc';
+
     protected static function booted(): void
     {
         static::saved(function (self $user) {
@@ -44,7 +48,28 @@ class User extends Authenticatable implements FilamentUser
             return true;
         }
 
-        return $this->isWriter();
+        return $this->isWriter() || $this->hasRole([self::ROLE_ADMIN_TOC, self::ROLE_PANITIA_TOC]);
+    }
+
+    /**
+     * Teacher of Champions checks: super_admin and admin always pass, ToC roles need the permission.
+     */
+    public function hasTocPermission(string $permission): bool
+    {
+        if ($this->hasSystemRole(['super_admin', 'admin'])) {
+            return true;
+        }
+
+        return $this->checkPermissionTo($permission);
+    }
+
+    /**
+     * An admin-toc user without a broader editorial role: limited to their own news.
+     */
+    public function isTocNewsAuthor(): bool
+    {
+        return $this->hasRole(self::ROLE_ADMIN_TOC)
+            && ! $this->hasSystemRole(['super_admin', 'admin', 'editor']);
     }
 
     protected $fillable = [

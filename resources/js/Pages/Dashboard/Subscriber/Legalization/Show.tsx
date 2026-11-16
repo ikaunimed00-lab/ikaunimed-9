@@ -96,7 +96,16 @@ export default function Show({ legalization }: any) {
                     {legalization.files.map((file: any) => (
                         <li key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <span className="text-sm text-gray-700">{file.original_name}</span>
-                            <span className="text-xs text-gray-500">{(file.size / 1024).toFixed(0)} KB</span>
+                            <span className="flex items-center gap-3">
+                                <span className="text-xs text-gray-500">{(file.size / 1024).toFixed(0)} KB</span>
+                                <a
+                                    href={file.download_url}
+                                    className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
+                                >
+                                    <Download size={16} />
+                                    Unduh
+                                </a>
+                            </span>
                         </li>
                     ))}
                 </ul>

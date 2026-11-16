@@ -200,6 +200,20 @@ class News extends Model
         )->withTimestamps();
     }
 
+    public function tagAsTeacherOfChampions(): void
+    {
+        $tag = Tag::query()
+            ->where('slug', Tag::TEACHER_OF_CHAMPIONS_SLUG)
+            ->orWhere('name', Tag::TEACHER_OF_CHAMPIONS_NAME)
+            ->first()
+            ?? Tag::query()->create([
+                'slug' => Tag::TEACHER_OF_CHAMPIONS_SLUG,
+                'name' => Tag::TEACHER_OF_CHAMPIONS_NAME,
+            ]);
+
+        $this->tags()->syncWithoutDetaching([$tag->id]);
+    }
+
     /**
      * Scope: hanya berita yang dipublikasikan.
      *

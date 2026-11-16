@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LayoutDashboard, LogOut, Menu, ShoppingCart } from 'lucide-react';
 import { menuConfig } from './menuConfig';
 import { MegaMenu } from './MegaMenu';
@@ -21,6 +21,7 @@ export const HeaderEnterprise: React.FC<HeaderProps> = ({
   const [openMegaMenu, setOpenMegaMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const desktopNavRef = useRef<HTMLUListElement>(null);
   const { auth, cart } = usePage().props as any;
   const user = auth?.user;
   const cartCount = cart?.item_count ?? 0;
@@ -43,6 +44,36 @@ export const HeaderEnterprise: React.FC<HeaderProps> = ({
   useEffect(() => {
     setOpenMegaMenu(null);
   }, [currentPath]);
+
+  // Mega menu yang dibuka lewat klik/tap tidak menerima mouseleave, jadi tutup juga
+  // saat klik di luar, tekan Escape, atau halaman di-scroll.
+  useEffect(() => {
+    if (!openMegaMenu) {
+      return;
+    }
+
+    const close = () => setOpenMegaMenu(null);
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!desktopNavRef.current?.contains(event.target as Node)) {
+        close();
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        close();
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('scroll', close, { passive: true });
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('scroll', close);
+    };
+  }, [openMegaMenu]);
 
   // Close mobile menu saat route berubah
   useEffect(() => {
@@ -101,7 +132,7 @@ export const HeaderEnterprise: React.FC<HeaderProps> = ({
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-6">
-              <ul className="flex items-center gap-1">
+              <ul ref={desktopNavRef} className="flex items-center gap-1">
                 {menuConfig.map((item) => {
                   const Icon = item.icon;
                   const isActive = currentPath === item.href;
@@ -132,6 +163,10 @@ export const HeaderEnterprise: React.FC<HeaderProps> = ({
                       ) : (
                         // Menu dengan submenu
                         <button
+                          type="button"
+                          aria-haspopup="true"
+                          aria-expanded={openMegaMenu === item.id}
+                          onClick={() => setOpenMegaMenu(item.id)}
                           className={`
                             flex items-center gap-2 px-4 py-2.5 rounded-lg
                             font-medium text-sm

@@ -9,3 +9,5 @@ Route::post('/legalization', [LegalizationController::class, 'store'])->name('le
 Route::get('/legalization/{legalization}', [LegalizationController::class, 'show'])->name('legalization.show');
 Route::post('/legalization/{legalization}/upload', [LegalizationController::class, 'upload'])
     ->name('legalization.upload');
+Route::get('/legalization/files/{legalizationFile}/download', [LegalizationController::class, 'download'])
+    ->name('legalization.files.download');

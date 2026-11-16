@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Legalizations\Schemas;
 
+use App\Models\LegalizationFile;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
 
@@ -40,6 +42,20 @@ class LegalizationInfolist
                 TextEntry::make('updated_at')
                     ->dateTime()
                     ->placeholder('-'),
+                RepeatableEntry::make('files')
+                    ->label('Dokumen Diunggah')
+                    ->placeholder('Belum ada dokumen')
+                    ->schema([
+                        TextEntry::make('original_name')
+                            ->label('Nama file')
+                            ->url(fn (LegalizationFile $record): string => route('legalization.files.download', $record))
+                            ->openUrlInNewTab(),
+                        TextEntry::make('created_at')
+                            ->label('Diunggah')
+                            ->dateTime(),
+                    ])
+                    ->columns(2)
+                    ->columnSpanFull(),
             ]);
     }
 }

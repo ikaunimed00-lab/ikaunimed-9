@@ -84,7 +84,8 @@ const Footer = ({ settings, content }: { settings?: any, content?: any }) => {
 
   const siteDescription = content?.description || settings?.footer?.footer_description || "Wadah resmi kolaborasi alumni Universitas Negeri Medan untuk membangun jejaring profesional dan kontribusi bagi almamater.";
   const siteAddress = content?.address || settings?.contact?.contact_address || "Medan, Indonesia";
-  const sitePhone = content?.phone || settings?.contact?.contact_phone || "+62 815 3238 7608";
+  const sitePhone = content?.phone || settings?.contact?.contact_phone || "+62 895-4292-17077";
+  const sitePhoneUrl = `https://wa.me/${sitePhone.replace(/\D/g, "")}`;
   const siteEmail = content?.email || settings?.contact?.contact_email || "office@ikaunimed.or.id";
   const siteCopyright = content?.copyright_text || settings?.footer?.footer_copyright || "© 2026";
 
@@ -125,12 +126,18 @@ const Footer = ({ settings, content }: { settings?: any, content?: any }) => {
                 </div>
                 <span className="text-gray-300 text-sm">{siteAddress}</span>
               </div>
-              <div className="flex items-center gap-4 group">
+              <a
+                href={sitePhoneUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 group"
+                aria-label={`Chat WhatsApp ${sitePhone}`}
+              >
                 <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#FFD700] transition-all">
                   <Phone className="w-4 h-4 text-[#FFD700]" />
                 </div>
-                <span className="text-gray-300 text-sm">{sitePhone}</span>
-              </div>
+                <span className="text-gray-300 text-sm group-hover:text-[#FFD700] transition-colors">{sitePhone}</span>
+              </a>
               <div className="flex items-center gap-4 group">
                 <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-primary transition-all">
                   <Mail className="w-4 h-4 text-primary" />

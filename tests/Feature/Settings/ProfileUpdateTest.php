@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
@@ -48,6 +49,88 @@ test('email verification status is unchanged when the email address is unchanged
         ->assertRedirect(route('profile.edit'));
 
     expect($user->refresh()->email_verified_at)->not->toBeNull();
+});
+
+test('skills column is stored as text', function () {
+    expect(Schema::getColumnType('users', 'skills'))->toBe('text');
+});
+
+test('skills up to 2000 characters are saved', function () {
+    $user = User::factory()->create();
+    $skills = str_repeat('a', 2000);
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => 'Test User',
+            'email' => $user->email,
+            'skills' => $skills,
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    expect($user->refresh()->skills)->toBe($skills);
+});
+
+test('profile fields longer than their column limits are rejected with validation errors', function (string $field, int $length) {
+    $user = User::factory()->create(['skills' => 'Lama']);
+
+    $this->actingAs($user)
+        ->from(route('profile.edit'))
+        ->patch(route('profile.update'), [
+            'name' => 'Test User',
+            'email' => $user->email,
+            $field => str_repeat('a', $length),
+        ])
+        ->assertSessionHasErrors($field)
+        ->assertRedirect(route('profile.edit'));
+
+    expect($user->refresh()->skills)->toBe('Lama');
+})->with([
+    'skills 2001' => ['skills', 2001],
+    'name 126' => ['name', 126],
+    'tempat lahir 126' => ['tempat_lahir', 126],
+    's1 prodi 126' => ['s1_prodi', 126],
+]);
+
+test('skills validation message is in Indonesian', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => 'Test User',
+            'email' => $user->email,
+            'skills' => str_repeat('a', 2001),
+        ])
+        ->assertSessionHasErrors(['skills' => 'Keahlian utama maksimal 2000 karakter.']);
+});
+
+test('profile update with too long skills returns 422 for json requests', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patchJson(route('profile.update'), [
+            'name' => 'Test User',
+            'email' => $user->email,
+            'skills' => str_repeat('a', 2001),
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('skills');
+});
+
+test('education with university but without major is rejected instead of failing on insert', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => 'Test User',
+            'email' => $user->email,
+            'educations' => [
+                ['level' => 'S1', 'university' => 'Universitas Negeri Medan', 'major' => ''],
+            ],
+        ])
+        ->assertSessionHasErrors('educations.0.major');
+
+    expect($user->educations()->count())->toBe(0);
 });
 
 test('user can delete their account', function () {

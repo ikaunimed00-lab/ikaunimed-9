@@ -1,0 +1,145 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\StorePendaftarTeacherOfChampionsRequest;
+use App\Models\Kegiatan;
+use App\Models\PendaftarTeacherOfChampions;
+use App\Services\SiteManagementService;
+use App\Services\UpcomingEventService;
+use App\Services\WilayahService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class TeacherOfChampionsRegistrationController extends Controller
+{
+    public function __construct(
+        protected SiteManagementService $siteService,
+        protected UpcomingEventService $eventService,
+        protected WilayahService $wilayahService,
+    ) {}
+
+    public function create(): Response
+    {
+        $kegiatan = $this->eventService->findBySlugs([ReuniAkbarController::TEACHER_OF_CHAMPIONS_SLUG])->first();
+        $closesAt = PendaftarTeacherOfChampions::registrationClosesAt()->setTimezone(Kegiatan::TIMEZONE)->locale('id');
+
+        return $this->render('TeacherOfChampions/Daftar', [
+            'kegiatan' => $kegiatan ? $this->eventService->toArray($kegiatan) : null,
+            'isOpen' => PendaftarTeacherOfChampions::isRegistrationOpen(),
+            'closesAtLabel' => $closesAt->translatedFormat('l, j F Y').' pukul '.$closesAt->format('H.i').' WIB',
+            'wilayah' => $this->wilayahService->all(),
+            'jenjangOptions' => PendaftarTeacherOfChampions::jenjangOptions(),
+            'statusKepegawaianOptions' => PendaftarTeacherOfChampions::STATUS_KEPEGAWAIAN,
+            'universitasOptions' => $this->universitasOptions(),
+            'cekStatusUrl' => route('teacher-of-champions.status'),
+        ]);
+    }
+
+    public function store(StorePendaftarTeacherOfChampionsRequest $request): RedirectResponse
+    {
+        $pendaftar = PendaftarTeacherOfChampions::register($request->safe()->except(['website']));
+
+        return redirect()
+            ->to($pendaftar->signedSuccessUrl())
+            ->with('nomor_pendaftaran', $pendaftar->nomor_pendaftaran);
+    }
+
+    /**
+     * Legacy success page that relies on session flash (kept for older redirects).
+     */
+    public function success(): Response|RedirectResponse
+    {
+        $nomor = session('nomor_pendaftaran');
+
+        if (! is_string($nomor)) {
+            return redirect()->route('teacher-of-champions.create');
+        }
+
+        $pendaftar = PendaftarTeacherOfChampions::query()
+            ->where('nomor_pendaftaran', $nomor)
+            ->first();
+
+        return $this->render('TeacherOfChampions/Sukses', [
+            'nomorPendaftaran' => $nomor,
+            'nama' => $pendaftar?->nama,
+            'buktiUrl' => $pendaftar?->signedBuktiUrl(),
+            'cekStatusUrl' => route('teacher-of-champions.status'),
+        ]);
+    }
+
+    public function showSuccess(Request $request, PendaftarTeacherOfChampions $pendaftar): Response
+    {
+        if (! $request->hasValidSignature()) {
+            return $this->render('TeacherOfChampions/TautanTidakValid', [
+                'cekStatusUrl' => route('teacher-of-champions.status'),
+            ]);
+        }
+
+        return $this->render('TeacherOfChampions/Sukses', [
+            'nomorPendaftaran' => $pendaftar->nomor_pendaftaran,
+            'nama' => $pendaftar->nama,
+            'buktiUrl' => $pendaftar->signedBuktiUrl(),
+            'cekStatusUrl' => route('teacher-of-champions.status'),
+        ]);
+    }
+
+    /**
+     * Suggestions for the free-text "asal universitas" field.
+     *
+     * @return list<array{name: string, aliases: list<string>}>
+     */
+    private function universitasOptions(): array
+    {
+        $path = resource_path('data/universitas.json');
+        $raw = is_file($path) ? json_decode((string) file_get_contents($path), true) ?? [] : [];
+
+        return collect($raw)
+            ->map(function (mixed $item): ?array {
+                if (is_string($item) && $item !== '') {
+                    return ['name' => $item, 'aliases' => []];
+                }
+
+                if (! is_array($item) || ! is_string($item['name'] ?? null) || $item['name'] === '') {
+                    return null;
+                }
+
+                $aliases = collect($item['aliases'] ?? [])
+                    ->filter(fn (mixed $alias): bool => is_string($alias) && $alias !== '')
+                    ->values()
+                    ->all();
+
+                return ['name' => $item['name'], 'aliases' => $aliases];
+            })
+            ->filter()
+            ->unique('name')
+            ->sortBy(fn (array $item): string => mb_strtolower($item['name']), SORT_NATURAL)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $props
+     */
+    private function render(string $component, array $props): Response
+    {
+        $footer = collect($this->siteService->getHomepageSections())->firstWhere('slug', 'footer');
+        $title = 'Pendaftaran Teacher of Champions - IKA UNIMED';
+        $description = 'Daftar kompetisi online Teacher of Champions untuk guru se-Indonesia, program IKA UNIMED dalam rangka Hari Guru Nasional 2026.';
+
+        return Inertia::render($component, [
+            ...$props,
+            'settings' => $this->siteService->getSettings(),
+            'footerContent' => $footer?->content,
+            'contacts' => config('homepage.reuni_contacts', []),
+            'guidebookUrl' => config('homepage.teacher_of_champions.guidebook_url'),
+        ])->withViewData([
+            'meta_description' => $description,
+            'og_title' => $title,
+            'og_description' => $description,
+            'og_image' => url(config('homepage.teacher_of_champions.og_image')),
+        ]);
+    }
+}

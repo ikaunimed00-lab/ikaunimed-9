@@ -10,6 +10,10 @@ class Tag extends Model
 {
     use HasFactory;
 
+    public const TEACHER_OF_CHAMPIONS_SLUG = 'teacher-of-champions';
+
+    public const TEACHER_OF_CHAMPIONS_NAME = 'Teacher of Champions';
+
     protected $fillable = [
         'name',
         'slug',

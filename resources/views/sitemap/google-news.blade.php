@@ -7,6 +7,7 @@
 @foreach ($news as $item)
     <url>
         <loc>{{ url('/news/' . $item->slug) }}</loc>
+        <lastmod>{{ $item->updated_at->toAtomString() }}</lastmod>
 
         <news:news>
             <news:publication>
@@ -16,15 +17,15 @@
 
             <news:publication_date>{{ $item->published_at->toAtomString() }}</news:publication_date>
 
-            <news:title><![CDATA[{{ $item->title }}]]></news:title>
+            <news:title>{{ $item->title }}</news:title>
         </news:news>
 
         {{-- Add image untuk featured news --}}
         @if ($item->image)
             <image:image>
-                <image:loc>{{ url('storage/news/' . $item->image) }}</image:loc>
+                <image:loc>{{ $item->image_url }}</image:loc>
             </image:image>
         @endif
-
-        <lastmod>{{ $item->updated_at->toAtomString() }}</lastmod>
+    </url>
+@endforeach
 </urlset>

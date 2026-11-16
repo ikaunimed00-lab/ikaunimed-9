@@ -7,7 +7,10 @@ use App\Models\HomepageSection;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Route;
 use Inertia\Middleware;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -67,15 +70,42 @@ class HandleInertiaRequests extends Middleware
             ],
 
             'topbar' => Cache::remember('global_topbar_content', 3600, function () {
-                return HomepageSection::where('slug', 'topbar')
+                $content = HomepageSection::where('slug', 'topbar')
                     ->where('is_active', true)
                     ->first()?->content;
+
+                if (is_array($content) && is_array($content['links'] ?? null)) {
+                    $content['links'] = array_values(array_filter(
+                        $content['links'],
+                        fn ($link): bool => is_array($link) && $this->isReachableLink((string) ($link['href'] ?? '')),
+                    ));
+                }
+
+                return $content;
             }),
 
             'sidebarOpen' =>
                 ! $request->hasCookie('sidebar_state')
                 || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * CMS links pointing at a local path without a registered GET route are hidden.
+     */
+    private function isReachableLink(string $href): bool
+    {
+        if ($href === '' || ! str_starts_with($href, '/') || str_starts_with($href, '//')) {
+            return $href !== '';
+        }
+
+        try {
+            Route::getRoutes()->match(Request::create($href, 'GET'));
+        } catch (NotFoundHttpException|MethodNotAllowedHttpException) {
+            return false;
+        }
+
+        return true;
     }
 
     private function cartItemCount(Request $request): int
