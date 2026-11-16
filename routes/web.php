@@ -1,54 +1,115 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use App\Http\Middleware\HandleInertiaRequests;
-use App\Http\Middleware\EnsureProfileCompleted;
-
-use App\Http\Controllers\NewsController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\DatabaseController;
-use App\Http\Controllers\SitemapController;
-use App\Http\Controllers\LegalizationController;
-use App\Http\Controllers\AlumniProfileController;
-use App\Http\Controllers\OAuthController;
-use App\Http\Controllers\Settings\ProfileController;
-
-use App\Http\Controllers\Info\PageController;
-
-use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Admin\StaticPageController;
+use App\Http\Controllers\Admin\TocBerkasAdminController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AlumniDirectoryController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\Community\AlumniPostController;
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\Dashboard\AlumniPostDashboardController;
 use App\Http\Controllers\Dashboard\CourseDashboardController;
+use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Dashboard\LegalizationAdminController;
 use App\Http\Controllers\Dashboard\NotificationController;
-
 use App\Http\Controllers\Dashboard\OrganizationController as DashboardOrganizationController;
 use App\Http\Controllers\Dashboard\OrganizationMemberController;
-
-/* === KABAR ALUMNI === */
-use App\Http\Controllers\Community\AlumniPostController;
+use App\Http\Controllers\Dashboard\Subscriber\ScholarshipApplicationController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Info\PageController;
 use App\Http\Controllers\JobVacancyController;
-use App\Http\Controllers\Admin\StaticPageController;
-use App\Http\Controllers\Dashboard\AlumniPostDashboardController;
-use App\Http\Controllers\Dashboard\AlumniPostModerationController;
-use App\Http\Controllers\ScholarshipController;
+use App\Http\Controllers\LegalizationController;
+use App\Http\Controllers\NewsController;
+use App\Http\Controllers\OAuthController;
 use App\Http\Controllers\PartnershipController;
 use App\Http\Controllers\PublicOrganizationController;
-
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\AlumniDirectoryController;
-use App\Http\Controllers\Dashboard\Subscriber\ScholarshipApplicationController;
-use App\Http\Controllers\CourseController;
+use App\Http\Controllers\ReuniAkbarController;
+/* === KABAR ALUMNI === */
+use App\Http\Controllers\ScholarshipController;
+use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\TeacherOfChampionsRegistrationController;
+use App\Http\Controllers\TocBerkasController;
+use App\Http\Controllers\TocPengumumanController;
 use App\Http\Controllers\TripayWebhookController;
+use App\Http\Middleware\EnsureProfileCompleted;
+use App\Http\Middleware\HandleInertiaRequests;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
 | PUBLIC (Inertia)
 |--------------------------------------------------------------------------
 |*/
+
+Route::get('/storage/{path}', function (string $path) {
+    if ($path === '' || str_contains($path, '..')) {
+        abort(404);
+    }
+
+    if (Storage::disk('public')->exists($path)) {
+        return Storage::disk('public')->response($path, headers: [
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+
+    if (str_starts_with($path, 'news/') && Storage::disk('local')->exists($path)) {
+        return Storage::disk('local')->response($path, headers: [
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+
+    abort(404);
+})->where('path', '.*');
+
 Route::middleware([HandleInertiaRequests::class])->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
+
+    Route::get('/preview/home', [HomeController::class, 'preview'])
+        ->middleware('homepage.preview')
+        ->name('home.preview');
+
+    Route::get('/reuni-akbar-2026', [ReuniAkbarController::class, 'show'])->name('reuni-akbar.show');
+
+    Route::get('/teacher-of-champions/daftar', [TeacherOfChampionsRegistrationController::class, 'create'])
+        ->name('teacher-of-champions.create');
+    Route::post('/teacher-of-champions/daftar', [TeacherOfChampionsRegistrationController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('teacher-of-champions.store');
+    Route::get('/teacher-of-champions/daftar/sukses', [TeacherOfChampionsRegistrationController::class, 'success'])
+        ->name('teacher-of-champions.success');
+
+    Route::middleware('toc.noindex')->group(function () {
+        Route::get('/toc', function () {
+            return redirect('/reuni-akbar-2026#teacher-of-champions');
+        })->name('toc.home');
+
+        Route::get('/toc/pengumuman', [TocPengumumanController::class, 'show'])
+            ->name('toc.pengumuman');
+        Route::post('/toc/pengumuman', [TocPengumumanController::class, 'check'])
+            ->middleware('throttle:toc-login')
+            ->name('toc.pengumuman.check');
+
+        Route::get('/toc/berkas', [TocBerkasController::class, 'showLogin'])
+            ->name('toc.berkas');
+        Route::post('/toc/berkas', [TocBerkasController::class, 'login'])
+            ->middleware('throttle:toc-login')
+            ->name('toc.berkas.login');
+        Route::get('/toc/berkas/formulir', [TocBerkasController::class, 'formulir'])
+            ->name('toc.berkas.formulir');
+        Route::post('/toc/berkas/unggah/{jenis}', [TocBerkasController::class, 'unggah'])
+            ->whereIn('jenis', ['foto', 'pakta_integritas', 'surat_keterangan'])
+            ->middleware('throttle:20,1')
+            ->name('toc.berkas.unggah');
+        Route::get('/toc/berkas/template/{nama}', [TocBerkasController::class, 'template'])
+            ->name('toc.berkas.template');
+        Route::post('/toc/berkas/keluar', [TocBerkasController::class, 'logout'])
+            ->name('toc.berkas.logout');
+    });
 
     Route::get('/news', [NewsController::class, 'index'])->name('news.index');
 
@@ -207,6 +268,18 @@ Route::get('/auth/google/callback', [OAuthController::class, 'googleCallback'])
 |--------------------------------------------------------------------------
 |*/
 Route::middleware(['auth'])->group(function () {
+    Route::middleware('role:admin,super_admin')->prefix('admin/toc')->name('admin.toc.')->group(function () {
+        Route::get('/berkas/{berkas}/unduh', [TocBerkasAdminController::class, 'download'])
+            ->name('berkas.download');
+        Route::post('/berkas/{berkas}/terima', [TocBerkasAdminController::class, 'terima'])
+            ->name('berkas.terima');
+        Route::post('/berkas/{berkas}/tolak', [TocBerkasAdminController::class, 'tolak'])
+            ->name('berkas.tolak');
+        Route::get('/berkas/exports/{artifact:token}', [TocBerkasAdminController::class, 'downloadExport'])
+            ->middleware('signed')
+            ->name('berkas.exports.download');
+    });
+
     /*
     |--------------------------------------------------------------------------
     | DASHBOARD REDIRECT (Native Redirects - NO INERTIA)
@@ -219,14 +292,18 @@ Route::middleware(['auth'])->group(function () {
             return redirect()->route('home');
         }
 
-        if ($user->hasAnyRole(['admin', 'editor', 'writer'])) {
+        if ($user->hasAnyRole(['super_admin', 'admin', 'editor', 'writer'])) {
+            if (request()->header('X-Inertia')) {
+                return Inertia::location('/admin');
+            }
+
             return redirect('/admin');
         }
 
         // Cek kelengkapan profil untuk subscriber
-        $requiredFields = ['wa', 'nik', 'tempat_lahir', 'tanggal_lahir', 'alamat_lengkap', 
-                           's1_fakultas', 's1_prodi', 's1_tahun_masuk', 's1_tahun_tamat'];
-        
+        $requiredFields = ['wa', 'nik', 'tempat_lahir', 'tanggal_lahir', 'alamat_lengkap',
+            's1_fakultas', 's1_prodi', 's1_tahun_masuk', 's1_tahun_tamat'];
+
         foreach ($requiredFields as $field) {
             if (empty($user->{$field})) {
                 return redirect()->route('profile.edit');
@@ -237,8 +314,8 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard');
 
     // Redirect old dashboard admin to new filament admin
-    Route::get('/dashboard/admin', fn() => redirect('/admin'));
-    Route::get('/dashboard/admin/{any}', fn() => redirect('/admin'))->where('any', '.*');
+    Route::get('/dashboard/admin', fn () => redirect('/admin'));
+    Route::get('/dashboard/admin/{any}', fn () => redirect('/admin'))->where('any', '.*');
 
     /*
     |--------------------------------------------------------------------------
@@ -250,6 +327,7 @@ Route::middleware(['auth'])->group(function () {
             auth()->logout();
             request()->session()->invalidate();
             request()->session()->regenerateToken();
+
             return redirect()->route('home');
         })->name('logout');
 
@@ -275,221 +353,221 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
         });
 
-    /*
-    |--------------------------------------------------------------------------
-    | PROFILE (Moved to settings.php)
-    |--------------------------------------------------------------------------
-    */
-    // Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
-    // Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        /*
+        |--------------------------------------------------------------------------
+        | PROFILE (Moved to settings.php)
+        |--------------------------------------------------------------------------
+        */
+        // Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+        // Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
-    /*
-    |--------------------------------------------------------------------------
-    | LEGALIZATION - USER
-    |--------------------------------------------------------------------------
-    */
-    Route::get('/legalization', [LegalizationController::class, 'index'])->name('legalization.index');
-    Route::get('/legalization/create', [LegalizationController::class, 'create'])->name('legalization.create');
-    Route::post('/legalization', [LegalizationController::class, 'store'])->name('legalization.store');
-    Route::get('/legalization/{legalization}', [LegalizationController::class, 'show'])->name('legalization.show');
-    Route::post('/legalization/{legalization}/upload', [LegalizationController::class, 'upload'])
-        ->name('legalization.upload');
+        /*
+        |--------------------------------------------------------------------------
+        | LEGALIZATION - USER
+        |--------------------------------------------------------------------------
+        */
+        Route::get('/legalization', [LegalizationController::class, 'index'])->name('legalization.index');
+        Route::get('/legalization/create', [LegalizationController::class, 'create'])->name('legalization.create');
+        Route::post('/legalization', [LegalizationController::class, 'store'])->name('legalization.store');
+        Route::get('/legalization/{legalization}', [LegalizationController::class, 'show'])->name('legalization.show');
+        Route::post('/legalization/{legalization}/upload', [LegalizationController::class, 'upload'])
+            ->name('legalization.upload');
 
-    /*
-    |--------------------------------------------------------------------------
-    | DASHBOARD ADMIN - LEGALIZATION (SOURCE OF TRUTH)
-    |--------------------------------------------------------------------------
-    */
-    /*
-    Route::prefix('dashboard/admin')
-        ->middleware('role:admin')
-        ->name('dashboard.admin.')
-        ->group(function () {
-            Route::get('/legalizations', [LegalizationAdminController::class, 'index'])->name('legalizations.index');
-            Route::get('/legalizations/{legalization}', [LegalizationAdminController::class, 'show'])->name('legalizations.show');
-            Route::post('/legalizations/{legalization}/approve', [LegalizationAdminController::class, 'approve'])->name('legalizations.approve');
-            Route::post('/legalizations/{legalization}/reject', [LegalizationAdminController::class, 'reject'])->name('legalizations.reject');
-            Route::post('/legalizations/{legalization}/note', [LegalizationAdminController::class, 'updateNote'])->name('legalizations.update_note');
-        });
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | DASHBOARD ADMIN - LEGALIZATION (SOURCE OF TRUTH)
+        |--------------------------------------------------------------------------
+        */
+        /*
+        Route::prefix('dashboard/admin')
+            ->middleware('role:admin')
+            ->name('dashboard.admin.')
+            ->group(function () {
+                Route::get('/legalizations', [LegalizationAdminController::class, 'index'])->name('legalizations.index');
+                Route::get('/legalizations/{legalization}', [LegalizationAdminController::class, 'show'])->name('legalizations.show');
+                Route::post('/legalizations/{legalization}/approve', [LegalizationAdminController::class, 'approve'])->name('legalizations.approve');
+                Route::post('/legalizations/{legalization}/reject', [LegalizationAdminController::class, 'reject'])->name('legalizations.reject');
+                Route::post('/legalizations/{legalization}/note', [LegalizationAdminController::class, 'updateNote'])->name('legalizations.update_note');
+            });
+        */
 
-    /*
-    |--------------------------------------------------------------------------
-    | ADMIN LEGALIZATIONS (ALIAS – UNTUK ADMIN LAYOUT)
-    |--------------------------------------------------------------------------
-    */
-    /*
-    Route::prefix('admin')
-        ->middleware('role:admin')
-        ->name('admin.')
-        ->group(function () {
-            Route::get('/legalizations', [LegalizationAdminController::class, 'index'])->name('legalizations.index');
-            Route::get('/legalizations/{legalization}', [LegalizationAdminController::class, 'show'])->name('legalizations.show');
-            Route::post('/legalizations/{legalization}/approve', [LegalizationAdminController::class, 'approve'])->name('legalizations.approve');
-            Route::post('/legalizations/{legalization}/reject', [LegalizationAdminController::class, 'reject'])->name('legalizations.reject');
-            Route::post('/legalizations/{legalization}/note', [LegalizationAdminController::class, 'updateNote'])->name('legalizations.update_note');
-        });
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN LEGALIZATIONS (ALIAS – UNTUK ADMIN LAYOUT)
+        |--------------------------------------------------------------------------
+        */
+        /*
+        Route::prefix('admin')
+            ->middleware('role:admin')
+            ->name('admin.')
+            ->group(function () {
+                Route::get('/legalizations', [LegalizationAdminController::class, 'index'])->name('legalizations.index');
+                Route::get('/legalizations/{legalization}', [LegalizationAdminController::class, 'show'])->name('legalizations.show');
+                Route::post('/legalizations/{legalization}/approve', [LegalizationAdminController::class, 'approve'])->name('legalizations.approve');
+                Route::post('/legalizations/{legalization}/reject', [LegalizationAdminController::class, 'reject'])->name('legalizations.reject');
+                Route::post('/legalizations/{legalization}/note', [LegalizationAdminController::class, 'updateNote'])->name('legalizations.update_note');
+            });
+        */
 
-    /*
-    |--------------------------------------------------------------------------
-    | ADMIN - ORGANIZATIONS
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('dashboard/admin')
-        ->middleware('role:admin')
-        ->name('dashboard.admin.')
-        ->group(function () {
-            Route::resource('organizations', DashboardOrganizationController::class);
-            Route::resource('organizations.members', OrganizationMemberController::class)->shallow();
-            Route::post('organizations/{organization}/members/reorder', [OrganizationMemberController::class, 'reorder'])->name('organizations.members.reorder');
-        });
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN - ORGANIZATIONS
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('dashboard/admin')
+            ->middleware('role:admin')
+            ->name('dashboard.admin.')
+            ->group(function () {
+                Route::resource('organizations', DashboardOrganizationController::class);
+                Route::resource('organizations.members', OrganizationMemberController::class)->shallow();
+                Route::post('organizations/{organization}/members/reorder', [OrganizationMemberController::class, 'reorder'])->name('organizations.members.reorder');
+            });
 
-    /*
-    |--------------------------------------------------------------------------
-    | ADMIN - USERS (DEPRECATED - MOVED TO FILAMENT)
-    |--------------------------------------------------------------------------
-    | Route admin.users.* dinonaktifkan untuk menghindari konflik dengan
-    | Filament UserResource.
-    |
-    */
-    /*
-    Route::prefix('admin')
-        ->middleware('role:admin')
-        ->name('admin.')
-        ->group(function () {
-            Route::get('/users', [UserController::class, 'index'])->name('users.index');
-            Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-            Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-            Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-            Route::post('/users/bulk-delete', [UserController::class, 'bulkDestroy'])->name('users.bulk-delete');
-        });
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN - USERS (DEPRECATED - MOVED TO FILAMENT)
+        |--------------------------------------------------------------------------
+        | Route admin.users.* dinonaktifkan untuk menghindari konflik dengan
+        | Filament UserResource.
+        |
+        */
+        /*
+        Route::prefix('admin')
+            ->middleware('role:admin')
+            ->name('admin.')
+            ->group(function () {
+                Route::get('/users', [UserController::class, 'index'])->name('users.index');
+                Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+                Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+                Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+                Route::post('/users/bulk-delete', [UserController::class, 'bulkDestroy'])->name('users.bulk-delete');
+            });
+        */
 
-    /*
-    |--------------------------------------------------------------------------
-    | ADMIN / EDITOR / WRITER - NEWS
-    |--------------------------------------------------------------------------
-    */
-    /*
-    Route::prefix('admin')
-        ->middleware('role:admin,editor,writer')
-        ->name('admin.')
-        ->group(function () {
-            Route::get('/news', [NewsController::class, 'adminIndex'])->name('news.index');
-            Route::get('/news/create', [NewsController::class, 'create'])->name('news.create');
-            Route::post('/news', [NewsController::class, 'store'])->name('news.store');
-            Route::get('/news/{news:slug}/edit', [NewsController::class, 'edit'])->name('news.edit');
-            Route::put('/news/{news:slug}', [NewsController::class, 'update'])->name('news.update');
-            Route::delete('/news/{news:slug}', [NewsController::class, 'destroy'])
-                ->middleware('role:admin,editor')
-                ->name('news.destroy');
-            Route::post('/news/bulk-delete', [NewsController::class, 'bulkDestroy'])
-                ->middleware('role:admin,editor')
-                ->name('news.bulk-delete');
-        });
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN / EDITOR / WRITER - NEWS
+        |--------------------------------------------------------------------------
+        */
+        /*
+        Route::prefix('admin')
+            ->middleware('role:admin,editor,writer')
+            ->name('admin.')
+            ->group(function () {
+                Route::get('/news', [NewsController::class, 'adminIndex'])->name('news.index');
+                Route::get('/news/create', [NewsController::class, 'create'])->name('news.create');
+                Route::post('/news', [NewsController::class, 'store'])->name('news.store');
+                Route::get('/news/{news:slug}/edit', [NewsController::class, 'edit'])->name('news.edit');
+                Route::put('/news/{news:slug}', [NewsController::class, 'update'])->name('news.update');
+                Route::delete('/news/{news:slug}', [NewsController::class, 'destroy'])
+                    ->middleware('role:admin,editor')
+                    ->name('news.destroy');
+                Route::post('/news/bulk-delete', [NewsController::class, 'bulkDestroy'])
+                    ->middleware('role:admin,editor')
+                    ->name('news.bulk-delete');
+            });
+        */
 
-    /*
-    |--------------------------------------------------------------------------
-    | LMS DASHBOARD (INERTIA)
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('dashboard')
-        ->name('dashboard.')
-        ->group(function () {
-            Route::get('courses', [CourseDashboardController::class, 'index'])->name('courses.index');
-            Route::get('courses/{course}/participants', [CourseDashboardController::class, 'participants'])
-                ->name('courses.participants');
-        });
-    
-    Route::prefix('dashboard/elearning')
-        ->name('dashboard.elearning.')
-        ->group(function () {
-            Route::get('learner/courses', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'index'])
-                ->middleware(EnsureProfileCompleted::class)
-                ->name('learner.courses.index');
-            Route::get('learner/certificates', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'certificates'])
-                ->middleware(EnsureProfileCompleted::class)
-                ->name('learner.certificates.index');
-            Route::get('learner/certificates/{certificate}/download', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'downloadCertificate'])
-                ->middleware(EnsureProfileCompleted::class)
-                ->name('learner.certificates.download');
-            Route::post('learner/enrollments/{enrollment}/cancel', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'cancel'])
-                ->middleware(EnsureProfileCompleted::class)
-                ->name('enrollments.cancel');
-            Route::get('moderator/courses', [\App\Http\Controllers\Dashboard\CourseDashboardController::class, 'moderator'])
-                ->name('moderator.courses.index');
-        });
+        /*
+        |--------------------------------------------------------------------------
+        | LMS DASHBOARD (INERTIA)
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('dashboard')
+            ->name('dashboard.')
+            ->group(function () {
+                Route::get('courses', [CourseDashboardController::class, 'index'])->name('courses.index');
+                Route::get('courses/{course}/participants', [CourseDashboardController::class, 'participants'])
+                    ->name('courses.participants');
+            });
 
-    /*
-    |--------------------------------------------------------------------------
-    | KABAR ALUMNI - SUBSCRIBER
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('dashboard/subscriber/alumni-posts')
-        ->name('dashboard.subscriber.alumni-posts.')
-        ->middleware(EnsureProfileCompleted::class)
-        ->controller(AlumniPostDashboardController::class)
-        ->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::get('/create', 'create')->name('create');
-            Route::post('/', 'store')->name('store');
-            Route::get('/{alumniPost}/edit', 'edit')->name('edit');
-            Route::put('/{alumniPost}', 'update')->name('update');
-            Route::delete('/{alumniPost}', 'destroy')->name('destroy');
-        });
+        Route::prefix('dashboard/elearning')
+            ->name('dashboard.elearning.')
+            ->group(function () {
+                Route::get('learner/courses', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'index'])
+                    ->middleware(EnsureProfileCompleted::class)
+                    ->name('learner.courses.index');
+                Route::get('learner/certificates', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'certificates'])
+                    ->middleware(EnsureProfileCompleted::class)
+                    ->name('learner.certificates.index');
+                Route::get('learner/certificates/{certificate}/download', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'downloadCertificate'])
+                    ->middleware(EnsureProfileCompleted::class)
+                    ->name('learner.certificates.download');
+                Route::post('learner/enrollments/{enrollment}/cancel', [\App\Http\Controllers\Dashboard\LearnerCourseDashboardController::class, 'cancel'])
+                    ->middleware(EnsureProfileCompleted::class)
+                    ->name('enrollments.cancel');
+                Route::get('moderator/courses', [\App\Http\Controllers\Dashboard\CourseDashboardController::class, 'moderator'])
+                    ->name('moderator.courses.index');
+            });
 
-    Route::prefix('dashboard/subscriber/applications')
-        ->name('dashboard.subscriber.applications.')
-        ->middleware(EnsureProfileCompleted::class)
-        ->controller(ScholarshipApplicationController::class)
-        ->group(function () {
-            Route::get('/', 'index')->name('index');
-        });
+        /*
+        |--------------------------------------------------------------------------
+        | KABAR ALUMNI - SUBSCRIBER
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('dashboard/subscriber/alumni-posts')
+            ->name('dashboard.subscriber.alumni-posts.')
+            ->middleware(EnsureProfileCompleted::class)
+            ->controller(AlumniPostDashboardController::class)
+            ->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/create', 'create')->name('create');
+                Route::post('/', 'store')->name('store');
+                Route::get('/{alumniPost}/edit', 'edit')->name('edit');
+                Route::put('/{alumniPost}', 'update')->name('update');
+                Route::delete('/{alumniPost}', 'destroy')->name('destroy');
+            });
 
-    /*
-    |--------------------------------------------------------------------------
-    | KABAR ALUMNI - MODERATION
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('dashboard/editor')
-        ->middleware('role:editor,admin')
-        ->name('dashboard.editor.')
-        ->group(function () {
-            Route::get('/alumni-posts/moderation', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
-                ->name('alumni-posts.moderation');
-            Route::get('/alumni-posts/moderation/{alumniPost}', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
-                ->name('alumni-posts.moderation.show');
-            Route::post('/alumni-posts/{alumniPost}/approve', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
-                ->name('alumni-posts.approve');
-            Route::post('/alumni-posts/{alumniPost}/reject', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
-                ->name('alumni-posts.reject');
-            Route::delete('/alumni-posts/{alumniPost}/force', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
-                ->middleware('role:admin')
-                ->name('alumni-posts.force-delete');
-        });
+        Route::prefix('dashboard/subscriber/applications')
+            ->name('dashboard.subscriber.applications.')
+            ->middleware(EnsureProfileCompleted::class)
+            ->controller(ScholarshipApplicationController::class)
+            ->group(function () {
+                Route::get('/', 'index')->name('index');
+            });
 
-    /*
-    |--------------------------------------------------------------------------
-    | ADMIN / EDITOR - DATABASE ALUMNI
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('dashboard')
-        ->middleware('role:admin,editor')
-        ->name('dashboard.')
-        ->group(function () {
-             Route::get('/database', [DatabaseController::class, 'index'])->name('database.index');
-             Route::get('/database/{user}', [DatabaseController::class, 'show'])->name('database.show');
+        /*
+        |--------------------------------------------------------------------------
+        | KABAR ALUMNI - MODERATION
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('dashboard/editor')
+            ->middleware('role:editor,admin')
+            ->name('dashboard.editor.')
+            ->group(function () {
+                Route::get('/alumni-posts/moderation', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
+                    ->name('alumni-posts.moderation');
+                Route::get('/alumni-posts/moderation/{alumniPost}', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
+                    ->name('alumni-posts.moderation.show');
+                Route::post('/alumni-posts/{alumniPost}/approve', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
+                    ->name('alumni-posts.approve');
+                Route::post('/alumni-posts/{alumniPost}/reject', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
+                    ->name('alumni-posts.reject');
+                Route::delete('/alumni-posts/{alumniPost}/force', fn () => redirect()->route('filament.admin.resources.alumni-posts.index'))
+                    ->middleware('role:admin')
+                    ->name('alumni-posts.force-delete');
+            });
 
-             /*
-             |--------------------------------------------------------------------------
-             | STATIC PAGES MANAGEMENT
-             |--------------------------------------------------------------------------
-             */
-             Route::get('/pages', [StaticPageController::class, 'index'])->name('pages.index');
-             Route::get('/pages/{page}/edit', [StaticPageController::class, 'edit'])->name('pages.edit');
-                 Route::put('/pages/{page}', [StaticPageController::class, 'update'])->name('pages.update');
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN / EDITOR - DATABASE ALUMNI
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('dashboard')
+            ->middleware('role:admin,editor')
+            ->name('dashboard.')
+            ->group(function () {
+                Route::get('/database', [DatabaseController::class, 'index'])->name('database.index');
+                Route::get('/database/{user}', [DatabaseController::class, 'show'])->name('database.show');
+
+                /*
+                |--------------------------------------------------------------------------
+                | STATIC PAGES MANAGEMENT
+                |--------------------------------------------------------------------------
+                */
+                Route::get('/pages', [StaticPageController::class, 'index'])->name('pages.index');
+                Route::get('/pages/{page}/edit', [StaticPageController::class, 'edit'])->name('pages.edit');
+                Route::put('/pages/{page}', [StaticPageController::class, 'update'])->name('pages.update');
             });
     });
 });
