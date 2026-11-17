@@ -71,8 +71,11 @@ it('shows only the berkas menu and rejects other admin urls', function () {
 
     expect($labels)->toBe(['Berkas Finalis ToC']);
 
+    $this->actingAs($panitia)
+        ->get('/admin')
+        ->assertRedirect('/admin/berkas-finalis-toc');
+
     foreach ([
-        '/admin',
         '/admin/users',
         '/admin/roles',
         '/admin/shop/orders',
@@ -84,6 +87,53 @@ it('shows only the berkas menu and rejects other admin urls', function () {
     ] as $path) {
         $this->actingAs($panitia)->get($path)->assertForbidden();
     }
+});
+
+it('lets a subscriber legacy panitia with PP organization open berkas and not the subscriber dashboard', function () {
+    $this->seed(TocRolesSeeder::class);
+
+    $organization = \App\Models\Organization::query()->firstOrCreate(
+        ['slug' => 'pp'],
+        ['name' => 'Pengurus Pusat', 'type' => 'pp', 'is_active' => true],
+    );
+
+    $panitia = User::factory()->withoutTwoFactor()->create([
+        'name' => 'One Chai Repro',
+        'email' => 'panitia-pp-repro@example.test',
+        'role' => 'subscriber',
+        'organization_id' => $organization->id,
+        'email_verified_at' => now(),
+    ]);
+    $panitia->syncRoles([User::ROLE_PANITIA_BERKAS]);
+
+    expect($panitia->getRoleNames()->all())->toBe([User::ROLE_PANITIA_BERKAS])
+        ->and($panitia->hasSystemRole('subscriber'))->toBeFalse()
+        ->and($panitia->canAccessPanel(Filament::getPanel('admin')))->toBeTrue()
+        ->and($panitia->can('toc.berkas.view'))->toBeTrue();
+
+    $this->actingAs($panitia)
+        ->get('/admin/berkas-finalis-toc')
+        ->assertOk()
+        ->assertSee('Berkas Finalis ToC');
+
+    $this->actingAs($panitia)
+        ->get('/admin')
+        ->assertRedirect('/admin/berkas-finalis-toc');
+
+    $this->actingAs($panitia)
+        ->get('/dashboard/subscriber')
+        ->assertForbidden();
+
+    Livewire::test(ManageTocBerkasFinalis::class)
+        ->assertSuccessful()
+        ->assertSee('Berkas Finalis ToC');
+
+    auth()->logout();
+
+    $this->post(route('login.store'), [
+        'email' => $panitia->email,
+        'password' => 'password',
+    ])->assertRedirect('/admin/berkas-finalis-toc');
 });
 
 it('blocks zip import mass accept and csv for panitia including direct urls', function () {

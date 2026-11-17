@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -70,7 +71,8 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(LoginResponseContract::class, function () {
-            return new class implements LoginResponseContract {
+            return new class implements LoginResponseContract
+            {
                 public function toResponse($request)
                 {
                     $user = $request->user();
@@ -81,7 +83,14 @@ class FortifyServiceProvider extends ServiceProvider
                         return redirect()->intended($fallback);
                     }
 
-                    if ($user->hasSystemRole(['super_admin', 'admin', 'editor', 'writer'])) {
+                    if ($user instanceof User && $user->isPanitiaBerkasOnly()) {
+                        $target = '/admin/berkas-finalis-toc';
+                    } elseif ($user->hasSystemRole(['super_admin', 'admin', 'editor', 'writer'])) {
+                        $target = '/admin';
+                    } elseif ($user instanceof User && $user->hasRole([
+                        User::ROLE_ADMIN_TOC,
+                        User::ROLE_PANITIA_TOC,
+                    ])) {
                         $target = '/admin';
                     } else {
                         $requiredFields = [
@@ -125,6 +134,7 @@ class FortifyServiceProvider extends ServiceProvider
     {
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::lower($request->input(Fortify::username())).'|'.$request->ip();
+
             return Limit::perMinute(5)->by($throttleKey);
         });
     }

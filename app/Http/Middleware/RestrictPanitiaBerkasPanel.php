@@ -10,7 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 class RestrictPanitiaBerkasPanel
 {
     /**
-     * Panitia berkas hanya boleh membuka menu Berkas Finalis ToC dan keluar dari panel.
+     * Panitia berkas hanya boleh membuka menu Berkas Finalis ToC.
+     * /admin diarahkan ke halaman itu; Livewire/Filament AJAX tetap diizinkan.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -24,14 +25,37 @@ class RestrictPanitiaBerkasPanel
 
         $path = trim($request->path(), '/');
 
+        if ($this->isAllowedPath($path)) {
+            return $next($request);
+        }
+
+        if ($path === 'admin' || $path === 'admin/') {
+            return redirect('/admin/berkas-finalis-toc');
+        }
+
+        abort(403, 'Anda tidak punya akses.');
+    }
+
+    private function isAllowedPath(string $path): bool
+    {
         if ($path === 'admin/berkas-finalis-toc' || str_starts_with($path, 'admin/berkas-finalis-toc/')) {
-            return $next($request);
+            return true;
         }
 
-        if ($path === 'admin/logout') {
-            return $next($request);
+        if ($path === 'admin/logout' || str_starts_with($path, 'admin/logout')) {
+            return true;
         }
 
-        abort(403);
+        // Livewire update / upload dipakai Filament di luar prefix resource.
+        if ($path === 'livewire/update' || str_starts_with($path, 'livewire/')) {
+            return true;
+        }
+
+        // Unduh/lihat/terima/tolak berkas (bukan halaman Filament).
+        if (str_starts_with($path, 'admin/toc/berkas/')) {
+            return true;
+        }
+
+        return false;
     }
 }
