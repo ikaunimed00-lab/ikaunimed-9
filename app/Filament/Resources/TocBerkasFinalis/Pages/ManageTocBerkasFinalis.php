@@ -27,15 +27,23 @@ class ManageTocBerkasFinalis extends ManageRecords
                 Action::make('eksporSemua')
                     ->label('Ekspor CSV semua')
                     ->icon(Heroicon::OutlinedArrowDownTray)
-                    ->action(fn () => app(TocBerkasAdminService::class)->exportCsv(
-                        $this->getFilteredSortedTableQuery()->with('berkas')->get(),
-                    )),
+                    ->action(function () {
+                        TocBerkasFinalisResource::abortUnlessCanManage();
+
+                        return app(TocBerkasAdminService::class)->exportCsv(
+                            $this->getFilteredSortedTableQuery()->with('berkas')->get(),
+                        );
+                    }),
                 Action::make('unduhZipSemua')
                     ->label('ZIP foto diterima (filter aktif)')
                     ->icon(Heroicon::OutlinedArchiveBox)
-                    ->action(fn () => app(TocBerkasAdminService::class)->downloadAcceptedPhotosZip(
-                        $this->getFilteredSortedTableQuery()->with('berkas')->get(),
-                    )),
+                    ->action(function () {
+                        TocBerkasFinalisResource::abortUnlessCanManage();
+
+                        return app(TocBerkasAdminService::class)->downloadAcceptedPhotosZip(
+                            $this->getFilteredSortedTableQuery()->with('berkas')->get(),
+                        );
+                    }),
                 Action::make('terimaSemuaMenunggu')
                     ->label('Terima semua berkas yang menunggu (filter aktif)')
                     ->icon(Heroicon::OutlinedCheckCircle)
@@ -53,10 +61,12 @@ class ManageTocBerkasFinalis extends ManageRecords
                 ->icon(Heroicon::OutlinedEllipsisVertical)
                 ->color('gray')
                 ->button()
+                ->visible(fn (): bool => TocBerkasFinalisResource::userCanManage())
                 ->dropdownAutoPlacement(),
             Action::make('unduhZipKeputusan')
                 ->label('Unduh ZIP + Excel keputusan')
                 ->icon(Heroicon::OutlinedArchiveBoxArrowDown)
+                ->visible(fn (): bool => TocBerkasFinalisResource::userCanManage())
                 ->modalHeading('Unduh ZIP per bagian')
                 ->modalDescription('Setiap bagian diunduh langsung dari server (maks. 50 peserta).')
                 ->modalContent(fn () => TocBerkasFinalisResource::keputusanExportModal(
@@ -67,6 +77,7 @@ class ManageTocBerkasFinalis extends ManageRecords
             Action::make('imporKeputusan')
                 ->label('Impor keputusan (Excel)')
                 ->icon(Heroicon::OutlinedArrowUpTray)
+                ->visible(fn (): bool => TocBerkasFinalisResource::userCanManage())
                 ->rateLimit(10)
                 ->modalHeading('Impor keputusan berkas')
                 ->modalDescription('Unggah file keputusan-berkas.xlsx hasil unduhan. Pratinjau ditampilkan sebelum perubahan diterapkan.')

@@ -55,6 +55,7 @@ return [
         'export_ttl_minutes' => 60,
         'import_max_kb' => 5120,
         'rejection_mail_per_minute' => 30,
+        'keputusan_per_minute' => (int) env('TOC_BERKAS_KEPUTUSAN_PER_MINUTE', 120),
         'jenis' => [
             'foto' => [
                 'label' => 'Foto terbaik guru',

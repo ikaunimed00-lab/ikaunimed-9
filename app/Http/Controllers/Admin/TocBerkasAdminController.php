@@ -7,12 +7,15 @@ use App\Models\PendaftarTeacherOfChampions;
 use App\Models\TocBerkas;
 use App\Models\TocBerkasAuditLog;
 use App\Models\TocBerkasExportArtifact;
+use App\Models\User;
 use App\Services\TocBerkasKeputusanExportService;
 use App\Services\TocBerkasVerificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TocBerkasAdminController extends Controller
@@ -24,7 +27,7 @@ class TocBerkasAdminController extends Controller
 
     public function download(TocBerkas $berkas): StreamedResponse
     {
-        $this->authorizeAdmin();
+        $this->authorizeBerkas('toc.berkas.view');
 
         $disk = Storage::disk(config('toc.berkas.disk'));
 
@@ -33,9 +36,23 @@ class TocBerkasAdminController extends Controller
         return $disk->download($berkas->path, $berkas->nama_asli);
     }
 
+    public function lihat(TocBerkas $berkas): Response
+    {
+        $this->authorizeBerkas('toc.berkas.view');
+
+        $disk = Storage::disk(config('toc.berkas.disk'));
+
+        abort_unless($disk->exists($berkas->path), 404);
+
+        $filename = str_replace(["\r", "\n", '"'], '', $berkas->nama_asli);
+
+        return $disk->response($berkas->path, $filename);
+    }
+
     public function terima(Request $request, TocBerkas $berkas): RedirectResponse
     {
-        $this->authorizeAdmin();
+        $this->authorizeBerkas('toc.berkas.verify');
+        $this->abortIfPanitiaCannotChange($berkas);
 
         $this->verification->accept($berkas, Auth::user());
 
@@ -44,13 +61,22 @@ class TocBerkasAdminController extends Controller
 
     public function tolak(Request $request, TocBerkas $berkas): RedirectResponse
     {
-        $this->authorizeAdmin();
+        $this->authorizeBerkas('toc.berkas.verify');
+        $this->abortIfPanitiaCannotChange($berkas);
 
         $data = $request->validate([
             'catatan' => ['required', 'string', 'max:1000'],
         ]);
 
-        $this->verification->reject($berkas, Auth::user(), $data['catatan']);
+        $catatan = trim($data['catatan']);
+
+        if ($catatan === '') {
+            throw ValidationException::withMessages([
+                'catatan' => 'Alasan penolakan wajib diisi.',
+            ]);
+        }
+
+        $this->verification->reject($berkas, Auth::user(), $catatan);
 
         return back();
     }
@@ -129,5 +155,30 @@ class TocBerkasAdminController extends Controller
     private function authorizeAdmin(): void
     {
         abort_unless(Auth::user()?->hasSystemRole(['super_admin', 'admin']) ?? false, 403);
+    }
+
+    private function authorizeBerkas(string $permission): void
+    {
+        $user = Auth::user();
+
+        abort_unless(
+            $user?->hasSystemRole(['super_admin', 'admin']) || $user?->can($permission),
+            403,
+        );
+    }
+
+    private function abortIfPanitiaCannotChange(TocBerkas $berkas): void
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User || ! $user->isPanitiaBerkasOnly()) {
+            return;
+        }
+
+        abort_if(
+            $berkas->status === TocBerkas::STATUS_DITERIMA,
+            403,
+            'Berkas yang sudah diterima hanya dapat diubah oleh admin.',
+        );
     }
 }

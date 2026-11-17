@@ -7,6 +7,7 @@ use App\Models\Kegiatan;
 use App\Models\PendaftarTeacherOfChampions;
 use App\Models\TocBerkas;
 use App\Models\TocBerkasRejectionMailLog;
+use App\Models\User;
 use App\Services\TocBerkasAdminService;
 use App\Services\TocBerkasKeputusanExportService;
 use App\Services\TocBerkasVerificationService;
@@ -48,7 +49,7 @@ class TocBerkasFinalisResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return self::userCanManage();
+        return self::userCanReview();
     }
 
     public static function canCreate(): bool
@@ -202,6 +203,54 @@ class TocBerkasFinalisResource extends Resource
                             default => $query,
                         };
                     }),
+                SelectFilter::make('bagian')
+                    ->label('Bagian')
+                    ->options(fn (): array => app(TocBerkasKeputusanExportService::class)->bagianFilterOptions())
+                    ->query(function (Builder $query, array $data): Builder {
+                        $value = $data['value'] ?? null;
+
+                        if ($value === null || $value === '') {
+                            return $query;
+                        }
+
+                        $ids = app(TocBerkasKeputusanExportService::class)->idsForBagian((int) $value);
+
+                        if ($ids === []) {
+                            return $query->whereRaw('0 = 1');
+                        }
+
+                        return $query->whereIn($query->getModel()->getQualifiedKeyName(), $ids);
+                    }),
+                SelectFilter::make('status_pemeriksaan')
+                    ->label('Status pemeriksaan')
+                    ->options([
+                        'belum_diperiksa' => 'Belum diperiksa',
+                        'sudah_diterima' => 'Sudah diterima',
+                        'ada_ditolak' => 'Ada yang ditolak',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $value = $data['value'] ?? null;
+
+                        if (! $value) {
+                            return $query;
+                        }
+
+                        return match ($value) {
+                            'belum_diperiksa' => $query->whereDoesntHave(
+                                'berkas',
+                                fn (Builder $b) => $b->whereIn('status', [TocBerkas::STATUS_DITERIMA, TocBerkas::STATUS_DITOLAK]),
+                            ),
+                            'sudah_diterima' => $query
+                                ->whereHas('berkas', fn (Builder $b) => $b->where('jenis', TocBerkas::JENIS_FOTO)->where('status', TocBerkas::STATUS_DITERIMA))
+                                ->whereHas('berkas', fn (Builder $b) => $b->where('jenis', TocBerkas::JENIS_PAKTA)->where('status', TocBerkas::STATUS_DITERIMA))
+                                ->whereHas('berkas', fn (Builder $b) => $b->where('jenis', TocBerkas::JENIS_SURAT)->where('status', TocBerkas::STATUS_DITERIMA)),
+                            'ada_ditolak' => $query->whereHas(
+                                'berkas',
+                                fn (Builder $b) => $b->where('status', TocBerkas::STATUS_DITOLAK),
+                            ),
+                            default => $query,
+                        };
+                    }),
             ])
             ->recordActions([
                 Action::make('kelolaBerkas')
@@ -240,14 +289,24 @@ class TocBerkasFinalisResource extends Resource
                     BulkAction::make('unduhZipFoto')
                         ->label('Unduh ZIP foto diterima')
                         ->icon(Heroicon::OutlinedArchiveBox)
-                        ->action(fn (Collection $records) => app(TocBerkasAdminService::class)
-                            ->downloadAcceptedPhotosZip($records->load('berkas'))),
+                        ->visible(fn (): bool => self::userCanManage())
+                        ->action(function (Collection $records) {
+                            self::abortUnlessCanManage();
+
+                            return app(TocBerkasAdminService::class)
+                                ->downloadAcceptedPhotosZip($records->load('berkas'));
+                        }),
                     BulkAction::make('eksporCsv')
                         ->label('Ekspor CSV status berkas')
                         ->icon(Heroicon::OutlinedArrowDownTray)
-                        ->action(fn (Collection $records) => app(TocBerkasAdminService::class)
-                            ->exportCsv($records->load('berkas'))),
-                ]),
+                        ->visible(fn (): bool => self::userCanManage())
+                        ->action(function (Collection $records) {
+                            self::abortUnlessCanManage();
+
+                            return app(TocBerkasAdminService::class)
+                                ->exportCsv($records->load('berkas'));
+                        }),
+                ])->visible(fn (): bool => self::userCanManage()),
             ]);
     }
 
@@ -343,8 +402,24 @@ class TocBerkasFinalisResource extends Resource
         };
     }
 
-    private static function userCanManage(): bool
+    public static function userCanManage(): bool
     {
         return Auth::user()?->hasSystemRole(['super_admin', 'admin']) ?? false;
+    }
+
+    public static function abortUnlessCanManage(): void
+    {
+        abort_unless(self::userCanManage(), 403);
+    }
+
+    private static function userCanReview(): bool
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $user->hasSystemRole(['super_admin', 'admin']) || $user->can('toc.berkas.view');
     }
 }

@@ -13,6 +13,10 @@ class TocBerkasAuditLog extends Model
 
     public const TYPE_ACCEPT_WAITING = 'accept_waiting';
 
+    public const TYPE_TERIMA = 'terima';
+
+    public const TYPE_TOLAK = 'tolak';
+
     protected $fillable = [
         'user_id',
         'type',

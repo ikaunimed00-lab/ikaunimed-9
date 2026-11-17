@@ -2,24 +2,25 @@
 
 namespace App\Models;
 
+use App\Core\Traits\HasProgramRoles;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
-use App\Core\Traits\HasProgramRoles;
 use Spatie\Permission\Models\Role as SpatieRole;
-use App\Models\Organization;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasProgramRoles, HasRoles;
+    use HasFactory, HasProgramRoles, HasRoles, Notifiable, TwoFactorAuthenticatable;
 
     public const ROLE_ADMIN_TOC = 'admin-toc';
 
     public const ROLE_PANITIA_TOC = 'panitia-toc';
+
+    public const ROLE_PANITIA_BERKAS = 'panitia_berkas';
 
     protected static function booted(): void
     {
@@ -48,7 +49,20 @@ class User extends Authenticatable implements FilamentUser
             return true;
         }
 
-        return $this->isWriter() || $this->hasRole([self::ROLE_ADMIN_TOC, self::ROLE_PANITIA_TOC]);
+        return $this->isWriter() || $this->hasRole([
+            self::ROLE_ADMIN_TOC,
+            self::ROLE_PANITIA_TOC,
+            self::ROLE_PANITIA_BERKAS,
+        ]);
+    }
+
+    /**
+     * Panitia pemeriksa berkas tanpa hak admin: panel dibatasi ke menu berkas finalis.
+     */
+    public function isPanitiaBerkasOnly(): bool
+    {
+        return $this->hasRole(self::ROLE_PANITIA_BERKAS)
+            && ! $this->hasSystemRole(['super_admin', 'admin']);
     }
 
     /**
@@ -216,8 +230,8 @@ class User extends Authenticatable implements FilamentUser
     public function organizationPrograms()
     {
         return $this->belongsToMany(\App\Core\Models\OrganizationProgram::class, 'program_members', 'user_id', 'program_id')
-                    ->withPivot('role')
-                    ->withTimestamps();
+            ->withPivot('role')
+            ->withTimestamps();
     }
 
     /**
@@ -257,7 +271,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function hasOrganizationScope(): bool
     {
-        return !is_null($this->organization_id);
+        return ! is_null($this->organization_id);
     }
 
     public function legalizations()

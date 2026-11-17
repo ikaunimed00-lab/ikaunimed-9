@@ -6,6 +6,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -54,6 +55,10 @@ class UserForm
                             ->preload()
                             ->searchable()
                             ->visible(fn () => auth()->user()?->can('master.roles.manage') ?? false),
+                        Toggle::make('assign_panitia_berkas')
+                            ->label('Panitia pemeriksa berkas')
+                            ->helperText('Memberi role panitia_berkas: hanya dapat memeriksa Berkas Finalis ToC.')
+                            ->visible(fn (): bool => (auth()->user()?->isAdmin() ?? false) && ! (auth()->user()?->can('master.roles.manage') ?? false)),
                         Select::make('organization_id')
                             ->relationship('organization', 'name')
                             ->label('Organisasi / Daerah')

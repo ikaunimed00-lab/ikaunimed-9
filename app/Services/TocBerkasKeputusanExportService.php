@@ -97,6 +97,57 @@ class TocBerkasKeputusanExportService
     }
 
     /**
+     * Seluruh finalis, urut nomor pendaftaran. Urutan yang sama dengan ZIP penuh pada sortir bawaan.
+     *
+     * @return list<int>
+     */
+    public function finalistIdsInNomorOrder(): array
+    {
+        return PendaftarTeacherOfChampions::query()
+            ->where('lulus_penyisihan', true)
+            ->orderBy('nomor_pendaftaran')
+            ->orderBy('id')
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function bagianFilterOptions(): array
+    {
+        $chunks = $this->partitionIds($this->finalistIdsInNomorOrder());
+        $options = [];
+        $cursor = 1;
+
+        foreach ($chunks as $index => $chunk) {
+            $count = count($chunk);
+            $dari = $cursor;
+            $sampai = $cursor + $count - 1;
+            $bagian = $index + 1;
+            $options[(string) $bagian] = "Bagian {$bagian} ({$dari}-{$sampai})";
+            $cursor = $sampai + 1;
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function idsForBagian(int $bagian): array
+    {
+        if ($bagian < 1) {
+            return [];
+        }
+
+        $chunks = $this->partitionIds($this->finalistIdsInNomorOrder());
+
+        return $chunks[$bagian - 1] ?? [];
+    }
+
+    /**
      * @param  list<int>  $ids
      * @return array{token: string, total_peserta: int, total_bagian: int, parts: list<array{bagian: int, dari: int, sampai: int, jumlah: int, label: string, url: string}>}
      */

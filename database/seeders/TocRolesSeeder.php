@@ -47,6 +47,16 @@ class TocRolesSeeder extends Seeder
         ],
     ];
 
+    /**
+     * Izin milik role panitia_berkas saja. Tidak diwariskan ke role lain.
+     *
+     * @var list<string>
+     */
+    public const PANITIA_BERKAS_PERMISSIONS = [
+        'toc.berkas.view',
+        'toc.berkas.verify',
+    ];
+
     public function run(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -63,6 +73,25 @@ class TocRolesSeeder extends Seeder
             Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web'])
                 ->syncPermissions($rolePermissions);
         }
+
+        self::seedPanitiaBerkas();
+    }
+
+    /**
+     * Idempotent: membuat role panitia_berkas dan menyetel ulang izinnya ke daftar tetap.
+     */
+    public static function seedPanitiaBerkas(): void
+    {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        foreach (self::PANITIA_BERKAS_PERMISSIONS as $permissionName) {
+            Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
+        }
+
+        Role::firstOrCreate([
+            'name' => User::ROLE_PANITIA_BERKAS,
+            'guard_name' => 'web',
+        ])->syncPermissions(self::PANITIA_BERKAS_PERMISSIONS);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

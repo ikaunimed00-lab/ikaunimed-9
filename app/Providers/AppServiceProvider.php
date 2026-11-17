@@ -62,5 +62,12 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('toc-rejection-mail', fn (): Limit => Limit::perMinute(
             (int) config('toc.berkas.rejection_mail_per_minute', 30),
         )->by('toc-rejection-mail'));
+
+        RateLimiter::for('toc-berkas-keputusan', function (Request $request): Limit {
+            $actor = $request->user()?->getAuthIdentifier() ?? $request->ip();
+
+            return Limit::perMinute((int) config('toc.berkas.keputusan_per_minute', 120))
+                ->by('toc-berkas-keputusan:'.$actor);
+        });
     }
 }

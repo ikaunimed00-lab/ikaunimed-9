@@ -2,11 +2,15 @@
     use App\Models\TocBerkas;
     /** @var \App\Models\PendaftarTeacherOfChampions $record */
     $byJenis = $record->berkas->keyBy('jenis');
+    $panitiaTerkunci = auth()->user()?->isPanitiaBerkasOnly() ?? false;
 @endphp
 
 <div class="space-y-4">
     @foreach (TocBerkas::JENIS_LABELS as $jenis => $label)
-        @php $berkas = $byJenis->get($jenis); @endphp
+        @php
+            $berkas = $byJenis->get($jenis);
+            $terkunci = $berkas && $panitiaTerkunci && $berkas->status === TocBerkas::STATUS_DITERIMA;
+        @endphp
         <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
@@ -42,20 +46,37 @@
                         </a>
                         <form method="POST" action="{{ route('admin.toc.berkas.terima', $berkas) }}">
                             @csrf
-                            <button type="submit" class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-size-sm bg-success-600 text-white px-3 py-2 text-sm">
+                            <button type="submit" @disabled($terkunci) class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-size-sm bg-success-600 text-white px-3 py-2 text-sm disabled:opacity-50">
                                 Terima
                             </button>
                         </form>
                         <form method="POST" action="{{ route('admin.toc.berkas.tolak', $berkas) }}" class="flex gap-2">
                             @csrf
-                            <input type="text" name="catatan" required placeholder="Catatan penolakan" class="rounded-lg border px-2 py-1 text-sm dark:bg-gray-900" />
-                            <button type="submit" class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-size-sm bg-danger-600 text-white px-3 py-2 text-sm">
+                            <input type="text" name="catatan" @disabled($terkunci) @required(! $terkunci) placeholder="Alasan penolakan" class="rounded-lg border px-2 py-1 text-sm dark:bg-gray-900" />
+                            <button type="submit" @disabled($terkunci) class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-size-sm bg-danger-600 text-white px-3 py-2 text-sm disabled:opacity-50">
                                 Tolak
                             </button>
                         </form>
                     </div>
+                    @if ($terkunci)
+                        <p class="mt-2 text-xs text-gray-500">Sudah diterima. Hanya admin yang dapat mengubahnya.</p>
+                    @endif
                 @endif
             </div>
+
+            @if ($berkas)
+                @php
+                    $lihat = route('admin.toc.berkas.lihat', $berkas);
+                    $isImage = str_starts_with((string) $berkas->mime, 'image/');
+                @endphp
+                <div class="mt-3">
+                    @if ($isImage)
+                        <img src="{{ $lihat }}" alt="{{ $label }}" class="max-h-80 rounded-lg border border-gray-200 dark:border-gray-700" />
+                    @else
+                        <iframe src="{{ $lihat }}" title="{{ $label }}" class="h-96 w-full rounded-lg border border-gray-200 dark:border-gray-700"></iframe>
+                    @endif
+                </div>
+            @endif
         </div>
     @endforeach
 </div>

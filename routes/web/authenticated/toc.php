@@ -7,13 +7,20 @@ use Illuminate\Support\Facades\Route;
 Route::get('/toc/laporan-cetak', TocPrintReportController::class)
     ->name('toc.print-report');
 
-Route::middleware('role:admin,super_admin')->prefix('admin/toc')->name('admin.toc.')->group(function () {
+Route::middleware('role:admin,super_admin,panitia_berkas')->prefix('admin/toc')->name('admin.toc.')->group(function () {
     Route::get('/berkas/{berkas}/unduh', [TocBerkasAdminController::class, 'download'])
         ->name('berkas.download');
+    Route::get('/berkas/{berkas}/lihat', [TocBerkasAdminController::class, 'lihat'])
+        ->name('berkas.lihat');
     Route::post('/berkas/{berkas}/terima', [TocBerkasAdminController::class, 'terima'])
+        ->middleware('throttle:toc-berkas-keputusan')
         ->name('berkas.terima');
     Route::post('/berkas/{berkas}/tolak', [TocBerkasAdminController::class, 'tolak'])
+        ->middleware('throttle:toc-berkas-keputusan')
         ->name('berkas.tolak');
+});
+
+Route::middleware('role:admin,super_admin')->prefix('admin/toc')->name('admin.toc.')->group(function () {
     Route::get('/berkas/exports/langsung/{token}/bagian/{bagian}', [TocBerkasAdminController::class, 'downloadLangsung'])
         ->whereUuid('token')
         ->whereNumber('bagian')

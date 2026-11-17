@@ -10,6 +10,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TocBerkasVerificationService
 {
@@ -29,6 +30,8 @@ class TocBerkasVerificationService
             'verified_at' => now(),
         ])->save();
 
+        $this->recordKeputusan($berkas, $user, TocBerkas::STATUS_DITERIMA);
+
         return $berkas;
     }
 
@@ -39,6 +42,12 @@ class TocBerkasVerificationService
     public function reject(TocBerkas $berkas, User $user, string $catatan, bool $queueMail = true): TocBerkas
     {
         $catatan = trim($catatan);
+
+        if ($catatan === '') {
+            throw ValidationException::withMessages([
+                'catatan' => 'Alasan penolakan wajib diisi.',
+            ]);
+        }
 
         if ($berkas->status === TocBerkas::STATUS_DITOLAK && $berkas->catatan === $catatan) {
             return $berkas;
@@ -55,7 +64,32 @@ class TocBerkasVerificationService
             $this->dispatchRejectionMails([$berkas]);
         }
 
+        $this->recordKeputusan($berkas, $user, TocBerkas::STATUS_DITOLAK);
+
         return $berkas;
+    }
+
+    /**
+     * Catat siapa, kapan, nomor peserta, dan keputusan. Tanpa isi berkas.
+     */
+    private function recordKeputusan(TocBerkas $berkas, User $user, string $keputusan): void
+    {
+        $berkas->loadMissing('pendaftar');
+
+        TocBerkasAuditLog::record(
+            $keputusan === TocBerkas::STATUS_DITERIMA ? TocBerkasAuditLog::TYPE_TERIMA : TocBerkasAuditLog::TYPE_TOLAK,
+            (int) $user->getKey(),
+            [
+                'peserta' => 1,
+                'diterima' => $keputusan === TocBerkas::STATUS_DITERIMA ? 1 : 0,
+                'ditolak' => $keputusan === TocBerkas::STATUS_DITOLAK ? 1 : 0,
+            ],
+            [
+                'nomor_pendaftaran' => $berkas->pendaftar?->nomor_pendaftaran,
+                'jenis' => $berkas->jenis,
+                'keputusan' => $keputusan,
+            ],
+        );
     }
 
     /**

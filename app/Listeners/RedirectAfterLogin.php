@@ -12,6 +12,12 @@ class RedirectAfterLogin
     {
         $user = $event->user;
 
+        if ($user instanceof User && $user->isPanitiaBerkasOnly()) {
+            Redirect::setIntendedUrl('/admin/berkas-finalis-toc');
+
+            return;
+        }
+
         if ($user->hasSystemRole(['super_admin', 'admin', 'editor', 'writer', User::ROLE_ADMIN_TOC, User::ROLE_PANITIA_TOC])) {
             Redirect::setIntendedUrl('/admin');
 
