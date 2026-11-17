@@ -27,7 +27,7 @@ Mencakup menu tunggal, halaman lain 403, ZIP/impor/terima massal/CSV ditolak, to
 
 ## Data uji
 
-Tidak ada baris yang dihapus. Di produksi, seluruh finalis sudah bernomor `TOC-2026-` diikuti empat angka. Nomor uji `TOC-SMOKE-BROWSER-VERIFY` tidak ada. Jumlah finalis tetap 514.
+Laporan awal keliru: tidak ada baris ber-nomor `TOC-SMOKE-BROWSER-VERIFY`, tetapi nama smoke itu menimpa finalis asli `TOC-2026-0066`. Pemulihan ada di `laporan-pulihkan-0066.md`. Jumlah finalis tetap 514.
 
 ## Produksi
 
