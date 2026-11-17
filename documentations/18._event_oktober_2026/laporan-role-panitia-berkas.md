@@ -27,7 +27,15 @@ Mencakup menu tunggal, halaman lain 403, ZIP/impor/terima massal/CSV ditolak, to
 
 ## Data uji
 
-Basis data lokal (sqlite) tidak berisi finalis. Pembersihan baris uji di produksi dicatat setelah deploy.
+Tidak ada baris yang dihapus. Di produksi, seluruh finalis sudah bernomor `TOC-2026-` diikuti empat angka. Nomor uji `TOC-SMOKE-BROWSER-VERIFY` tidak ada. Jumlah finalis tetap 514.
+
+## Produksi
+
+Deploy lewat `scripts/deploy-production.ps1`. Migration membuat role `panitia_berkas`. Aset Filament dan Vite menjawab 200.
+
+Pemeriksaan memakai akun sementara dan satu peserta uji, lalu keduanya dihapus. Kata sandi tidak dicetak dan tidak disimpan. Email penolakan tidak terkirim ke peserta asli (`Mail::fake` pada proses uji).
+
+Hasil: halaman Users 403, menu berkas 200, URL ekspor ZIP 403, tolak tanpa alasan 422, terima berhasil, tolak setelah diterima 403, audit mencatat nomor peserta tanpa isi berkas. Setelah dibersihkan, finalis tetap 514.
 
 ## Berkas yang diubah
 
