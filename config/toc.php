@@ -18,7 +18,7 @@ return [
 
     'batas_unggah' => env('TOC_BATAS_UNGGAH', '2026-11-18 23:59:59'),
 
-    'batas_unggah_ulang' => env('TOC_BATAS_UNGGAH_ULANG', env('TOC_BATAS_UNGGAH', '2026-11-18 23:59:59')),
+    'batas_unggah_ulang' => env('TOC_BATAS_UNGGAH_ULANG', '2026-11-21 10:00:00'),
 
     'panitia_whatsapp' => array_values(array_filter(array_map(
         'trim',

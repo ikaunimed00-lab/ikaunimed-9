@@ -741,6 +741,63 @@ it('locks everyone after the reupload deadline', function () {
         ->assertInertia(fn (Assert $page) => $page->where('terkunci', true));
 });
 
+it('allows incomplete peserta to upload during the 21 Nov 2026 10.00 WIB susulan window', function () {
+    config(['toc.batas_unggah_ulang' => '2026-11-21 10:00:00']);
+
+    $takLengkap = verifMassalPeserta();
+    verifMassalBerkas($takLengkap, TocBerkas::JENIS_FOTO);
+
+    $lengkap = verifMassalPeserta();
+    verifMassalCompleteSet($lengkap);
+
+    $makePdf = function (string $name): UploadedFile {
+        $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.uniqid('toc-susulan-', true).'.pdf';
+        file_put_contents($path, "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n");
+
+        return new UploadedFile($path, $name, 'application/pdf', null, true);
+    };
+
+    foreach (['2026-11-20 12:00:00', '2026-11-21 09:59:00'] as $waktu) {
+        Carbon::setTestNow(Carbon::parse($waktu, 'Asia/Jakarta')->utc());
+
+        $this->withSession(verifMassalBerkasSession($takLengkap))
+            ->get(route('toc.berkas.formulir'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('terkunci', false)
+                ->where('batasUnggah', Carbon::parse('2026-11-21 10:00:00', 'Asia/Jakarta')->toIso8601String())
+                ->where('batasUnggahLabel', 'Sabtu, 21 November 2026 pukul 10.00 WIB'));
+
+        $this->withSession(verifMassalBerkasSession($takLengkap))
+            ->post(route('toc.berkas.unggah', TocBerkas::JENIS_PAKTA), [
+                'file' => $makePdf('pakta.pdf'),
+            ])
+            ->assertSessionHasNoErrors();
+    }
+
+    Carbon::setTestNow(Carbon::parse('2026-11-21 10:00:01', 'Asia/Jakarta')->utc());
+
+    $this->withSession(verifMassalBerkasSession($takLengkap))
+        ->post(route('toc.berkas.unggah', TocBerkas::JENIS_SURAT), [
+            'file' => $makePdf('surat.pdf'),
+        ])
+        ->assertSessionHasErrors('file');
+
+    Carbon::setTestNow(Carbon::parse('2026-11-19 00:00:01', 'Asia/Jakarta')->utc());
+
+    $this->withSession(verifMassalBerkasSession($lengkap))
+        ->get(route('toc.berkas.formulir'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('terkunci', true)
+            ->where('batasUnggah', Carbon::parse('2026-11-18 23:59:59', 'Asia/Jakarta')->toIso8601String()));
+
+    $this->withSession(verifMassalBerkasSession($lengkap))
+        ->post(route('toc.berkas.unggah', TocBerkas::JENIS_FOTO), [
+            'file' => UploadedFile::fake()->image('foto.jpg', 1080, 1350),
+            'setuju_publikasi' => true,
+        ])
+        ->assertSessionHasErrors('file');
+});
+
 it('forbids editors from every verification admin endpoint', function () {
     $editor = verifMassalAdmin('editor');
     $admin = verifMassalAdmin();

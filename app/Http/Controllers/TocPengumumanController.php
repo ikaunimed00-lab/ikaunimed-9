@@ -105,7 +105,7 @@ class TocPengumumanController extends Controller
     {
         return \Carbon\Carbon::parse(config('toc.batas_unggah'), config('toc.timezone'))
             ->locale('id')
-            ->translatedFormat('l, j F Y').' pukul 23.59 WIB';
+            ->translatedFormat('l, j F Y \p\u\k\u\l H.i').' WIB';
     }
 
     /**
