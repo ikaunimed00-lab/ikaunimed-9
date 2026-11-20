@@ -10,9 +10,11 @@ Unggah susulan dibuka sampai **Sabtu, 21 November 2026 pukul 10.00.00 WIB** hany
 | --- | --- | --- |
 | `TOC_BATAS_UNGGAH` | `2026-11-18 23:59:59` | tidak diubah |
 | `TOC_BATAS_UNGGAH_ULANG` | `2026-11-18 23:59:59` | `2026-11-21 10:00:00` |
-| `TOC_PENGUMUMAN_DIBUKA` | (apa adanya) | tidak diubah |
+| `TOC_PENGUMUMAN_DIBUKA` | `true` | tidak diubah |
 
 Zona waktu: `config('toc.timezone')` = `Asia/Jakarta`.
+
+Backup produksi: `.env.bak-susulan-20261120`.
 
 ## File yang diubah
 
@@ -31,8 +33,23 @@ Tidak ada teks tetap "18 November" di `/toc/berkas` atau email penolakan: keduan
 
 ## Verifikasi produksi
 
-(akan dilengkapi setelah deploy)
+Deploy: `scripts/deploy-production.ps1 -SkipComposer`.
+
+Setelah `php artisan config:clear` + `config:cache` + `queue:restart` (baca saja, tanpa unggah/email):
+
+```
+timezone=Asia/Jakarta
+batas_unggah=2026-11-18 23:59:59
+batas_unggah_ulang=2026-11-21 10:00:00
+pengumuman_dibuka=true
+now=2026-11-20 19:45:06
+TOC-2026-0066: jenis=0/3 ditolak=no incomplete=yes effectiveBatas=2026-11-21 10:00:00 tz=Asia/Jakarta
+TOC-2026-0018: jenis=3/3 ditolak=no incomplete=no effectiveBatas=2026-11-18 23:59:59 tz=Asia/Jakarta
+```
+
+Tidak ada email/notifikasi ke peserta nyata. Data peserta tidak diubah.
 
 ## Commit
 
-(akan dilengkapi setelah commit)
+- `a9bb485befe5689bacf3da9b7621a4e35e2d738e` — feat(toc): open incomplete berkas reupload until 21 Nov 10.00 WIB
+- Push: `ikaunimed00-lab` (akun terautentikasi di mesin ini; `networkingsuryadigital-tech` tidak aktif)
